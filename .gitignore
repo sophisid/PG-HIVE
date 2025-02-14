@@ -1,0 +1,52 @@
+# Metals (Scala language server) specific
+.metals/
+.bloop/
+.bsp/
+
+# sbt specific
+target/
+project/target/
+project/project/
+project/src_managed/
+project/project/project/
+lib_managed/
+src_managed/
+.history
+
+# Worksheets (e.g., Ammonite)
+*.worksheet.sc
+
+# IntelliJ IDEA specific
+.idea/
+*.iml
+*.iws
+*.ipr
+*.sw?
+
+# Eclipse specific
+.bin/
+.cache-main
+.cache-tests
+.classpath
+.project
+.settings/
+.scala_dependencies
+.worksheet
+
+# datasets non ziped
+datasets/*
+noisy_datasets/*
+output/*
+
+.metals/metals.mv.db
+/.metals
+schemadiscovery/hashed_data.parquet/._SUCCESS.crc
+/schemadiscovery/hashed_data.parquet
+/schemadiscovery/merged_patterns.parquet
+schemadiscovery/patterns_and_rows.ser
+schemadiscovery/build.sbt
+schemadiscovery/.env
+
+../.DS_Store
+../.metals/metals.mv.db
+load.txt
