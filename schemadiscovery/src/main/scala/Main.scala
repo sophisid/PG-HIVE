@@ -15,8 +15,12 @@ object Main {
 
     // load data
     val nodesDF = DataLoader.loadAllNodes(spark)
+    val EdgesDF = DataLoader.loadAllRelationships(spark)
     println("Initial nodes:")
     nodesDF.show(10, truncate = false)
+
+    println("Initial relationships:")
+    EdgesDF.show(10, truncate = false)
 
     // Create the knownLabels column
     val nodesWithKnown = nodesDF.withColumn("knownLabels", split(col("_labels"), ":"))
@@ -31,18 +35,40 @@ object Main {
     println(s"Nodes after removal (probability of drop = $dropProbability):")
     nodesAfterRemoval.select("_nodeId", "knownLabels").show(10, truncate = false)
 
-    val binaryMatrixDF_LSH = Clustering.createBinaryMatrix(nodesAfterRemoval).cache()
+    // Create the knownRelationships column
+    val EdgesWithKnown = EdgesDF.withColumn("knownRelationships", split(col("relationshipType"), ":"))
+    println("Edges with knownRelationships:")
+    EdgesWithKnown.select("srcId", "dstId", "knownRelationships").show(10, truncate = false)
+
+    // Remove knownRelationships with a certain probability
+    val dropProbabilityEdges = 0.5
+    val EdgesAfterRemoval = EdgesWithKnown.withColumn("knownRelationships",
+      when(rand(123) < dropProbabilityEdges, typedLit(Seq.empty[String])).otherwise(col("knownRelationships"))
+    )
+
+    val binaryMatrixforNodesDF_LSH = Clustering.createBinaryMatrixforNodes(nodesAfterRemoval).cache()
+
+    val binaryMatrixforEdgesDF_LSH = Clustering.createBinaryMatrixforEdges(EdgesAfterRemoval).cache()
+    binaryMatrixforEdgesDF_LSH.show(10, truncate = false)
 
     // LSH Clustering
-    val hybridClustersDF = Clustering.computeLSHJaccardPairs(
-      binaryMatrixDF_LSH,
+    val hybridNodes = Clustering.LSHClusteringNodes(
+      binaryMatrixforNodesDF_LSH,
       similarityThreshold = 0.8,
       desiredCollisionProbability = 0.9,
       distanceCutoff = 0.2
     )(spark)
 
+    // hybridNodes.show(1000,truncate = false)
 
-    hybridClustersDF.show(1000,truncate = false)
+    val hybridEdges = Clustering.LSHClusteringEdges(
+      binaryMatrixforEdgesDF_LSH,
+      similarityThreshold = 0.8,
+      desiredCollisionProbability = 0.9,
+      distanceCutoff = 0.2
+    )(spark)
+
+    hybridEdges.show(1000,truncate = false)
 
     spark.stop()
   }
