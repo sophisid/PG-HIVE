@@ -1,6 +1,6 @@
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.functions._
-import org.apache.spark.ml.feature.{MinHashLSH, VectorAssembler}
+import org.apache.spark.ml.feature.{MinHashLSH, VectorAssembler, Word2Vec}
 import org.apache.spark.ml.linalg.{Vector, Vectors, SparseVector, DenseVector}
 
 object Clustering {
@@ -18,18 +18,27 @@ object Clustering {
     }
   }
 
-  def calculateNumHashTables(similarityThreshold: Double, desiredCollisionProbability: Double): Int = {
-    require(similarityThreshold > 0.0 && similarityThreshold < 1.0,
-      "similarityThreshold must be between 0 and 1 (exclusive).")
-    require(desiredCollisionProbability > 0.0 && desiredCollisionProbability < 1.0,
-      "desiredCollisionProbability must be between 0 and 1 (exclusive).")
+  // to cite Indyk & Motwani (1998) – Approximate Nearest Neighbors: Towards Removing the Curse of Dimensionality
+  // Gionis et al. (1999) – Similarity Search in High Dimensions via Hashing pages = {518--529}
 
-    val numerator   = scala.math.log(1 - desiredCollisionProbability)
-    val denominator = scala.math.log(similarityThreshold)
-    val b = numerator / denominator
+  def calculateNumHashTables(datasetSize: Int, scalingFactor: Double = 10.0): Int = {
+    require(datasetSize > 0, "Dataset size must be positive.")
 
-    scala.math.ceil(b).toInt 
+    val L = scalingFactor * math.log(datasetSize)
+    scala.math.ceil(L).toInt
   }
+
+  def calculateNumHashFunctions(datasetSize: Int, similarityThreshold: Double): Int = {
+    require(datasetSize > 0, "Dataset size must be positive.")
+    require(similarityThreshold > 0.0 && similarityThreshold < 1.0, 
+            "Similarity threshold must be between 0 and 1 (exclusive).")
+
+    val k = math.log(datasetSize) / math.log(1.0 / similarityThreshold)
+    scala.math.ceil(k).toInt
+  }
+
+
+
 
   /**
     * Creates a binary matrix 0-1 from the input DataFrame.
@@ -43,27 +52,44 @@ object Clustering {
     val binaryDF = propertyColumns.foldLeft(df) { (tempDF, colName) =>
       tempDF.withColumn(colName, when(col(colName).isNotNull, 1).otherwise(0))
     }
+    //take the column of known labels and make it a word2vec
+    val word2Vec = new Word2Vec()
+      .setInputCol("knownLabels")
+      .setOutputCol("word2vec")
+      .setVectorSize(3)
+      .setMinCount(0)
 
-    println(s"Binary matrix created with ${binaryDF.columns.length} columns.")
-    println("Sample data from binary matrix:")
-    binaryDF.show(5)
-    binaryDF
+    val model = word2Vec.fit(binaryDF)
+    val result = model.transform(binaryDF)
+
+    println("Sample data from word2vec:")
+    result.show(5)
+    result
   }
 
   def createBinaryMatrixforEdges(df: DataFrame): DataFrame = {
     val spark = df.sparkSession
 
-    val propertyColumns = df.columns.filterNot(colName => colName == "srcId" || colName == "dstId" || colName == "relationshipType")
+    val propertyColumns = df.columns.filterNot(colName => colName == "srcId" || colName == "dstId" || colName == "knownRelationships")
 
     // Transform each property column to binary (1 if not null, 0 otherwise)
     val binaryDF = propertyColumns.foldLeft(df) { (tempDF, colName) =>
       tempDF.withColumn(colName, when(col(colName).isNotNull, 1).otherwise(0))
     }
 
-    println(s"Binary matrix created with ${binaryDF.columns.length} columns.")
-    println("Sample data from binary matrix:")
-    binaryDF.show(5)
-    binaryDF
+   //take the column of known labels and make it a word2vec
+    val word2Vec = new Word2Vec()
+      .setInputCol("knownRelationships")
+      .setOutputCol("word2vec")
+      .setVectorSize(3)
+      .setMinCount(0)
+
+    val model = word2Vec.fit(binaryDF)
+    val result = model.transform(binaryDF)
+    
+    println("Sample data from word2vec:")
+    result.show(5)
+    result
   }
 
   /**
@@ -73,7 +99,8 @@ object Clustering {
       nodesDF: DataFrame,
       similarityThreshold: Double = 0.8,
       desiredCollisionProbability: Double = 0.9,
-      distanceCutoff: Double = 0.2
+      distanceCutoff: Double = 0.2,
+      datasetSize: Int
     )
     (implicit spark: SparkSession): DataFrame = {
 
@@ -85,10 +112,11 @@ object Clustering {
 
     val featureDF = assembler.transform(nodesDF)
 
-    // find the number of hash tables to use
-    //TODO needs refinement
-    val numHashTables = calculateNumHashTables(similarityThreshold, desiredCollisionProbability)
-    println(s"Using numHashTables: $numHashTables")
+    val numHashTables = calculateNumHashTables(datasetSize)
+    val numHashFunctions = calculateNumHashFunctions(datasetSize, similarityThreshold)
+
+    println(s"Adaptive numHashTables: $numHashTables")
+    println(s"Adaptive numHashFunctions: $numHashFunctions")
 
     val mh = new MinHashLSH()
       .setNumHashTables(numHashTables)
@@ -121,7 +149,7 @@ object Clustering {
       .orderBy(desc("countNodes"))
 
     println("\n---- Distinct Hash Patterns with Labels ----")
-    distinctHashPatterns.show(20, truncate = false)
+    // distinctHashPatterns.show(20, truncate = false)
 
     println("\n---- countNodes for first 10 distinct hash signatures ----")
     distinctHashPatterns.select("countNodes").show(10, truncate = false)
@@ -151,22 +179,25 @@ object Clustering {
       edgesDF: DataFrame,
       similarityThreshold: Double = 0.8,
       desiredCollisionProbability: Double = 0.9,
-      distanceCutoff: Double = 0.2
+      distanceCutoff: Double = 0.2,
+      datasetSize: Int
     )
     (implicit spark: SparkSession): DataFrame = {
 
     import spark.implicits._
 
     val assembler = new VectorAssembler()
-      .setInputCols(edgesDF.columns.filterNot(colName => colName == "srcId" || colName == "dstId" || colName == "relationshipType"))
+      .setInputCols(edgesDF.columns.filterNot(colName => colName == "srcId" || colName == "dstId" || colName == "knownRelationships"))
       .setOutputCol("features")
 
     val featureDF = assembler.transform(edgesDF)
 
     // find the number of hash tables to use
-    //TODO needs refinement
-    val numHashTables = calculateNumHashTables(similarityThreshold, desiredCollisionProbability)
-    println(s"Using numHashTables: $numHashTables")
+    val numHashTables = calculateNumHashTables(datasetSize)
+    val numHashFunctions = calculateNumHashFunctions(datasetSize, similarityThreshold)
+
+    println(s"Adaptive numHashTables: $numHashTables")
+    println(s"Adaptive numHashFunctions: $numHashFunctions")
 
     val mh = new MinHashLSH()
       .setNumHashTables(numHashTables)
@@ -200,12 +231,14 @@ object Clustering {
       .orderBy(desc("countEdges"))
 
     println("\n---- Distinct Hash Patterns with Labels ----")
-    distinctHashPatterns.show(20, truncate = false)
+    // distinctHashPatterns.show(20, truncate = false)
 
     println("\n---- countEdges for first 10 distinct hash signatures ----")
     distinctHashPatterns.select("countEdges").show(10, truncate = false)
 
     distinctHashPatterns
   }
+
+  
 
 }
