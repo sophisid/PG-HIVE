@@ -33,8 +33,16 @@ src_managed/
 .scala_dependencies
 .worksheet
 
-# datasets non ziped
-datasets/*
+# Ignore everything inside datasets/
+datasets/fib25_neo4j_inputs
+datasets/mb6_neo4j_inputs
+datasets/LDBC/ldbc_inputs1
+datasets/LDBC/ldbc_inputs2
+datasets/LDBC/ldbc_inputs3
+datasets/LDBC/ldbc_inputs4
+
+# Keep all .zip files inside datasets/ (even in subdirectories)
+!datasets/**/*.zip
 noisy_datasets/*
 output/*
 
