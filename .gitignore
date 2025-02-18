@@ -34,15 +34,17 @@ src_managed/
 .worksheet
 
 # Ignore everything inside datasets/
-datasets/fib25_neo4j_inputs
-datasets/mb6_neo4j_inputs
+datasets/FIB25/**
+datasets/FIB25/*.zip
+datasets/MB6/**
+datasets/MB6/*.zip
+datasets/LDBC/**
+datasets/LDBC/*.zip
 datasets/LDBC/ldbc_inputs1
 datasets/LDBC/ldbc_inputs2
 datasets/LDBC/ldbc_inputs3
 datasets/LDBC/ldbc_inputs4
 
-# Keep all .zip files inside datasets/ (even in subdirectories)
-!datasets/**/*.zip
 noisy_datasets/*
 output/*
 
