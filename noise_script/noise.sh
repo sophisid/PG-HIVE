@@ -4,7 +4,7 @@
 datasets=("MB6")
 
 # Define an array of corruption percentages
-percentages=(10 20 30 40 50 60 70 80 90 100)
+percentages=(10 20 30 40 50 60 70 80 90)
 
 # Base input and output paths
 input_base="../datasets/"

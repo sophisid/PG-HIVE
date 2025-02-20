@@ -11,7 +11,7 @@ object DataLoader {
 
     val uri = "bolt://localhost:7687"
     val user = "neo4j"
-    val password = "mypassword"
+    val password = "password"
 
     val driver = GraphDatabase.driver(uri, AuthTokens.basic(user, password))
     val session = driver.session()
