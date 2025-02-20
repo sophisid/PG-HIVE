@@ -21,8 +21,8 @@ object Main {
 
     // Preprocess data
     val dropProbability = 0.5
-    val (binaryMatrixforNodesDF_LSH, binaryMatrixforEdgesDF_LSH, dropProbability) =
-      Preprocessing.preprocessing(spark, nodesDF, EdgesDF)
+    val (binaryMatrixforNodesDF_LSH, binaryMatrixforEdgesDF_LSH) =
+      Preprocessing.preprocessing(spark, nodesDF, EdgesDF, dropProbability)
 
     // LSH Clustering
     val hybridNodes = Clustering.LSHClusteringNodes(
@@ -32,6 +32,9 @@ object Main {
       distanceCutoff = 0.2,
       datasetSize = nodesSize
     )(spark)
+
+    // val distinctLabelsPerCluster = Clustering.extractDistinctLabels(hybridNodes)(spark)
+
 
     val hybridEdges = Clustering.LSHClusteringEdges(
       binaryMatrixforEdgesDF_LSH,

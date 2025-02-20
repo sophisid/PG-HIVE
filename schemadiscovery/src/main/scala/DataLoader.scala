@@ -11,7 +11,7 @@ object DataLoader {
 
     val uri = "bolt://localhost:7687"
     val user = "neo4j"
-    val password = "password"
+    val password = "mypassword"
 
     val driver = GraphDatabase.driver(uri, AuthTokens.basic(user, password))
     val session = driver.session()
@@ -19,7 +19,7 @@ object DataLoader {
     println("Loading all nodes from Neo4j")
 
     // The query to return property labels
-    val result = session.run("MATCH (n) WITH n, rand() AS random RETURN n, labels(n) AS labels ORDER BY random")
+    val result = session.run("MATCH (n) WITH n, rand() AS random RETURN n, labels(n) AS labels ORDER BY random LIMIT 1000")
     val nodes = result.list().asScala.map { record =>
       val node = record.get("n").asNode()
       val labels = record.get("labels").asList().asScala.map(_.toString)
@@ -67,55 +67,58 @@ object DataLoader {
   }
 
   def loadAllRelationships(spark: SparkSession): DataFrame = {
-    import spark.implicits._
+      import spark.implicits._
 
-    val uri = "bolt://localhost:7687"
-    val user = "neo4j"
-    val password = "mypassword"
+      val uri = "bolt://localhost:7687"
+      val user = "neo4j"
+      val password = "mypassword"
 
-    val driver = GraphDatabase.driver(uri, AuthTokens.basic(user, password))
-    val session = driver.session()
+      val driver = GraphDatabase.driver(uri, AuthTokens.basic(user, password))
+      val session = driver.session()
 
-    println("Loading all relationships from Neo4j with properties")
+      val result = session.run(
+        """MATCH (n)-[r]->(m)
+          |WITH n, r, m, rand() AS random
+          |RETURN id(n) AS srcId, labels(n) AS srcType, 
+          |       id(m) AS dstId, labels(m) AS dstType, 
+          |       type(r) AS relationshipType, properties(r) AS properties
+          |ORDER BY random LIMIT 1000""".stripMargin
+      )
 
-    val result = session.run("MATCH (n)-[r]->(m) WITH n, r, m, rand() AS random RETURN id(n) AS srcId, id(m) AS dstId, type(r) AS relationshipType, properties(r) AS properties ORDER BY random")
+      val relationships = result.list().asScala.map { record =>
+        val srcId = record.get("srcId").asLong()
+        val dstId = record.get("dstId").asLong()
+        val srcType = record.get("srcType").asList().asScala.mkString(":")
+        val dstType = record.get("dstType").asList().asScala.mkString(":")  
+        val relationshipType = record.get("relationshipType").asString()
+        val properties = record.get("properties").asMap().asScala.toMap.mapValues(_.toString)
 
-    val relationships = result.list().asScala.map { record =>
-      val srcId = record.get("srcId").asLong()
-      val dstId = record.get("dstId").asLong()
-      val relationshipType = record.get("relationshipType").asString()
-      val properties = record.get("properties").asMap().asScala.toMap.mapValues(_.toString)
-
-      // Include srcId, dstId, relationshipType in the map
-      properties + ("srcId" -> srcId, "dstId" -> dstId, "relationshipType" -> relationshipType)
-    }
-
-    session.close()
-    driver.close()
-
-    // Collect all unique property keys dynamically
-    val allKeys = relationships.flatMap(_.keys).toSet
-
-    // Define schema dynamically
-    val fields = allKeys.map { key =>
-      if (key == "srcId" || key == "dstId") StructField(key, LongType, nullable = false)
-      else StructField(key, StringType, nullable = true)
-    }.toArray
-    val schema = StructType(fields)
-
-    // Convert Map list to DataFrame
-    val rows = relationships.map { relMap =>
-      val values = schema.fields.map { field =>
-        Option(relMap.getOrElse(field.name, null)).orNull
+        properties + ("srcId" -> srcId, "dstId" -> dstId, "relationshipType" -> relationshipType, "srcType" -> srcType, "dstType" -> dstType)
       }
-      Row(values: _*)
-    }
 
-    val relationshipsDF = spark.createDataFrame(spark.sparkContext.parallelize(rows.toSeq), schema)
+      session.close()
+      driver.close()
 
-    println(s"Total relationships loaded: ${relationshipsDF.count()}")
-    relationshipsDF.printSchema()
-    relationshipsDF
+      val allKeys = relationships.flatMap(_.keys).toSet
+
+      val fields = allKeys.map { key =>
+        if (key == "srcId" || key == "dstId") StructField(key, LongType, nullable = false)
+        else StructField(key, StringType, nullable = true)
+      }.toArray
+      val schema = StructType(fields)
+
+      val rows = relationships.map { relMap =>
+        val values = schema.fields.map { field =>
+          Option(relMap.getOrElse(field.name, null)).orNull
+        }
+        Row(values: _*)
+      }
+
+      val relationshipsDF = spark.createDataFrame(spark.sparkContext.parallelize(rows.toSeq), schema)
+
+      println(s"Total relationships loaded: ${relationshipsDF.count()}")
+      relationshipsDF.printSchema()
+      relationshipsDF
   }
 }
 

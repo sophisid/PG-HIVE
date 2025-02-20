@@ -28,7 +28,13 @@ lazy val root = (project in file("."))
 
 
     // Ensure the application forks when running to use the Java options
-    Compile / run / fork := true
+    Compile / run / fork := true,
+    Compile / run / javaOptions ++= Seq(
+      "-Xmx8g",
+      "-Xms4g",
+      "-Dspark.driver.memory=8g",
+      "-Dspark.executor.memory=8g"
+    )
   )
 
 import sbtassembly.AssemblyPlugin.autoImport._
