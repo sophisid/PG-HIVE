@@ -75,7 +75,7 @@ object Preprocessing {
 
   def preprocessing(spark: SparkSession,
                     nodesDF: DataFrame,
-                    EdgesDF: DataFrame,
+                    edgesDF: DataFrame,
                     dropProbability: Double): (DataFrame, DataFrame) = {
 
     import spark.implicits._
@@ -87,12 +87,12 @@ object Preprocessing {
         .otherwise(col("knownLabels"))
     )
 
-    val EdgesWithKnown = EdgesDF
+    val edgesWithKnown = edgesDF
       .withColumn("knownRelationships", split(col("relationshipType"), ":"))
       .withColumn("srcType", split(col("srcType"), ":"))
       .withColumn("dstType", split(col("dstType"), ":"))
 
-    val EdgesAfterRemoval = EdgesWithKnown
+    val edgesAfterRemoval = edgesWithKnown
       .withColumn(
         "knownRelationships",
         when(rand(123) < dropProbability, typedLit(Seq.empty[String]))
@@ -100,7 +100,7 @@ object Preprocessing {
       )
 
     val binaryMatrixforNodesDF_LSH = Preprocessing.createBinaryMatrixforNodes(nodesAfterRemoval).cache()
-    val binaryMatrixforEdgesDF_LSH = Preprocessing.createBinaryMatrixforEdges(EdgesAfterRemoval).cache()
+    val binaryMatrixforEdgesDF_LSH = Preprocessing.createBinaryMatrixforEdges(edgesAfterRemoval).cache()
 
     println("Binary Matrix for Nodes:")
     binaryMatrixforNodesDF_LSH.show(5)

@@ -47,6 +47,10 @@ object Clustering {
     distinctLabelsPerCluster
   }
 
+  val findPatternColumnsUDF = udf { (features: Vector, colNames: Seq[String]) =>
+    features.toArray.zip(colNames).collect { case (value, name) if value == 1.0 => name }
+  }
+
 
   /**
     * Computes the LSH Jaccard similarity pairs.
@@ -57,125 +61,136 @@ object Clustering {
       desiredCollisionProbability: Double = 0.9,
       distanceCutoff: Double = 0.2,
       datasetSize: Int
-    )
-    (implicit spark: SparkSession): DataFrame = {
+  )(implicit spark: SparkSession): DataFrame = {
 
     import spark.implicits._
 
-    val propertyColumns = nodesDF.columns.filterNot(colName => 
+    // Identify the property columns (excluding metadata)
+    val propertyColumns = nodesDF.columns.filterNot(colName =>
       Seq("_nodeId", "features", "knownLabels").contains(colName)
     )
 
+    // UDF to extract the columns with value 1 (active properties)
+    val findPatternColumnsUDF = udf { (features: Vector, colNames: Seq[String]) =>
+      features.toArray.zip(colNames).collect { case (value, name) if value == 1.0 => name }
+    }
 
+    // Convert properties into a feature vector
     val assembler = new VectorAssembler()
-      .setInputCols(nodesDF.columns.filterNot(colName => colName == "_nodeId" || colName == "knownLabels"))
+      .setInputCols(propertyColumns)
       .setOutputCol("features")
 
     val featureDF = assembler.transform(nodesDF)
 
     val numHashTables = calculateNumHashTables(datasetSize)
-
     println(s"Adaptive numHashTables: $numHashTables")
 
+    // Apply LSH for clustering
     val brp = new BucketedRandomProjectionLSH()
-      .setBucketLength(2.0) // Adjust based on dataset
-      .setNumHashTables(numHashTables) // Try different values
+      .setBucketLength(2.0)
+      .setNumHashTables(numHashTables)
       .setInputCol("features")
       .setOutputCol("hashes")
-      
-      val brpModel = brp.fit(featureDF)
-      val transformedDF = brpModel.transform(featureDF)
 
-
-
-    val lshClean = transformedDF.withColumnRenamed("knownLabels", "lshKnownLabels")
-
-    val lshWithLabels = lshClean.join(
-      nodesDF.select("_nodeId", "knownLabels"),
-      Seq("_nodeId"),
-      joinType = "left" 
-    ) // this is for the knownLabels
-
-    val distinctHashPatterns = lshWithLabels
-      .groupBy($"hashes")
-      .agg(
-        collect_list($"_nodeId").as("nodesWithThisHash"),
-        collect_list($"knownLabels").as("labelsForNodes"),
-        count($"_nodeId").as("countNodes")
-      )
-      .orderBy(desc("countNodes"))
-
-
-    // println("\n---- countNodes for first 10 distinct hash signatures ----")
-    // distinctHashPatterns.select("countNodes").show(10, truncate = false)
-    val distinctCluster = extractDistinctLabels(distinctHashPatterns)(spark)
-    distinctCluster
-  }
-
-  def LSHClusteringEdges(
-    edgesDF: DataFrame,
-    similarityThreshold: Double = 0.8,
-    desiredCollisionProbability: Double = 0.9,
-    distanceCutoff: Double = 0.2,
-    datasetSize: Int
-  )
-  (implicit spark: SparkSession): DataFrame = {
-
-    import spark.implicits._
-
-    // Assemble features (excluding srcId, dstId, relationshipType, knownRelationships, etc.)
-    val assembler = new VectorAssembler()
-      .setInputCols(
-        edgesDF.columns.filterNot { colName =>
-          colName == "srcId" || 
-          colName == "dstId" ||
-          colName == "knownRelationships" || 
-          colName == "srcType" ||
-          colName == "dstType"
-        }
-      )
-      .setOutputCol("features")
-
-    val featureDF = assembler.transform(edgesDF)
-    val numHashTables = calculateNumHashTables(datasetSize)
-
-    println(s"Adaptive numHashTables: $numHashTables")
-    
-    val brp = new BucketedRandomProjectionLSH()
-      .setBucketLength(2.0) // Adjust based on dataset
-      .setNumHashTables(numHashTables) // Try different values
-      .setInputCol("features")
-      .setOutputCol("hashes")
-      
     val brpModel = brp.fit(featureDF)
     val transformedDF = brpModel.transform(featureDF)
-    // println("\n---- Sample of LSH output (hashes) ----")
-    // transformedDF.show(5, truncate = false)
 
-    // Keep your edges’ knownRelationships as lshKnownRelationships for clarity
-    val lshClean = transformedDF.withColumnRenamed("knownRelationships", "lshKnownRelationships")
-
-    // Join to bring back any additional columns (like relationshipType)
-    val lshWithLabels = lshClean.join(
-      edgesDF.select("srcId", "dstId", "relationshipType"),
-      Seq("srcId", "dstId", "relationshipType"),
-      joinType = "left"
+    // Extract active features for each node
+    val withPatterns = transformedDF.withColumn(
+      "patternColumns",
+      findPatternColumnsUDF($"features", typedLit(propertyColumns))
     )
 
-    val distinctHashPatterns = lshWithLabels
-        .groupBy($"hashes")
-        .agg(
-          collect_set($"lshKnownRelationships").as("labelsForEdges"),
-          collect_set($"srcType").as("srcTypesForEdges"),
-          collect_set($"dstType").as("dstTypesForEdges")
-        )
+    // Group by cluster (hashes) and collect distinct patterns
+    val discoveredPatterns = withPatterns
+      .groupBy($"hashes")
+      .agg(
+        collect_set($"knownLabels").as("EntityType"),
+        collect_set($"patternColumns").as("Patterns")
+      )
 
-      distinctHashPatterns
-        .select("labelsForEdges", "srcTypesForEdges", "dstTypesForEdges")
-        .show(truncate = false)
+    // Print discovered patterns in a structured format
+    println("\n---- Discovered Patterns ----")
+    discoveredPatterns.collect().foreach { row =>
+      val entityTypes = row.getAs[Seq[Seq[String]]]("EntityType").flatten.distinct.mkString(", ")
+      val patterns = row.getAs[Seq[Seq[String]]]("Patterns").flatten.distinct.mkString(", ")
+      println(s"$entityTypes: $patterns")
+    }
 
-    distinctHashPatterns
+    discoveredPatterns
   }
+
+
+
+def LSHClusteringEdges(
+  edgesDF: DataFrame,
+  similarityThreshold: Double = 0.8,
+  desiredCollisionProbability: Double = 0.9,
+  distanceCutoff: Double = 0.2,
+  datasetSize: Int
+)(implicit spark: SparkSession): DataFrame = {
+
+  import spark.implicits._
+
+  // Identify property columns (excluding metadata)
+  val propertyColumns = edgesDF.columns.filterNot { colName =>
+    Seq("srcId", "dstId", "knownRelationships", "srcType", "dstType").contains(colName)
+  }
+
+  // UDF to extract active features (columns with value 1)
+  val findPatternColumnsUDF = udf { (features: Vector, colNames: Seq[String]) =>
+    features.toArray.zip(colNames).collect { case (value, name) if value == 1.0 => name }
+  }
+
+  // Convert properties into a feature vector
+  val assembler = new VectorAssembler()
+    .setInputCols(propertyColumns)
+    .setOutputCol("features")
+
+  val featureDF = assembler.transform(edgesDF)
+
+  val numHashTables = calculateNumHashTables(datasetSize)
+  println(s"Adaptive numHashTables: $numHashTables")
+
+  // Apply LSH for clustering
+  val brp = new BucketedRandomProjectionLSH()
+    .setBucketLength(2.0) // Adjust based on dataset
+    .setNumHashTables(numHashTables)
+    .setInputCol("features")
+    .setOutputCol("hashes")
+
+  val brpModel = brp.fit(featureDF)
+  val transformedDF = brpModel.transform(featureDF)
+
+  // Extract active features for each edge
+  val withPatterns = transformedDF.withColumn(
+    "patternColumns",
+    findPatternColumnsUDF($"features", typedLit(propertyColumns))
+  )
+
+  // Group by relationship type (knownRelationships) and collect distinct patterns + range labels
+  val discoveredPatterns = withPatterns
+    .groupBy($"hashes")
+    .agg(
+      collect_set($"knownRelationships").as("RelationshipType"),  // ✅ Relationship type
+      collect_set($"srcType").as("SourceType"),                  // ✅ Source node labels
+      collect_set($"dstType").as("DestinationType"),             // ✅ Destination node labels
+      collect_set($"patternColumns").as("Patterns")              // ✅ Features defining the relationship
+    )
+
+  // Print discovered patterns in a structured format
+  println("\n---- Discovered Patterns for Relationships ----")
+  discoveredPatterns.collect().foreach { row =>
+    val relationshipTypes = row.getAs[Seq[Seq[String]]]("RelationshipType").flatten.distinct.mkString(", ")
+    val sourceTypes = row.getAs[Seq[Seq[String]]]("SourceType").flatten.distinct.mkString(", ")
+    val destinationTypes = row.getAs[Seq[Seq[String]]]("DestinationType").flatten.distinct.mkString(", ")
+    val patterns = row.getAs[Seq[Seq[String]]]("Patterns").flatten.distinct.mkString(", ")
+
+    println(s"$relationshipTypes ($sourceTypes → $destinationTypes): $patterns")
+  }
+
+  discoveredPatterns
+}
 
 
 }

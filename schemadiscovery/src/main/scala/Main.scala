@@ -7,6 +7,8 @@ object Main {
       .appName("HybridLSHDemo")
       .master("local[*]")
       .config("spark.serializer", "org.apache.spark.serializer.JavaSerializer")
+      .config("spark.driver.host", "localhost") // Fix potential hostname issues
+      .config("spark.driver.bindAddress", "127.0.0.1") // Prevent binding issues
       .getOrCreate()
 
     spark.sparkContext.setLogLevel("ERROR")
@@ -15,14 +17,14 @@ object Main {
 
     // Load data
     val nodesDF = DataLoader.loadAllNodes(spark)
-    val EdgesDF = DataLoader.loadAllRelationships(spark)
+    val edgesDF = DataLoader.loadAllRelationships(spark)
     val nodesSize = nodesDF.count().toInt
-    val edgesSize = EdgesDF.count().toInt
+    val edgesSize = edgesDF.count().toInt
 
     // Preprocess data
     val dropProbability = 0.5
     val (binaryMatrixforNodesDF_LSH, binaryMatrixforEdgesDF_LSH) =
-      Preprocessing.preprocessing(spark, nodesDF, EdgesDF, dropProbability)
+      Preprocessing.preprocessing(spark, nodesDF, edgesDF, dropProbability)
 
     // LSH Clustering
     val hybridNodes = Clustering.LSHClusteringNodes(

@@ -1,7 +1,7 @@
 import sbt._
 
 object Dependencies {
-  val scalaVer = "2.12.18"
+  val scalaVer = "2.12.17"
   val munitVer = "0.7.29"
   val sparkVer = "3.4.1"
 
