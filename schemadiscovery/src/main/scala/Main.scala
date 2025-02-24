@@ -16,8 +16,9 @@ object Main {
     import spark.implicits._
 
     // Load data
-    val nodesDF = DataLoader.loadAllNodes(spark)
-    val edgesDF = DataLoader.loadAllRelationships(spark)
+    val noisePercentage = 0.3
+    val nodesDF = DataLoader.loadAllNodes(spark, noisePercentage)
+    val edgesDF = DataLoader.loadAllRelationships(spark,noisePercentage)
     val nodesSize = nodesDF.count().toInt
     val edgesSize = edgesDF.count().toInt
 
@@ -49,8 +50,8 @@ object Main {
     // hybridNodes.show(1000, truncate = false)
     // hybridEdges.show(1000, truncate = false)
     
-    Evaluation.computeMetricsWithoutPairwise(hybridNodes, entityCol = "EntityType")
-    Evaluation.computeMetricsWithoutPairwise(hybridEdges, entityCol = "RelationshipType")
+    // Evaluation.computeMetricsWithoutPairwise(hybridNodes, entityCol = "EntityType")
+    // Evaluation.computeMetricsWithoutPairwise(hybridEdges, entityCol = "RelationshipType")
 
     val patternNodesFromJaccard = Clustering.clusterPatternsWithMinHash(hybridNodes, isNode = true)(spark)
     println("\n---- Discovered Patterns from Jaccard ----")

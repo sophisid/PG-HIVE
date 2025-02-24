@@ -2,11 +2,17 @@ import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.apache.spark.sql.types._
 import org.neo4j.driver.{AuthTokens, GraphDatabase}
 import scala.collection.JavaConverters._
+import scala.util.Random
+
 
 object DataLoader {
-
+  def addNoise(properties: Map[String, Any], noisePercentage: Double): Map[String, Any] = {
+  properties.map { case (key, value) =>
+    if (Random.nextDouble() < noisePercentage) (key, null) else (key, value)
+  }
+}
   // Function to load all nodes without labels
-  def loadAllNodes(spark: SparkSession): DataFrame = {
+  def loadAllNodes(spark: SparkSession,noisePercentage: Double): DataFrame = {
     import spark.implicits._
 
     val uri = "bolt://localhost:7687"
@@ -19,14 +25,15 @@ object DataLoader {
     println("Loading all nodes from Neo4j")
 
     // The query to return property labels
-    val result = session.run("MATCH (n) WITH n, rand() AS random RETURN n, labels(n) AS labels ORDER BY random LIMIT 1000")
+    val result = session.run("MATCH (n) WITH n, rand() AS random RETURN n, labels(n) AS labels ORDER BY random ")
     val nodes = result.list().asScala.map { record =>
       val node = record.get("n").asNode()
       val labels = record.get("labels").asList().asScala.map(_.toString)
       val props = node.asMap().asScala.toMap
       // Include node ID and labels
       // Store _nodeId as Long
-      props + ("_nodeId" -> node.id()) + ("_labels" -> labels.mkString(":"))
+      val noisyProps = addNoise(props, noisePercentage / 100) // Apply noise
+      noisyProps + ("_nodeId" -> node.id()) + ("_labels" -> labels.mkString(":"))
     }
 
     session.close()
@@ -66,7 +73,7 @@ object DataLoader {
     nodesDF
   }
 
-  def loadAllRelationships(spark: SparkSession): DataFrame = {
+  def loadAllRelationships(spark: SparkSession,noisePercentage: Double): DataFrame = {
       import spark.implicits._
 
       val uri = "bolt://localhost:7687"
@@ -82,7 +89,7 @@ object DataLoader {
           |RETURN id(n) AS srcId, labels(n) AS srcType, 
           |       id(m) AS dstId, labels(m) AS dstType, 
           |       type(r) AS relationshipType, properties(r) AS properties
-          |ORDER BY random LIMIT 1000""".stripMargin
+          |ORDER BY random """.stripMargin
       )
 
       val relationships = result.list().asScala.map { record =>
@@ -93,7 +100,8 @@ object DataLoader {
         val relationshipType = record.get("relationshipType").asString()
         val properties = record.get("properties").asMap().asScala.toMap.mapValues(_.toString)
 
-        properties + ("srcId" -> srcId, "dstId" -> dstId, "relationshipType" -> relationshipType, "srcType" -> srcType, "dstType" -> dstType)
+        val noisyProperties = addNoise(properties, noisePercentage / 100) // Apply noise   
+        noisyProperties + ("srcId" -> srcId, "dstId" -> dstId, "relationshipType" -> relationshipType, "srcType" -> srcType, "dstType" -> dstType)
       }
 
       session.close()
