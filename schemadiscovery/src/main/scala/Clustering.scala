@@ -172,10 +172,10 @@ def LSHClusteringEdges(
   val discoveredPatterns = withPatterns
     .groupBy($"hashes")
     .agg(
-      collect_set($"knownRelationships").as("RelationshipType"),  // ✅ Relationship type
-      collect_set($"srcType").as("SourceType"),                  // ✅ Source node labels
-      collect_set($"dstType").as("DestinationType"),             // ✅ Destination node labels
-      collect_set($"patternColumns").as("Patterns")              // ✅ Features defining the relationship
+      collect_set($"knownRelationships").as("RelationshipType"),
+      collect_set($"srcType").as("SourceType"),
+      collect_set($"dstType").as("DestinationType"),
+      collect_set($"patternColumns").as("Patterns")
     )
 
   // Print discovered patterns in a structured format
@@ -191,6 +191,71 @@ def LSHClusteringEdges(
 
   discoveredPatterns
 }
+
+def clusterPatternsWithMinHash(discoveredPatterns: DataFrame, isNode: Boolean)
+                              (implicit spark: org.apache.spark.sql.SparkSession): DataFrame = {
+  import spark.implicits._
+
+  val entityCol = if (isNode) "EntityType" else "RelationshipType"
+
+  if (!discoveredPatterns.columns.contains(entityCol)) {
+    throw new Exception(s"$entityCol column is missing in discoveredPatterns!")
+  }
+
+  val additionalCols = if (!isNode) Seq("SourceType", "DestinationType") else Seq()
+
+  val flattened = discoveredPatterns
+    .withColumn("patternSet", flatten($"Patterns")) // Patterns -> Seq[String]
+
+  val withEntityType = flattened
+    .select((Seq(col(entityCol).as("ClusterType"), $"patternSet") ++ additionalCols.map(col)): _*)
+
+  val allPatternTerms = withEntityType
+    .select(explode($"patternSet").as("term"))
+    .distinct()
+    .collect()
+    .map(_.getString(0))
+    .sorted
+
+  val broadcastTerms = spark.sparkContext.broadcast(allPatternTerms)
+  val vectorSize = allPatternTerms.length
+
+  val setToVectorUDF = udf { (terms: Seq[String]) =>
+    val indices = terms.flatMap { t =>
+      val idx = broadcastTerms.value.indexOf(t)
+      if (idx >= 0) Some(idx) else None
+    }.distinct.sorted
+
+    val values = Array.fill(indices.size)(1.0)
+    Vectors.sparse(vectorSize, indices.toArray, values)
+  }
+
+  val vectorized = withEntityType
+    .withColumn("features", setToVectorUDF($"patternSet"))
+
+  val numHashTables = 10
+  val mh = new MinHashLSH()
+    .setNumHashTables(numHashTables)
+    .setInputCol("features")
+    .setOutputCol("lshHashes")
+
+  val mhModel = mh.fit(vectorized)
+  val hashedDF = mhModel.transform(vectorized)
+
+  val groupByCols = if (isNode) Seq($"lshHashes") else Seq($"lshHashes", $"SourceType", $"DestinationType")
+
+  val clusterDF = hashedDF
+    .groupBy(groupByCols: _*)
+    .agg(
+      collect_set($"ClusterType").as("ClusteredTypes"),
+      collect_set($"patternSet").as("ClusteredPatterns")
+    )
+
+  clusterDF
+}
+
+
+
 
 
 }
