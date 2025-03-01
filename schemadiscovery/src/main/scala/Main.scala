@@ -1,99 +1,82 @@
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{DataFrame, SparkSession, Row}
 import org.apache.spark.sql.functions._
+import scala.collection.mutable
 
 object Main {
-  def main(args: Array[String]): Unit = {
-    val spark = SparkSession.builder()
-      .appName("HybridLSHDemo")
-      .master("local[*]")
-      .config("spark.serializer", "org.apache.spark.serializer.JavaSerializer")
-      .config("spark.driver.host", "localhost") // Fix potential hostname issues
-      .config("spark.driver.bindAddress", "127.0.0.1") // Prevent binding issues
-      .getOrCreate()
+  def chunkDFBySize(df: DataFrame, chunkSize: Long): Seq[DataFrame] = {
+    val totalCount = df.count()
+    val dfWithIndex = df.withColumn("__rowId", monotonically_increasing_id())
+    val chunks = mutable.ArrayBuffer[DataFrame]()
+    var start = 0L
+    while (start < totalCount) {
+      val end = start + chunkSize
+      val chunk = dfWithIndex.filter(col("__rowId") >= start && col("__rowId") < end).drop("__rowId")
+      chunks += chunk
+      start = end
+    }
+    chunks
+  }
 
+  def processSingleNode(row: Row): Unit = {
+    val nodeId = row.getAs[Long]("_nodeId")
+    val label = row.getAs[String]("_labels")
+    val props = row.schema.fields.map(_.name)
+      .filterNot(n => n == "_nodeId" || n == "_labels")
+      .filter(n => row.getAs[Any](n) != null)
+      .toSet
+
+    NodePatternRepository.findMatchingPattern(label, props) match {
+      case Some(p) => p.assignedNodes += nodeId
+      case None => NodePatternRepository.createPattern(label, props, nodeId)
+    }
+  }
+
+  def processSingleEdge(row: Row): Unit = {
+    val edgeId = row.hashCode().toLong
+    val label = row.getAs[String]("relationshipType")
+    val srcLabel = row.getAs[String]("srcType")
+    val dstLabel = row.getAs[String]("dstType")
+    val props = row.schema.fields.map(_.name)
+      .filterNot(n => n == "srcId" || n == "dstId" || n == "relationshipType" || n == "srcType" || n == "dstType")
+      .filter(n => row.getAs[Any](n) != null) // Keep only non-null properties
+      .toSet
+
+    EdgePatternRepository.findMatchingPattern(label, srcLabel, dstLabel, props) match {
+      case Some(p) => p.assignedEdges += edgeId
+      case None => EdgePatternRepository.createPattern(label, srcLabel, dstLabel, props, edgeId)
+    }
+  }
+
+  def runEvaluationOnCurrentPatterns(patterns: DataFrame): Unit = {
+    patterns.show(1000, truncate = false)
+  }
+
+  def main(args: Array[String]): Unit = {
+    val spark = SparkSession.builder().appName("IncrementalPatternMatchingWithBRPLSH").master("local[*]").getOrCreate()
     spark.sparkContext.setLogLevel("ERROR")
 
-    import spark.implicits._
+    val nodesDF = DataLoader.loadAllNodes(spark)
+    val edgesDF = DataLoader.loadAllRelationships(spark)
 
-    // Load data
-    val noisePercentage = 0
-    val nodesDF = DataLoader.loadAllNodes(spark, noisePercentage)
-    val edgesDF = DataLoader.loadAllRelationships(spark,noisePercentage)
-    val nodesSize = nodesDF.count().toInt
-    val edgesSize = edgesDF.count().toInt
+    val nodeChunks = chunkDFBySize(nodesDF, 100)
+    val edgeChunks = chunkDFBySize(edgesDF, 100)
 
-    // Preprocess data
-    val dropProbability = 0.5
-    val (binaryMatrixforNodesDF_LSH, binaryMatrixforEdgesDF_LSH) =
-      Preprocessing.preprocessing(spark, nodesDF, edgesDF, dropProbability)
+    nodeChunks.zipWithIndex.foreach { case (chunk, idx) =>
+      val previousPatternIds = NodePatternRepository.allPatterns.map(_.patternId).toSet
+      chunk.collect().foreach(processSingleNode)
+      val newPatterns = NodePatternRepository.allPatterns.filter(p => !previousPatternIds.contains(p.patternId))
 
-    // LSH Clustering
-    val hybridNodes = Clustering.LSHClusteringNodes(
-      binaryMatrixforNodesDF_LSH,
-      similarityThreshold = 0.8,
-      desiredCollisionProbability = 0.9,
-      distanceCutoff = 0.2,
-      datasetSize = nodesSize
-    )(spark)
+      if (newPatterns.nonEmpty) {
+        import spark.implicits._
+        val newPatternsDF = newPatterns.map(p => (p.patternId, p.label, p.properties.toSeq)).toDF("patternId", "label", "properties")
 
-    // val distinctLabelsPerCluster = Clustering.extractDistinctLabels(hybridNodes)(spark)
+        val encodedPatterns = PatternPreprocessing.encodePatterns(spark, newPatternsDF)
+        val clusteredNodes = LSHClustering.applyLSH(spark, encodedPatterns)
+        runEvaluationOnCurrentPatterns(clusteredNodes)
+      }
+    }
 
-
-    val hybridEdges = Clustering.LSHClusteringEdges(
-      binaryMatrixforEdgesDF_LSH,
-      similarityThreshold = 0.8,
-      desiredCollisionProbability = 0.9,
-      distanceCutoff = 0.2,
-      datasetSize = edgesSize
-    )(spark)
-
-    // hybridNodes.show(1000, truncate = false)
-    // hybridEdges.show(1000, truncate = false)
-    
-    Evaluation.computeMetricsWithOriginalLabels(hybridNodes, "EntityType", "originalLabels")
-    Evaluation.computeMetricsWithOriginalLabels(hybridEdges, "RelationshipType", "originalRelationships")
-
-
-    // val patternNodesFromJaccard = Clustering.clusterPatternsWithMinHash(hybridNodes, isNode = true)(spark)
-    // println("\n---- Discovered Patterns from Jaccard ----")
-    // patternNodesFromJaccard.collect().foreach { row =>
-    //   val types = row.getAs[Seq[Seq[String]]]("ClusteredTypes").flatten.distinct.mkString(", ")
-    //   val patterns = row.getAs[Seq[Seq[String]]]("ClusteredPatterns").flatten.distinct.mkString(", ")
-
-    //   println(s"$types: $patterns")
-    // }
-
-
-    // val patternEdgesFromJaccard = Clustering.clusterPatternsWithMinHash(hybridEdges, isNode = false)(spark)
-    // println("\n---- Discovered Relationships from Jaccard ----")
-    // patternEdgesFromJaccard.collect().foreach { row =>
-    //   val relationshipTypes = row.getAs[Seq[Seq[String]]]("ClusteredTypes").flatten.distinct.mkString(", ")
-    //   val sourceTypes = row.getAs[Seq[Seq[String]]]("SourceType").flatten.distinct.mkString(", ")
-    //   val destinationTypes = row.getAs[Seq[Seq[String]]]("DestinationType").flatten.distinct.mkString(", ")
-    //   val patterns = row.getAs[Seq[Seq[String]]]("ClusteredPatterns").flatten.distinct.mkString(", ")
-
-    //   println(s"$relationshipTypes ($sourceTypes → $destinationTypes): $patterns")
-    // }
-
-    // val clusteredNodesForEval = patternNodesFromJaccard
-    //   .withColumn("predictedCluster", sha2(to_json(col("lshHashes")), 256))
-
-
-    // val clusteredEdgesForEval = patternEdgesFromJaccard
-    //   .withColumn("predictedCluster", sha2(to_json(col("lshHashes")), 256))
-
-    
-    // Evaluation.computeMetricsWithoutPairwiseJaccard(
-    //   clusteredNodesForEval,
-    //   entityCol = "ClusteredTypes",
-    //   predictedCol = "predictedCluster"
-    // )
-
-    // Evaluation.computeMetricsWithoutPairwiseJaccard(
-    //   clusteredEdgesForEval,
-    //   entityCol = "ClusteredTypes",
-    //   predictedCol = "predictedCluster"
-    // )
+    // TODO edges
 
     spark.stop()
   }
