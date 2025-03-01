@@ -27,56 +27,47 @@ object Main {
 
     NodePatternRepository.findMatchingPattern(label, props) match {
       case Some(p) => p.assignedNodes += nodeId
-      case None => NodePatternRepository.createPattern(label, props, nodeId)
+      case None    => NodePatternRepository.createPattern(label, props, nodeId)
     }
   }
 
-  def processSingleEdge(row: Row): Unit = {
-    val edgeId = row.hashCode().toLong
-    val label = row.getAs[String]("relationshipType")
-    val srcLabel = row.getAs[String]("srcType")
-    val dstLabel = row.getAs[String]("dstType")
-    val props = row.schema.fields.map(_.name)
-      .filterNot(n => n == "srcId" || n == "dstId" || n == "relationshipType" || n == "srcType" || n == "dstType")
-      .filter(n => row.getAs[Any](n) != null) // Keep only non-null properties
-      .toSet
-
-    EdgePatternRepository.findMatchingPattern(label, srcLabel, dstLabel, props) match {
-      case Some(p) => p.assignedEdges += edgeId
-      case None => EdgePatternRepository.createPattern(label, srcLabel, dstLabel, props, edgeId)
-    }
-  }
-
-  def runEvaluationOnCurrentPatterns(patterns: DataFrame): Unit = {
-    patterns.show(1000, truncate = false)
+  def runEvaluationOnCurrentPatterns(df: DataFrame): Unit = {
+    println("\n--- Current Clustering ---")
+    df.show(50, truncate = false)
   }
 
   def main(args: Array[String]): Unit = {
-    val spark = SparkSession.builder().appName("IncrementalPatternMatchingWithBRPLSH").master("local[*]").getOrCreate()
+    val spark = SparkSession.builder()
+      .appName("IncrementalPatternMatchingWithBRPLSH")
+      .master("local[*]")
+      .getOrCreate()
+
     spark.sparkContext.setLogLevel("ERROR")
 
     val nodesDF = DataLoader.loadAllNodes(spark)
-    val edgesDF = DataLoader.loadAllRelationships(spark)
 
-    val nodeChunks = chunkDFBySize(nodesDF, 100)
-    val edgeChunks = chunkDFBySize(edgesDF, 100)
+    val nodeChunks = chunkDFBySize(nodesDF, 2)
+
+    var globalProperties = Set[String]()
 
     nodeChunks.zipWithIndex.foreach { case (chunk, idx) =>
+      println(s"\n--- Processing chunk #$idx ---")
       val previousPatternIds = NodePatternRepository.allPatterns.map(_.patternId).toSet
       chunk.collect().foreach(processSingleNode)
-      val newPatterns = NodePatternRepository.allPatterns.filter(p => !previousPatternIds.contains(p.patternId))
+      val newPatterns = NodePatternRepository.allPatterns.filterNot(p => previousPatternIds.contains(p.patternId))
 
-      if (newPatterns.nonEmpty) {
+      if (newPatterns.isEmpty) {
+        println("No new patterns in this chunk. Skipping clustering.")
+      } else {
         import spark.implicits._
-        val newPatternsDF = newPatterns.map(p => (p.patternId, p.label, p.properties.toSeq)).toDF("patternId", "label", "properties")
-
-        val encodedPatterns = PatternPreprocessing.encodePatterns(spark, newPatternsDF)
-        val clusteredNodes = LSHClustering.applyLSH(spark, encodedPatterns)
-        runEvaluationOnCurrentPatterns(clusteredNodes)
+        val allPatternsDF = NodePatternRepository.allPatterns.toSeq.toDF()
+        val newGlobalProps = NodePatternRepository.allPatterns.flatMap(_.properties).toSet
+        globalProperties = globalProperties union newGlobalProps
+        val encodedDF = PatternPreprocessing.encodePatterns(spark, allPatternsDF, globalProperties)
+        val clusteredDF = LSHClustering.applyLSH(spark, encodedDF)
+        runEvaluationOnCurrentPatterns(clusteredDF)
       }
     }
-
-    // TODO edges
 
     spark.stop()
   }

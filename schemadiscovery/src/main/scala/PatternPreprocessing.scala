@@ -5,86 +5,42 @@ import org.apache.spark.ml.linalg.Vectors
 
 object PatternPreprocessing {
 
-    def encodePatterns(spark: SparkSession, patternsDF: DataFrame): DataFrame = {
-        import spark.implicits._
+  def encodePatterns(spark: SparkSession,
+                     patternsDF: DataFrame,
+                     allProperties: Set[String]): DataFrame = {
 
-        val propertyColumns = patternsDF.columns.filterNot(colName => Seq("patternId", "label").contains(colName))
+    import spark.implicits._
+    val patternsDFwithArray = patternsDF.withColumn("propertiesArray", $"properties")
 
-        val binaryDF = propertyColumns.foldLeft(patternsDF) { (tempDF, colName) =>
-        tempDF.withColumn(colName, when(col(colName).isNotNull, 1.0).otherwise(0.0))
-        }
-
-        val processedDF = binaryDF.withColumn("labelArray", array(col("label")))
-
-        val word2Vec = new Word2Vec()
-        .setInputCol("labelArray")
-        .setOutputCol("labelVector")
-        .setVectorSize(3)
-        .setMinCount(0)
-
-        val model = word2Vec.fit(processedDF)
-        val dfWithWord2Vec = model.transform(processedDF)
-
-        val assembler = new VectorAssembler()
-        .setInputCols(Array("labelVector") ++ propertyColumns)
-        .setOutputCol("features")
-
-        val finalDF = assembler.transform(dfWithWord2Vec)
-        .drop("labelVector")
-
-        println("Sample data after feature encoding for Nodes:")
-        finalDF.show(50)
-
-        finalDF
+    val withBinaryColsDF = allProperties.foldLeft(patternsDFwithArray) { (tempDF, prop) =>
+      tempDF.withColumn(
+        s"prop_$prop",
+        when(array_contains($"propertiesArray", prop), 1.0).otherwise(0.0)
+      )
     }
 
-
-  def encodeEdgePatterns(spark: SparkSession, patternsDF: DataFrame): DataFrame = {
-    import spark.implicits._
-
-    val propertyColumns = patternsDF.columns.filterNot(colName =>
-      Seq("patternId", "knownRelationships", "srcType", "dstType").contains(colName)
+    val withLabelArrDF = withBinaryColsDF.withColumn(
+      "labelArray",
+      array($"label")
     )
 
-    val binaryDF = propertyColumns.foldLeft(patternsDF) { (tempDF, colName) =>
-      tempDF.withColumn(colName, when(col(colName).isNotNull, 1).otherwise(0))
-    }
-
-    val processedDF = binaryDF
-      .withColumn("knownRelationshipsArray", split(col("knownRelationships"), ":"))
-      .withColumn("srcTypeArray", split(col("srcType"), ":"))
-      .withColumn("dstTypeArray", split(col("dstType"), ":"))
-
-    val word2VecRel = new Word2Vec()
-      .setInputCol("knownRelationshipsArray")
-      .setOutputCol("word2vecRel")
+    val word2Vec = new Word2Vec()
+      .setInputCol("labelArray")
+      .setOutputCol("labelVector")
       .setVectorSize(3)
       .setMinCount(0)
 
-    val modelRel = word2VecRel.fit(processedDF)
-    val dfWithRelVec = modelRel.transform(processedDF)
+    val w2vModel = word2Vec.fit(withLabelArrDF)
+    val withLabelVecDF = w2vModel.transform(withLabelArrDF)
 
-    val word2VecSrc = new Word2Vec()
-      .setInputCol("srcTypeArray")
-      .setOutputCol("word2vecSrc")
-      .setVectorSize(3)
-      .setMinCount(0)
+    val binaryCols = allProperties.toArray.map(p => s"prop_$p")
+    val assembler = new VectorAssembler()
+      .setInputCols(Array("labelVector") ++ binaryCols)
+      .setOutputCol("features")
 
-    val modelSrc = word2VecSrc.fit(dfWithRelVec)
-    val dfWithSrcVec = modelSrc.transform(dfWithRelVec)
+    val finalDF = assembler.transform(withLabelVecDF)
+    finalDF.show(50, truncate = false)
 
-    val word2VecDst = new Word2Vec()
-      .setInputCol("dstTypeArray")
-      .setOutputCol("word2vecDst")
-      .setVectorSize(3)
-      .setMinCount(0)
-
-    val modelDst = word2VecDst.fit(dfWithSrcVec)
-    val result = modelDst.transform(dfWithSrcVec)
-
-    println("Sample data from Word2Vec for Edges:")
-    result.show(5)
-
-    result
+    finalDF
   }
 }
