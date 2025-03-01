@@ -43,4 +43,61 @@ object PatternPreprocessing {
 
     finalDF
   }
+
+  def encodeEdgePatterns(spark: SparkSession,
+                         edgesDF: DataFrame,
+                         allProperties: Set[String]): DataFrame = {
+    import spark.implicits._
+
+    val withArrayDF = edgesDF.withColumn("propertiesArray", $"properties")
+
+    val binDF = allProperties.foldLeft(withArrayDF) { (tempDF, prop) =>
+      tempDF.withColumn(
+        s"prop_$prop",
+        when(array_contains($"propertiesArray", prop), 1.0).otherwise(0.0)
+      )
+    }
+
+    val withArrays = binDF
+      .withColumn("relationArray", array($"relationshipType"))
+      .withColumn("srcLabelArray", array($"srcLabel"))
+      .withColumn("dstLabelArray", array($"dstLabel"))
+
+    val word2VecRel = new org.apache.spark.ml.feature.Word2Vec()
+      .setInputCol("relationArray")
+      .setOutputCol("relVector")
+      .setVectorSize(3)
+      .setMinCount(0)
+
+    val relModel = word2VecRel.fit(withArrays)
+    val withRelVec = relModel.transform(withArrays)
+
+    val word2VecSrc = new org.apache.spark.ml.feature.Word2Vec()
+      .setInputCol("srcLabelArray")
+      .setOutputCol("srcVector")
+      .setVectorSize(3)
+      .setMinCount(0)
+
+    val srcModel = word2VecSrc.fit(withRelVec)
+    val withSrcVec = srcModel.transform(withRelVec)
+
+    val word2VecDst = new org.apache.spark.ml.feature.Word2Vec()
+      .setInputCol("dstLabelArray")
+      .setOutputCol("dstVector")
+      .setVectorSize(3)
+      .setMinCount(0)
+
+    val dstModel = word2VecDst.fit(withSrcVec)
+    val withDstVec = dstModel.transform(withSrcVec)
+
+    val propCols = allProperties.toArray.sorted.map(p => s"prop_$p")
+
+    val assembler = new org.apache.spark.ml.feature.VectorAssembler()
+      .setInputCols(Array("relVector", "srcVector", "dstVector") ++ propCols)
+      .setOutputCol("features")
+
+    val finalDF = assembler.transform(withDstVec)
+
+    finalDF
+  }
 }

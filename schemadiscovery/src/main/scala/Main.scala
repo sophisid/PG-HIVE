@@ -31,10 +31,23 @@ object Main {
     }
   }
 
-  def runEvaluationOnCurrentPatterns(df: DataFrame): Unit = {
-    println("\n--- Current Clustering ---")
-    df.show(50, truncate = false)
+  def processSingleEdge(row: Row): Unit = {
+    val edgeId = row.hashCode().toLong
+    val relationshipType = row.getAs[String]("relationshipType")
+    val srcLabel = row.getAs[String]("srcType")
+    val dstLabel = row.getAs[String]("dstType")
+    val props = row.schema.fields.map(_.name)
+      .filterNot(n => Seq("relationshipType", "srcType", "dstType", "srcId", "dstId").contains(n))
+      .filter(n => row.getAs[Any](n) != null)
+      .toSet
+
+    EdgePatternRepository.findMatchingPattern(relationshipType, srcLabel, dstLabel, props) match {
+      case Some(p) => p.assignedEdges += edgeId
+      case None    => EdgePatternRepository.createPattern(relationshipType, srcLabel, dstLabel, props, edgeId)
+    }
   }
+
+
 
   def main(args: Array[String]): Unit = {
     val spark = SparkSession.builder()
@@ -45,8 +58,10 @@ object Main {
     spark.sparkContext.setLogLevel("ERROR")
 
     val nodesDF = DataLoader.loadAllNodes(spark)
+    val edgesDF = DataLoader.loadAllRelationships(spark)
 
-    val nodeChunks = chunkDFBySize(nodesDF, 2)
+    val nodeChunks = chunkDFBySize(nodesDF, 50)
+    val edgeChunks = chunkDFBySize(edgesDF, 50)
 
     var globalProperties = Set[String]()
 
@@ -64,10 +79,32 @@ object Main {
         val newGlobalProps = NodePatternRepository.allPatterns.flatMap(_.properties).toSet
         globalProperties = globalProperties union newGlobalProps
         val encodedDF = PatternPreprocessing.encodePatterns(spark, allPatternsDF, globalProperties)
-        val clusteredDF = LSHClustering.applyLSH(spark, encodedDF)
-        runEvaluationOnCurrentPatterns(clusteredDF)
+        val clusteredDF = LSHClustering.applyLSHNodes(spark, encodedDF)
+        clusteredDF.show(50, truncate = false)
+        allPatternsDF.show(50, truncate = false)
       }
     }
+    edgeChunks.zipWithIndex.foreach { case (chunk, idx) =>
+      val prevIDs = EdgePatternRepository.allPatterns.map(_.patternId).toSet
+
+      // Process each edge row
+      chunk.collect().foreach(processSingleEdge)
+
+      val newEdges = EdgePatternRepository.allPatterns.filterNot(e => prevIDs.contains(e.patternId))
+
+      if (newEdges.nonEmpty) {
+        import spark.implicits._
+        val allEdgesDF = EdgePatternRepository.allPatterns.toSeq.toDF()
+        val allProps = EdgePatternRepository.allPatterns.flatMap(_.properties).toSet
+        val encodedDF = PatternPreprocessing.encodeEdgePatterns(spark, allEdgesDF, allProps)
+        val clusteredEdgesDF = LSHClustering.applyLSHEdges(spark, encodedDF)
+
+        println("\n--- Edges Clustering (Global) ---")
+        clusteredEdgesDF.show(50, truncate = false)
+        allEdgesDF.show(50, truncate = false)
+      }
+    }
+
 
     spark.stop()
   }

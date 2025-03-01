@@ -4,7 +4,7 @@ import org.apache.spark.sql.functions._
 
 object LSHClustering {
 
-  def applyLSH(spark: SparkSession, patternsDF: DataFrame): DataFrame = {
+  def applyLSHNodes(spark: SparkSession, patternsDF: DataFrame): DataFrame = {
     import spark.implicits._
 
     if (patternsDF.isEmpty) {
@@ -29,5 +29,29 @@ object LSHClustering {
       )
 
     clusteredDF
+  }
+
+  def applyLSHEdges(spark: SparkSession, df: DataFrame): DataFrame = {
+    import spark.implicits._
+
+    val lsh = new org.apache.spark.ml.feature.BucketedRandomProjectionLSH()
+      .setBucketLength(0.2)
+      .setNumHashTables(10)
+      .setInputCol("features")
+      .setOutputCol("hashes")
+
+    val model = lsh.fit(df)
+    val transformedDF = model.transform(df)
+
+    val groupedDF = transformedDF
+      .groupBy($"hashes")
+      .agg(
+        collect_list($"relationshipType").as("relsInCluster"),
+        collect_list($"srcLabel").as("srcLabelsInCluster"),
+        collect_list($"dstLabel").as("dstLabelsInCluster"),
+        collect_list($"properties").as("propsInCluster")
+      )
+
+    groupedDF
   }
 }
