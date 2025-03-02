@@ -2,9 +2,9 @@ import scala.collection.mutable
 
 case class EdgePattern(
   patternId: Long,
-  relationshipType: String,
-  srcLabel: String,
-  dstLabel: String,
+  relationshipType: Set[String],
+  srcLabels: Set[String], // Πολλαπλά srcLabels
+  dstLabels: Set[String], // Πολλαπλά dstLabels
   properties: Set[String],
-  assignedEdges: mutable.Set[Long] = mutable.Set.empty[Long]
+  assignedEdges: mutable.Map[Long, String] = mutable.Map.empty[Long, String]
 )

@@ -2,7 +2,7 @@ import scala.collection.mutable
 
 case class NodePattern(
   patternId: Long,
-  label: String,
+  label: Set[String],
   properties: Set[String],
-  assignedNodes: mutable.Set[Long] = mutable.Set.empty[Long]
+  assignedNodes: mutable.Map[Long, String] = mutable.Map.empty[Long, String]
 )

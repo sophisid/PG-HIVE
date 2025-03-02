@@ -3,25 +3,26 @@ import scala.collection.mutable
 object EdgePatternRepository {
   val allPatterns: mutable.ArrayBuffer[EdgePattern] = mutable.ArrayBuffer.empty
 
-  def findMatchingPattern(relationshipType: String,
-                          srcLabel: String,
-                          dstLabel: String,
+  def findMatchingPattern(relationshipType: Set[String],
+                          srcLabels: Set[String],
+                          dstLabels: Set[String],
                           props: Set[String]): Option[EdgePattern] = {
     allPatterns.find { p =>
       p.relationshipType == relationshipType &&
-      p.srcLabel == srcLabel &&
-      p.dstLabel == dstLabel &&
+      p.srcLabels == srcLabels &&
+      p.dstLabels == dstLabels &&
       p.properties == props
     }
   }
 
-  def createPattern(relationshipType: String,
-                    srcLabel: String,
-                    dstLabel: String,
+  def createPattern(relationshipType: Set[String],
+                    srcLabels: Set[String],
+                    dstLabels: Set[String],
                     props: Set[String],
-                    edgeId: Long): EdgePattern = {
+                    edgeId: Long,
+                    initialLabel: String): EdgePattern = {
     val newPatternId = allPatterns.size.toLong + 1
-    val newPattern = EdgePattern(newPatternId, relationshipType, srcLabel, dstLabel, props, mutable.Set(edgeId))
+    val newPattern = EdgePattern(newPatternId, relationshipType, srcLabels, dstLabels, props, mutable.Map(edgeId -> initialLabel))
     allPatterns += newPattern
     newPattern
   }

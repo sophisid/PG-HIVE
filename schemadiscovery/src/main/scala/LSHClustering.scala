@@ -34,7 +34,7 @@ object LSHClustering {
   def applyLSHEdges(spark: SparkSession, df: DataFrame): DataFrame = {
     import spark.implicits._
 
-    val lsh = new org.apache.spark.ml.feature.BucketedRandomProjectionLSH()
+    val lsh = new BucketedRandomProjectionLSH()
       .setBucketLength(0.2)
       .setNumHashTables(10)
       .setInputCol("features")
@@ -43,12 +43,13 @@ object LSHClustering {
     val model = lsh.fit(df)
     val transformedDF = model.transform(df)
 
+    // Group by hashes and aggregate
     val groupedDF = transformedDF
       .groupBy($"hashes")
       .agg(
         collect_list($"relationshipType").as("relsInCluster"),
-        collect_list($"srcLabel").as("srcLabelsInCluster"),
-        collect_list($"dstLabel").as("dstLabelsInCluster"),
+        collect_list($"srcLabels").as("srcLabelsInCluster"),
+        collect_list($"dstLabels").as("dstLabelsInCluster"),
         collect_list($"properties").as("propsInCluster")
       )
 
