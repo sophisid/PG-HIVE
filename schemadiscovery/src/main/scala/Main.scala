@@ -63,8 +63,18 @@ object Main {
     val nodesDF = DataLoader.loadAllNodes(spark)
     val edgesDF = DataLoader.loadAllRelationships(spark)
 
-    val nodeChunks = chunkDFBySize(nodesDF, 50)
-    val edgeChunks = chunkDFBySize(edgesDF, 50)
+    val isIncremental = if (args.length > 0) args(0).toBoolean else false
+    val (nodeChunks, edgeChunks) = if (isIncremental) {
+      val chunkSize = if (args.length > 1) args(1).toLong else 10000L
+      val nodeChunks = chunkDFBySize(nodesDF, chunkSize)
+      val edgeChunks = chunkDFBySize(edgesDF, chunkSize)
+      (nodeChunks, edgeChunks)
+    } else {
+      val nodeChunks = Seq(nodesDF)
+      val edgeChunks = Seq(edgesDF)
+      (nodeChunks, edgeChunks)
+    }
+
 
     var globalProperties = Set[String]()
 
