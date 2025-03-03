@@ -1,100 +1,135 @@
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{DataFrame, SparkSession, Row}
 import org.apache.spark.sql.functions._
+import scala.collection.mutable
 
 object Main {
+  def chunkDFBySize(df: DataFrame, chunkSize: Long): Seq[DataFrame] = {
+    val totalCount = df.count()
+    val dfWithIndex = df.withColumn("__rowId", monotonically_increasing_id())
+    val chunks = mutable.ArrayBuffer[DataFrame]()
+    var start = 0L
+    while (start < totalCount) {
+      val end = start + chunkSize
+      val chunk = dfWithIndex.filter(col("__rowId") >= start && col("__rowId") < end).drop("__rowId")
+      chunks += chunk
+      start = end
+    }
+    chunks
+  }
+
+  def processSingleNode(row: Row): Unit = {
+    val nodeId = row.getAs[Long]("_nodeId")
+    val label = Set(row.getAs[String]("_labels")) // Convert to Set[String]
+    val props = row.schema.fields.map(_.name)
+      .filterNot(n => n == "_nodeId" || n == "_labels")
+      .filter(n => row.getAs[Any](n) != null)
+      .toSet
+
+    NodePatternRepository.findMatchingPattern(label, props) match {
+      case Some(p) => p.assignedNodes.put(nodeId, label.head) // Use .head to get the first element of the Set
+      case None    => NodePatternRepository.createPattern(label, props, nodeId, label.head)
+    }
+  }
+
+  def processSingleEdge(row: Row): Unit = {
+    val edgeId = row.hashCode().toLong
+    val relationshipType = Set(row.getAs[String]("relationshipType")) // Convert to Set[String]
+    val srcLabel = Set(row.getAs[String]("srcType")) // Convert to Set[String]
+    val dstLabel = Set(row.getAs[String]("dstType")) // Convert to Set[String]
+    val props = row.schema.fields.map(_.name)
+      .filterNot(n => Seq("relationshipType", "srcType", "dstType", "srcId", "dstId").contains(n))
+      .filter(n => row.getAs[Any](n) != null)
+      .toSet
+
+    EdgePatternRepository.findMatchingPattern(relationshipType, srcLabel, dstLabel, props) match {
+      case Some(p) => p.assignedEdges.put(edgeId, relationshipType.head) // Use .head to get the first element of the Set
+      case None    => EdgePatternRepository.createPattern(relationshipType, srcLabel, dstLabel, props, edgeId, relationshipType.head)
+    }
+  }
+
+
+
+  var finalClusteredNodesDF: DataFrame = _
+  var finalClusteredEdgesDF: DataFrame = _
+
   def main(args: Array[String]): Unit = {
     val spark = SparkSession.builder()
-      .appName("HybridLSHDemo")
+      .appName("IncrementalPatternMatchingWithBRPLSH")
       .master("local[*]")
-      .config("spark.serializer", "org.apache.spark.serializer.JavaSerializer")
-      .config("spark.driver.host", "localhost") // Fix potential hostname issues
-      .config("spark.driver.bindAddress", "127.0.0.1") // Prevent binding issues
       .getOrCreate()
 
     spark.sparkContext.setLogLevel("ERROR")
 
-    import spark.implicits._
+    val nodesDF = DataLoader.loadAllNodes(spark)
+    val edgesDF = DataLoader.loadAllRelationships(spark)
 
-    // Load data
-    val noisePercentage = 0
-    val nodesDF = DataLoader.loadAllNodes(spark, noisePercentage)
-    val edgesDF = DataLoader.loadAllRelationships(spark,noisePercentage)
-    val nodesSize = nodesDF.count().toInt
-    val edgesSize = edgesDF.count().toInt
-
-    // Preprocess data
-    val dropProbability = 0.5
-    val (binaryMatrixforNodesDF_LSH, binaryMatrixforEdgesDF_LSH) =
-      Preprocessing.preprocessing(spark, nodesDF, edgesDF, dropProbability)
-
-    // LSH Clustering
-    val hybridNodes = Clustering.LSHClusteringNodes(
-      binaryMatrixforNodesDF_LSH,
-      similarityThreshold = 0.8,
-      desiredCollisionProbability = 0.9,
-      distanceCutoff = 0.2,
-      datasetSize = nodesSize
-    )(spark)
-
-    // val distinctLabelsPerCluster = Clustering.extractDistinctLabels(hybridNodes)(spark)
+    val isIncremental = if (args.length > 0) args(0).toBoolean else false
+    val (nodeChunks, edgeChunks) = if (isIncremental) {
+      val chunkSize = if (args.length > 1) args(1).toLong else 10000L
+      val nodeChunks = chunkDFBySize(nodesDF, chunkSize)
+      val edgeChunks = chunkDFBySize(edgesDF, chunkSize)
+      (nodeChunks, edgeChunks)
+    } else {
+      val nodeChunks = Seq(nodesDF)
+      val edgeChunks = Seq(edgesDF)
+      (nodeChunks, edgeChunks)
+    }
 
 
-    val hybridEdges = Clustering.LSHClusteringEdges(
-      binaryMatrixforEdgesDF_LSH,
-      similarityThreshold = 0.8,
-      desiredCollisionProbability = 0.9,
-      distanceCutoff = 0.2,
-      datasetSize = edgesSize
-    )(spark)
+    var globalProperties = Set[String]()
 
-    // hybridNodes.show(1000, truncate = false)
-    // hybridEdges.show(1000, truncate = false)
-    
-    Evaluation.computeMetricsWithOriginalLabels(hybridNodes, "EntityType", "originalLabels")
-    Evaluation.computeMetricsWithOriginalLabels(hybridEdges, "RelationshipType", "originalRelationships")
+    nodeChunks.zipWithIndex.foreach { case (chunk, idx) =>
+      println(s"\n--- Processing chunk #$idx ---")
+      val previousPatternIds = NodePatternRepository.allPatterns.map(_.patternId).toSet
+      chunk.collect().foreach(processSingleNode)
+      val newPatterns = NodePatternRepository.allPatterns.filterNot(p => previousPatternIds.contains(p.patternId))
 
+      if (newPatterns.isEmpty) {
+        println("No new patterns in this chunk. Skipping clustering.")
+      } else {
+        import spark.implicits._
+        val allPatternsDF = NodePatternRepository.allPatterns.toSeq.toDF()
+        val newGlobalProps = NodePatternRepository.allPatterns.flatMap(_.properties).toSet
+        globalProperties = globalProperties union newGlobalProps
+        val encodedDF = PatternPreprocessing.encodePatterns(spark, allPatternsDF, globalProperties)
+        finalClusteredNodesDF = LSHClustering.applyLSHNodes(spark, encodedDF) // Αποθήκευση τελικών node patterns
+        Evaluation.computeIncrementalMetricsForNodes(finalClusteredNodesDF, "labelsInCluster", "hashes", "labelsInCluster", idx)
+      }
+    }
 
-    // val patternNodesFromJaccard = Clustering.clusterPatternsWithMinHash(hybridNodes, isNode = true)(spark)
-    // println("\n---- Discovered Patterns from Jaccard ----")
-    // patternNodesFromJaccard.collect().foreach { row =>
-    //   val types = row.getAs[Seq[Seq[String]]]("ClusteredTypes").flatten.distinct.mkString(", ")
-    //   val patterns = row.getAs[Seq[Seq[String]]]("ClusteredPatterns").flatten.distinct.mkString(", ")
+    edgeChunks.zipWithIndex.foreach { case (chunk, idx) =>
+      val prevIDs = EdgePatternRepository.allPatterns.map(_.patternId).toSet
+      chunk.collect().foreach(processSingleEdge)
 
-    //   println(s"$types: $patterns")
-    // }
+      val newEdges = EdgePatternRepository.allPatterns.filterNot(e => prevIDs.contains(e.patternId))
 
+      if (newEdges.nonEmpty) {
+        import spark.implicits._
+        val allEdgesDF = EdgePatternRepository.allPatterns.toSeq.toDF()
+        val allProps = EdgePatternRepository.allPatterns.flatMap(_.properties).toSet
+        val encodedDF = PatternPreprocessing.encodeEdgePatterns(spark, allEdgesDF, allProps)
+        finalClusteredEdgesDF = LSHClustering.applyLSHEdges(spark, encodedDF) // Αποθήκευση τελικών edge patterns
+        Evaluation.computeIncrementalMetricsForEdges(finalClusteredEdgesDF, "hashes", "relsInCluster", "srcLabelsInCluster", "dstLabelsInCluster", "propsInCluster", idx)
+      }
+    }
 
-    // val patternEdgesFromJaccard = Clustering.clusterPatternsWithMinHash(hybridEdges, isNode = false)(spark)
-    // println("\n---- Discovered Relationships from Jaccard ----")
-    // patternEdgesFromJaccard.collect().foreach { row =>
-    //   val relationshipTypes = row.getAs[Seq[Seq[String]]]("ClusteredTypes").flatten.distinct.mkString(", ")
-    //   val sourceTypes = row.getAs[Seq[Seq[String]]]("SourceType").flatten.distinct.mkString(", ")
-    //   val destinationTypes = row.getAs[Seq[Seq[String]]]("DestinationType").flatten.distinct.mkString(", ")
-    //   val patterns = row.getAs[Seq[Seq[String]]]("ClusteredPatterns").flatten.distinct.mkString(", ")
+    // Print final clustered node patterns
+    println("\n--- Final Clustered Node Patterns ---")
+    finalClusteredNodesDF.show(50, truncate = false)
 
-    //   println(s"$relationshipTypes ($sourceTypes → $destinationTypes): $patterns")
-    // }
+    // Print final clustered edge patterns
+    println("\n--- Final Clustered Edge Patterns ---")
+    finalClusteredEdgesDF.show(50, truncate = false)
 
-    // val clusteredNodesForEval = patternNodesFromJaccard
-    //   .withColumn("predictedCluster", sha2(to_json(col("lshHashes")), 256))
+    // Compute final evaluation metrics for nodes
+    println("\n--- Final Evaluation Metrics for Nodes ---")
+    Evaluation.computeIncrementalMetricsForNodes(finalClusteredNodesDF, "labelsInCluster", "hashes", "labelsInCluster", -1)
 
-
-    // val clusteredEdgesForEval = patternEdgesFromJaccard
-    //   .withColumn("predictedCluster", sha2(to_json(col("lshHashes")), 256))
-
-    
-    // Evaluation.computeMetricsWithoutPairwiseJaccard(
-    //   clusteredNodesForEval,
-    //   entityCol = "ClusteredTypes",
-    //   predictedCol = "predictedCluster"
-    // )
-
-    // Evaluation.computeMetricsWithoutPairwiseJaccard(
-    //   clusteredEdgesForEval,
-    //   entityCol = "ClusteredTypes",
-    //   predictedCol = "predictedCluster"
-    // )
+    // Compute final evaluation metrics for edges
+    println("\n--- Final Evaluation Metrics for Edges ---")
+    Evaluation.computeIncrementalMetricsForEdges(finalClusteredEdgesDF, "hashes", "relsInCluster", "srcLabelsInCluster", "dstLabelsInCluster", "propsInCluster", -1)
 
     spark.stop()
   }
 }
+
