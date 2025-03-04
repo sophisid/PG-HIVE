@@ -65,13 +65,24 @@ object Main {
     val spark = SparkSession.builder()
       .appName("IncrementalPatternMatchingWithBRPLSH")
       .master("local[*]")
+      .config("spark.hadoop.fs.defaultFS", "hdfs://clusternode1:9000")
+      .config("spark.executor.memory", "16g")
+      .config("spark.driver.memory", "16g")
+      .config("spark.executor.cores", "4")
+      .config("spark.executor.instances", "10")
+      .config("spark.yarn.executor.memoryOverhead", "4g")
+      .config("spark.driver.maxResultSize", "4g")
       .getOrCreate()
 
     import spark.implicits._
     spark.sparkContext.setLogLevel("ERROR")
 
-    val nodesDF = DataLoader.loadAllNodes(spark)
-    val edgesDF = DataLoader.loadAllRelationships(spark)
+    val nodesDF = DataLoader.loadFromHDFSOrNeo4j(spark, "nodes", () => DataLoader.loadAllNodes(spark))
+      .persist(org.apache.spark.storage.StorageLevel.MEMORY_AND_DISK_SER)
+
+    val edgesDF = DataLoader.loadFromHDFSOrNeo4j(spark, "relationships", () => DataLoader.loadAllRelationships(spark))
+      .persist(org.apache.spark.storage.StorageLevel.MEMORY_AND_DISK_SER)
+
 
     val isIncremental = if (args.nonEmpty) args(0).toBoolean else false
     val (nodeChunks, edgeChunks) = if (isIncremental) {
