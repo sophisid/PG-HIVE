@@ -10,7 +10,9 @@ object Main {
     var start = 0L
     while (start < totalCount) {
       val end = start + chunkSize
-      val chunk = dfWithIndex.filter(col("__rowId") >= start && col("__rowId") < end).drop("__rowId")
+      val chunk = dfWithIndex
+        .filter(col("__rowId") >= start && col("__rowId") < end)
+        .drop("__rowId")
       chunks += chunk
       start = end
     }
@@ -19,35 +21,42 @@ object Main {
 
   def processSingleNode(row: Row): Unit = {
     val nodeId = row.getAs[Long]("_nodeId")
-    val label = Set(row.getAs[String]("_labels")) // Convert to Set[String]
-    val props = row.schema.fields.map(_.name)
+    val label = Set(row.getAs[String]("_labels"))
+    val props = row.schema.fields
+      .map(_.name)
       .filterNot(n => n == "_nodeId" || n == "_labels")
       .filter(n => row.getAs[Any](n) != null)
       .toSet
 
     NodePatternRepository.findMatchingPattern(label, props) match {
-      case Some(p) => p.assignedNodes.put(nodeId, label.head) // Use .head to get the first element of the Set
-      case None    => NodePatternRepository.createPattern(label, props, nodeId, label.head)
+      case Some(pattern) =>
+        pattern.assignedNodes.put(nodeId, label.head)
+      case None =>
+        NodePatternRepository.createPattern(label, props, nodeId, label.head)
     }
   }
 
   def processSingleEdge(row: Row): Unit = {
     val edgeId = row.hashCode().toLong
-    val relationshipType = Set(row.getAs[String]("relationshipType")) // Convert to Set[String]
-    val srcLabel = Set(row.getAs[String]("srcType")) // Convert to Set[String]
-    val dstLabel = Set(row.getAs[String]("dstType")) // Convert to Set[String]
-    val props = row.schema.fields.map(_.name)
+    val relationshipType = Set(row.getAs[String]("relationshipType"))
+    val srcLabel = Set(row.getAs[String]("srcType"))
+    val dstLabel = Set(row.getAs[String]("dstType"))
+
+    val props = row.schema.fields
+      .map(_.name)
       .filterNot(n => Seq("relationshipType", "srcType", "dstType", "srcId", "dstId").contains(n))
       .filter(n => row.getAs[Any](n) != null)
       .toSet
 
     EdgePatternRepository.findMatchingPattern(relationshipType, srcLabel, dstLabel, props) match {
-      case Some(p) => p.assignedEdges.put(edgeId, relationshipType.head) // Use .head to get the first element of the Set
-      case None    => EdgePatternRepository.createPattern(relationshipType, srcLabel, dstLabel, props, edgeId, relationshipType.head)
+      case Some(pattern) =>
+        pattern.assignedEdges.put(edgeId, relationshipType.head)
+      case None =>
+        EdgePatternRepository.createPattern(
+          relationshipType, srcLabel, dstLabel, props, edgeId, relationshipType.head
+        )
     }
   }
-
-
 
   var finalClusteredNodesDF: DataFrame = _
   var finalClusteredEdgesDF: DataFrame = _
@@ -58,78 +67,99 @@ object Main {
       .master("local[*]")
       .getOrCreate()
 
+    import spark.implicits._
     spark.sparkContext.setLogLevel("ERROR")
 
     val nodesDF = DataLoader.loadAllNodes(spark)
     val edgesDF = DataLoader.loadAllRelationships(spark)
 
-    val isIncremental = if (args.length > 0) args(0).toBoolean else false
+    val isIncremental = if (args.nonEmpty) args(0).toBoolean else false
     val (nodeChunks, edgeChunks) = if (isIncremental) {
       val chunkSize = if (args.length > 1) args(1).toLong else 10000L
       val nodeChunks = chunkDFBySize(nodesDF, chunkSize)
       val edgeChunks = chunkDFBySize(edgesDF, chunkSize)
       (nodeChunks, edgeChunks)
     } else {
-      val nodeChunks = Seq(nodesDF)
-      val edgeChunks = Seq(edgesDF)
-      (nodeChunks, edgeChunks)
+      (Seq(nodesDF), Seq(edgesDF))
     }
-
 
     var globalProperties = Set[String]()
 
     nodeChunks.zipWithIndex.foreach { case (chunk, idx) =>
-      println(s"\n--- Processing chunk #$idx ---")
-      val previousPatternIds = NodePatternRepository.allPatterns.map(_.patternId).toSet
-      chunk.collect().foreach(processSingleNode)
-      val newPatterns = NodePatternRepository.allPatterns.filterNot(p => previousPatternIds.contains(p.patternId))
+      println(s"\n--- Processing node chunk #$idx ---")
 
+      val previousPatternIds = NodePatternRepository.allPatterns.map(_.patternId).toSet
+
+      chunk.collect().foreach(row => processSingleNode(row))
+
+      val newPatterns = NodePatternRepository.allPatterns.filterNot(p => previousPatternIds.contains(p.patternId))
       if (newPatterns.isEmpty) {
-        println("No new patterns in this chunk. Skipping clustering.")
+        println("No new node patterns in this chunk. Skipping clustering.")
       } else {
-        import spark.implicits._
         val allPatternsDF = NodePatternRepository.allPatterns.toSeq.toDF()
         val newGlobalProps = NodePatternRepository.allPatterns.flatMap(_.properties).toSet
         globalProperties = globalProperties union newGlobalProps
         val encodedDF = PatternPreprocessing.encodePatterns(spark, allPatternsDF, globalProperties)
-        finalClusteredNodesDF = LSHClustering.applyLSHNodes(spark, encodedDF) // Αποθήκευση τελικών node patterns
-        Evaluation.computeIncrementalMetricsForNodes(finalClusteredNodesDF, "labelsInCluster", "hashes", "labelsInCluster", idx)
+        finalClusteredNodesDF = LSHClustering.applyLSHNodes(spark, encodedDF)
+
+        Evaluation.computeIncrementalMetricsForNodes(
+          finalClusteredNodesDF,
+          "labelsInCluster",
+          "hashes",
+          "labelsInCluster",
+          idx.toInt
+        )
       }
     }
 
     edgeChunks.zipWithIndex.foreach { case (chunk, idx) =>
+      println(s"\n--- Processing edge chunk #$idx ---")
+
       val prevIDs = EdgePatternRepository.allPatterns.map(_.patternId).toSet
-      chunk.collect().foreach(processSingleEdge)
+
+      chunk.collect().foreach(row => processSingleEdge(row))
 
       val newEdges = EdgePatternRepository.allPatterns.filterNot(e => prevIDs.contains(e.patternId))
 
       if (newEdges.nonEmpty) {
-        import spark.implicits._
         val allEdgesDF = EdgePatternRepository.allPatterns.toSeq.toDF()
         val allProps = EdgePatternRepository.allPatterns.flatMap(_.properties).toSet
         val encodedDF = PatternPreprocessing.encodeEdgePatterns(spark, allEdgesDF, allProps)
-        finalClusteredEdgesDF = LSHClustering.applyLSHEdges(spark, encodedDF) // Αποθήκευση τελικών edge patterns
-        Evaluation.computeIncrementalMetricsForEdges(finalClusteredEdgesDF, "hashes", "relsInCluster", "srcLabelsInCluster", "dstLabelsInCluster", "propsInCluster", idx)
+        finalClusteredEdgesDF = LSHClustering.applyLSHEdges(spark, encodedDF)
+
+        Evaluation.computeIncrementalMetricsForEdges(
+          finalClusteredEdgesDF,
+          "hashes",
+          "relsInCluster",
+          "srcLabelsInCluster",
+          "dstLabelsInCluster",
+          "propsInCluster",
+          idx.toInt
+        )
       }
     }
 
-    // Print final clustered node patterns
     println("\n--- Final Clustered Node Patterns ---")
-    finalClusteredNodesDF.show(50, truncate = false)
+    if (finalClusteredNodesDF != null) {
+      finalClusteredNodesDF.show(50, truncate = false)
+    }
 
-    // Print final clustered edge patterns
     println("\n--- Final Clustered Edge Patterns ---")
-    finalClusteredEdgesDF.show(50, truncate = false)
+    if (finalClusteredEdgesDF != null) {
+      finalClusteredEdgesDF.show(50, truncate = false)
+    }
 
-    // Compute final evaluation metrics for nodes
     println("\n--- Final Evaluation Metrics for Nodes ---")
-    Evaluation.computeIncrementalMetricsForNodes(finalClusteredNodesDF, "labelsInCluster", "hashes", "labelsInCluster", -1)
+    if (finalClusteredNodesDF != null) {
+      Evaluation.computeIncrementalMetricsForNodes(finalClusteredNodesDF, "labelsInCluster", "hashes", "labelsInCluster", -1)
+    }
 
-    // Compute final evaluation metrics for edges
     println("\n--- Final Evaluation Metrics for Edges ---")
-    Evaluation.computeIncrementalMetricsForEdges(finalClusteredEdgesDF, "hashes", "relsInCluster", "srcLabelsInCluster", "dstLabelsInCluster", "propsInCluster", -1)
+    if (finalClusteredEdgesDF != null) {
+      Evaluation.computeIncrementalMetricsForEdges(finalClusteredEdgesDF, "hashes", "relsInCluster",
+        "srcLabelsInCluster", "dstLabelsInCluster", "propsInCluster", -1)
+    }
 
     spark.stop()
   }
 }
-
