@@ -30,13 +30,13 @@ lazy val root = (project in file("."))
     // Ensure the application forks when running to use the Java options
     Compile / run / fork := true,
     Compile / run / javaOptions ++= Seq(
-        "-Xmx16G", // Set max heap size
-        "-Dspark.executor.memory=16G",
-        "-Dspark.driver.memory=16G",
-        "-Dspark.executor.cores=4",
+        "-Xmx128G", // Set max heap size
+        "-Dspark.executor.memory=64G",
+        "-Dspark.driver.memory=32G",
+        "-Dspark.executor.cores=5",
         "-Dspark.executor.instances=10",
         "-Dspark.yarn.executor.memoryOverhead=4G",
-        "-Dspark.driver.maxResultSize=4G"
+        "-Dspark.driver.maxResultSize=16G"
     )
   )
 
