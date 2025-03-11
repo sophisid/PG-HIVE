@@ -65,6 +65,12 @@ object Main {
     val spark = SparkSession.builder()
       .appName("IncrementalPatternMatchingWithBRPLSH")
       .master("local[*]")
+      .config("spark.executor.memory", "16g")
+      .config("spark.driver.memory", "16g")
+      .config("spark.executor.cores", "4")
+      .config("spark.executor.instances", "10")
+      .config("spark.yarn.executor.memoryOverhead", "4g")
+      .config("spark.driver.maxResultSize", "4g")
       .getOrCreate()
 
     import spark.implicits._
@@ -72,6 +78,7 @@ object Main {
 
     val nodesDF = DataLoader.loadAllNodes(spark)
     val edgesDF = DataLoader.loadAllRelationships(spark)
+
 
     val isIncremental = if (args.nonEmpty) args(0).toBoolean else false
     val (nodeChunks, edgeChunks) = if (isIncremental) {
