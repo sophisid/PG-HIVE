@@ -6,3 +6,6 @@ case class NodePattern(
   properties: Set[String],
   assignedNodes: mutable.Map[Long, String] = mutable.Map.empty[Long, String]
 )
+{
+  def assignedNodeIds: Set[Long] = assignedNodes.keys.toSet
+}

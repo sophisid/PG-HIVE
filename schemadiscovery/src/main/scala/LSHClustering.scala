@@ -25,7 +25,8 @@ object LSHClustering {
       .groupBy($"hashes")
       .agg(
         collect_list($"label").as("labelsInCluster"),
-        collect_list($"properties").as("propertiesInCluster")
+        collect_list($"properties").as("propertiesInCluster"),
+        flatten(collect_list($"assignedNodeIds")).as("nodeIdsInCluster")
       )
 
     clusteredDF
@@ -33,6 +34,11 @@ object LSHClustering {
 
   def applyLSHEdges(spark: SparkSession, df: DataFrame): DataFrame = {
     import spark.implicits._
+
+    if (df.isEmpty) {
+      println("No edge patterns to cluster.")
+      return spark.emptyDataFrame
+    }
 
     val lsh = new BucketedRandomProjectionLSH()
       .setBucketLength(0.2)
@@ -50,7 +56,8 @@ object LSHClustering {
         collect_list($"relationshipType").as("relsInCluster"),
         collect_list($"srcLabels").as("srcLabelsInCluster"),
         collect_list($"dstLabels").as("dstLabelsInCluster"),
-        collect_list($"properties").as("propsInCluster")
+        collect_list($"properties").as("propsInCluster"),
+        flatten(collect_list($"assignedEdgeIds")).as("edgeIdsInCluster")
       )
 
     groupedDF

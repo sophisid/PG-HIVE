@@ -77,9 +77,12 @@ object Main {
         val chunkSize = if (args.length > 1) args(1).toLong else 10000L
         (chunkDFBySize(nodesDF, chunkSize), chunkDFBySize(edgesDF, chunkSize))
       } else (Seq(nodesDF), Seq(edgesDF))
-
+    val clusteringMethod = if (args.length > 2) args(2) else "LSH"
+    val k_nodes = if (args.length > 3) args(3).toInt else 5
+    val k_edges = if (args.length > 4) args(4).toInt else 20
     var globalProperties = Set[String]()
 
+    // --- NODES ---
     nodeChunks.zipWithIndex.foreach { case (chunk, idx) =>
       println(s"\n--- Processing node chunk #$idx ---")
 
@@ -88,15 +91,37 @@ object Main {
 
       val newPatterns = NodePatternRepository.allPatterns.filterNot(p => prevPatternIds.contains(p.patternId))
       if (newPatterns.nonEmpty) {
-        val allPatternsDF = NodePatternRepository.allPatterns.toSeq.toDF()
+        val nodePatternSeq = NodePatternRepository.allPatterns.map { p =>
+          (p.patternId, p.label, p.properties, p.assignedNodeIds)
+        }
+        val allPatternsDF = nodePatternSeq.toDF("patternId", "label", "properties", "assignedNodeIds")
+
         val newGlobalProps = NodePatternRepository.allPatterns.flatMap(_.properties).toSet
         globalProperties = globalProperties union newGlobalProps
         val encodedDF = PatternPreprocessing.encodePatterns(spark, allPatternsDF, globalProperties)
-        finalClusteredNodesDF = LSHClustering.applyLSHNodes(spark, encodedDF)
-        Evaluation.computeIncrementalMetricsForNodes(finalClusteredNodesDF, "labelsInCluster","hashes","labelsInCluster", idx)
+
+        // finalClusteredNodesDF = LSHClustering.applyLSHNodes(spark, encodedDF)
+        finalClusteredNodesDF = clusteringMethod match {
+          case "LSH" =>
+            LSHClustering.applyLSHNodes(spark, encodedDF)
+          case "KMEANS" =>
+            KMeansClustering.applyKMeansNodes(spark, encodedDF, k_nodes)
+          case _ =>
+            println(s"Unknown clustering method: $clusteringMethod. Defaulting to LSH.")
+            LSHClustering.applyLSHNodes(spark, encodedDF)
+        }
+
+        // Evaluation.computeIncrementalMetricsForNodes(
+        //   finalClusteredNodesDF,
+        //   "labelsInCluster",
+        //   "hashes",
+        //   "labelsInCluster",
+        //   idx
+        // )
       }
     }
 
+    // --- EDGES ---
     edgeChunks.zipWithIndex.foreach { case (chunk, idx) =>
       println(s"\n--- Processing edge chunk #$idx ---")
 
@@ -105,38 +130,85 @@ object Main {
 
       val newEdges = EdgePatternRepository.allPatterns.filterNot(e => prevIDs.contains(e.patternId))
       if (newEdges.nonEmpty) {
-        val allEdgesDF = EdgePatternRepository.allPatterns.toSeq.toDF()
+        val edgePatternSeq = EdgePatternRepository.allPatterns.map { e =>
+          (e.patternId, e.relationshipType, e.srcLabels, e.dstLabels, e.properties, e.assignedEdgeIds)
+        }
+        val allEdgesDF = edgePatternSeq.toDF(
+          "patternId", "relationshipType", "srcLabels",
+          "dstLabels", "properties", "assignedEdgeIds"
+        )
+
         val allProps = EdgePatternRepository.allPatterns.flatMap(_.properties).toSet
         val encodedDF = PatternPreprocessing.encodeEdgePatterns(spark, allEdgesDF, allProps)
-        finalClusteredEdgesDF = LSHClustering.applyLSHEdges(spark, encodedDF)
-        Evaluation.computeIncrementalMetricsForEdges(finalClusteredEdgesDF, "hashes","relsInCluster",
-          "srcLabelsInCluster","dstLabelsInCluster","propsInCluster", idx)
+
+        encodedDF.cache()
+        val rowCounts = encodedDF.count()
+        println(s"Edge patterns count: $rowCounts")
+        
+        finalClusteredEdgesDF = clusteringMethod match {
+          case "LSH" =>
+            LSHClustering.applyLSHEdges(spark, encodedDF)
+          case "KMEANS" =>
+            KMeansClustering.applyKMeansEdges(spark, encodedDF, k_edges)
+          case _ =>
+            println(s"Unknown clustering method: $clusteringMethod. Defaulting to LSH.")
+            LSHClustering.applyLSHEdges(spark, encodedDF)
+        }
+
+        // Evaluation.computeIncrementalMetricsForEdges(
+        //   finalClusteredEdgesDF,
+        //   "hashes",
+        //   "relsInCluster",
+        //   "srcLabelsInCluster",
+        //   "dstLabelsInCluster",
+        //   "propsInCluster",
+        //   idx
+        // )
       }
     }
 
-    println("\n--- Final Clustered Node Patterns ---")
-    if (finalClusteredNodesDF != null) finalClusteredNodesDF.show(50, truncate=false)
-    println("\n--- Final Schema Node Patterns ---")
-    finalClusteredNodesDF.printSchema()
+    // println("\n--- Final Clustered Node Patterns ---")
+    // if (finalClusteredNodesDF != null) finalClusteredNodesDF.show(50, truncate=false)
+    // println("\n--- Final Schema Node Patterns ---")
+    // if (finalClusteredNodesDF != null) finalClusteredNodesDF.printSchema()
 
-    println("\n--- Final Clustered Edge Patterns ---")
-    if (finalClusteredEdgesDF != null) finalClusteredEdgesDF.show(50, truncate=false)
-    println("\n--- Final Schema Edge Patterns ---")
-    finalClusteredEdgesDF.printSchema()
+    // println("\n--- Final Clustered Edge Patterns ---")
+    // if (finalClusteredEdgesDF != null) finalClusteredEdgesDF.show(50, truncate=false)
+    // println("\n--- Final Schema Edge Patterns ---")
+    // if (finalClusteredEdgesDF != null) finalClusteredEdgesDF.printSchema()
 
     println("\n--- Final Evaluation Metrics for Grouped Nodes ---")
     if (finalClusteredNodesDF != null) {
-      Evaluation.computeIncrementalMetricsForNodes(finalClusteredNodesDF, "labelsInCluster","hashes","labelsInCluster", -1)
-      val groupedNodesDF = PostProcessing.groupPatternsByLabel(finalClusteredNodesDF)
-      groupedNodesDF.show(truncate=false)
+      Evaluation.computeIncrementalMetricsForNodes(
+        finalClusteredNodesDF,
+        "labelsInCluster",
+        "hashes",
+        "labelsInCluster",
+        -1
+      )
+      val groupedNodesDF = PostProcessing.groupPatternsByLabel(finalClusteredNodesDF) 
+      groupedNodesDF
+        .select("label", "nonOptionalProperties", "optionalProperties")
+        .show(truncate=false)
+      //need to evaluate the groupedNodesDF as the finalClusteredNodesDF
     }
 
     println("\n--- Final Evaluation Metrics for Grouped Edges ---")
     if (finalClusteredEdgesDF != null) {
-      Evaluation.computeIncrementalMetricsForEdges(finalClusteredEdgesDF,"hashes","relsInCluster",
-        "srcLabelsInCluster","dstLabelsInCluster","propsInCluster", -1)
-      val groupedEdgesDF = PostProcessing.groupPatternsByEdgeType(finalClusteredEdgesDF)
-      groupedEdgesDF.show(truncate=false)
+      Evaluation.computeIncrementalMetricsForEdges(
+        finalClusteredEdgesDF,
+        "hashes",
+        "relsInCluster",
+        "srcLabelsInCluster",
+        "dstLabelsInCluster",
+        "propsInCluster",
+        -1
+      )
+      val groupedEdgesDF = PostProcessing.groupPatternsByEdgeType(finalClusteredEdgesDF) // πρεπει να κάνω evaluation και εδω
+      groupedEdgesDF
+        .select("relationshipTypes", "srcLabels", "dstLabels", "nonOptionalProperties", "optionalProperties")      
+        .show(truncate=false)
+        //need to evaluate the groupedEdges as the finalClusteredEdgesDF
     }
 
     spark.stop()

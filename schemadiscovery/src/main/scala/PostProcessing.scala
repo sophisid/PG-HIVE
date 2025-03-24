@@ -10,11 +10,12 @@ object PostProcessing {
       .withColumn("flatLabels", flatten($"labelsInCluster"))
       .withColumn("label", explode($"flatLabels"))
       .withColumn("flatProperties", flatten($"propertiesInCluster"))
-      .select("hashes", "label", "flatProperties")
+      .withColumn("nodeId", explode($"nodeIdsInCluster"))
+      .select("hashes", "label", "flatProperties", "nodeId")
 
     val groupedDF = explodedDF
       .groupBy("label")
-      .agg(collect_list($"flatProperties").as("allProperties"))
+      .agg(collect_list($"flatProperties").as("allProperties"), collect_set($"nodeId").as("nodeIds"))
       .map { row =>
         val label = row.getAs[String]("label")
         val allPropsNested = row.getAs[Seq[Seq[String]]]("allProperties")
@@ -29,10 +30,12 @@ object PostProcessing {
           .sorted
 
         val optionalProperties = allPropsFlattened.distinct.diff(commonProperties).sorted
+        val nodeIds = row.getAs[Seq[Long]]("nodeIds")
+        val allProperties = (commonProperties ++ optionalProperties).distinct.sorted
 
-        (label, commonProperties, optionalProperties)
+        (label, commonProperties, optionalProperties, allProperties, nodeIds) 
       }
-      .toDF("label", "nonOptionalProperties", "optionalProperties")
+      .toDF("label", "nonOptionalProperties", "optionalProperties", "allProperties", "nodeIds")
 
     groupedDF
   }
@@ -45,6 +48,7 @@ def groupPatternsByEdgeType(finalClusteredEdgesDF: DataFrame): DataFrame = {
       .withColumn("flatSrc",  flatten($"srcLabelsInCluster"))
       .withColumn("flatDst",  flatten($"dstLabelsInCluster"))
       .withColumn("flatProps", flatten($"propsInCluster"))
+      .withColumn("edgeId", explode($"edgeIdsInCluster"))
 
     val sortedDF = flattenedDF
       .withColumn("sortedRels", array_sort($"flatRels"))
@@ -54,7 +58,8 @@ def groupPatternsByEdgeType(finalClusteredEdgesDF: DataFrame): DataFrame = {
     val grouped = sortedDF
       .groupBy($"sortedRels", $"sortedSrc", $"sortedDst")
       .agg(
-        collect_list($"flatProps").as("allProperties")
+        collect_list($"flatProps").as("allProperties"),
+        collect_set($"edgeId").as("edgeIds")
       )
 
     val result = grouped.map { row =>
@@ -63,6 +68,7 @@ def groupPatternsByEdgeType(finalClusteredEdgesDF: DataFrame): DataFrame = {
       val dst  = row.getAs[Seq[String]]("sortedDst")
       val allPropsNested = row.getAs[Seq[Seq[String]]]("allProperties")
       val allPropsFlattened = allPropsNested.flatten
+      val edgeIds = row.getAs[Seq[Long]]("edgeIds")
 
       val numberOfSubArrays = allPropsNested.size
 
@@ -75,20 +81,25 @@ def groupPatternsByEdgeType(finalClusteredEdgesDF: DataFrame): DataFrame = {
         .sorted
 
       val optionalProperties = allPropsFlattened.distinct.diff(commonProperties).sorted
+      val allProperties = (commonProperties ++ optionalProperties).distinct.sorted
 
       (
         rels.mkString(";"),
         src.mkString(";"), 
         dst.mkString(";"),
         commonProperties,
-        optionalProperties
+        optionalProperties,
+        allProperties,
+        edgeIds
       )
     }.toDF(
       "relationshipTypes", 
       "srcLabels",
       "dstLabels",
       "nonOptionalProperties",
-      "optionalProperties"
+      "optionalProperties",
+      "allProperties",
+      "edgeIds"
     )
 
     result

@@ -1,7 +1,6 @@
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.functions._
 import org.apache.spark.ml.feature.{Word2Vec, VectorAssembler}
-import org.apache.spark.ml.linalg.Vectors
 
 object PatternPreprocessing {
 
@@ -19,7 +18,8 @@ object PatternPreprocessing {
     val withBinaryColsDF = allProperties.foldLeft(patternsDFwithArray) { (tempDF, prop) =>
       tempDF.withColumn(
         s"prop_$prop",
-        when(array_contains($"propertiesArray", prop), 1.0).otherwise(0.0))
+        when(array_contains($"propertiesArray", prop), 1.0).otherwise(0.0)
+      )
     }
 
     // Apply Word2Vec to labelArray
@@ -50,15 +50,16 @@ object PatternPreprocessing {
     // Convert Set[String] columns to arrays
     val withArrayDF = edgesDF
       .withColumn("propertiesArray", $"properties")
-      .withColumn("relationshipTypeArray", array($"relationshipType".cast("string"))) // Convert Set[String] to array
-      .withColumn("srcLabelArray", array($"srcLabels".cast("string"))) // Convert Set[String] to array
-      .withColumn("dstLabelArray", array($"dstLabels".cast("string"))) // Convert Set[String] to array
+      .withColumn("relationshipTypeArray", array($"relationshipType".cast("string")))
+      .withColumn("srcLabelArray", array($"srcLabels".cast("string")))
+      .withColumn("dstLabelArray", array($"dstLabels".cast("string")))
 
     // Add binary columns for properties
     val binDF = allProperties.foldLeft(withArrayDF) { (tempDF, prop) =>
       tempDF.withColumn(
         s"prop_$prop",
-        when(array_contains($"propertiesArray", prop), 1.0).otherwise(0.0))
+        when(array_contains($"propertiesArray", prop), 1.0).otherwise(0.0)
+      )
     }
 
     // Apply Word2Vec to relationshipType, srcLabels, and dstLabels

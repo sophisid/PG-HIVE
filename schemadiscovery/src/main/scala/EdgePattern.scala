@@ -8,3 +8,6 @@ case class EdgePattern(
   properties: Set[String],
   assignedEdges: mutable.Map[Long, String] = mutable.Map.empty[Long, String]
 )
+{
+  def assignedEdgeIds: Set[Long] = assignedEdges.keys.toSet
+}
