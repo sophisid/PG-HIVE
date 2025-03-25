@@ -4,173 +4,215 @@ import org.apache.spark.sql.expressions.Window
 
 object Evaluation {
 
-def computeIncrementalMetricsForNodes(
-  evaluationDF: DataFrame,
-  entityCol: String,
-  predictedCol: String,
-  originalCol: String,
-  batchIndex: Int
-): Unit = {
-  val spark = evaluationDF.sparkSession
-  import spark.implicits._
-  import org.apache.spark.sql.expressions.Window
+  def computeMetricsForNodes(
+    spark: SparkSession,
+    originalNodesDF: DataFrame, // Ground truth nodes από DataLoader
+    predictedNodesDF: DataFrame // Merged patterns από LSH ή KMeans
+  ): Unit = {
+    import spark.implicits._
 
-  val explodedDF = evaluationDF
-    .withColumn("label", explode(col(originalCol)))
-    .withColumn("actualLabel",
-      when(col("label").isNotNull, col("label")).otherwise(array(lit("Unknown")))
-    )
+    // Explode τα predicted labels και nodeIds από το predictedNodesDF
+    val explodedPredictedDF = predictedNodesDF
+      .withColumn("predictedLabel", explode(col("sortedLabels")))
+      .withColumn("nodeId", explode(col("nodeIdsInCluster"))) // Τώρα δίνει BIGINT
+      .select(col("nodeId"), col("predictedLabel"))
+      .where(col("nodeId").isNotNull)
 
-  val distinctGroundTruthNodes = explodedDF.select($"actualLabel").distinct().count()
-  val distinctPredictedNodes   = explodedDF.select(col(predictedCol)).distinct().count()
+    // Explode τα originalLabels από το originalNodesDF
+    val explodedOriginalDF = originalNodesDF
+      .withColumn("actualLabel", explode(col("originalLabels")))
+      .select(col("_nodeId").as("nodeId"), col("actualLabel"))
+      .where(col("nodeId").isNotNull)
 
-  println(s"Ground Truth Nodes (distinct): $distinctGroundTruthNodes")
-  println(s"Predicted Nodes (distinct):    $distinctPredictedNodes")
+    // Join predicted και actual labels με βάση το nodeId
+    val evaluationDF = explodedPredictedDF
+      .join(explodedOriginalDF, Seq("nodeId"), "inner")
+      .select(col("nodeId"), col("predictedLabel"), col("actualLabel"))
 
-  val clusterTypeCountsDF = explodedDF.groupBy(predictedCol, "actualLabel").count()
-  val windowSpec = Window.partitionBy(predictedCol).orderBy(col("count").desc)
+    // Υπολογισμός μοναδικών labels
+    val distinctGroundTruthNodes = explodedOriginalDF.select(col("actualLabel")).distinct().count()
+    val distinctPredictedNodes = explodedPredictedDF.select(col("predictedLabel")).distinct().count()
 
-  val majorityTypeDF = clusterTypeCountsDF
-    .withColumn("rank", row_number().over(windowSpec))
-    .filter($"rank" === 1)
-    .select(col(predictedCol), col("actualLabel").as("majorityType"))
+    println(s"Ground Truth Nodes (distinct): $distinctGroundTruthNodes")
+    println(s"Predicted Nodes (distinct):    $distinctPredictedNodes")
 
-  val evaluationWithMajorityDF = explodedDF
-    .join(majorityTypeDF, Seq(predictedCol), "left")
-    .withColumn("correctAssignment",
-      when(col("actualLabel") === col("majorityType"), 1).otherwise(0)
-    )
+    // Υπολογισμός TP, FP, FN
+    val clusterTypeCountsDF = evaluationDF
+      .groupBy(col("predictedLabel"), col("actualLabel"))
+      .agg(count("*").as("count"))
 
-  val TP = evaluationWithMajorityDF.filter(col("correctAssignment") === 1).count()
-  val FP = evaluationWithMajorityDF.filter(col("correctAssignment") === 0).count()
+    val windowSpec = Window.partitionBy(col("predictedLabel")).orderBy(col("count").desc)
 
-  val totalActualPositivesDF = explodedDF
-    .groupBy("actualLabel")
-    .count()
-    .withColumnRenamed("count", "totalActual")
+    val majorityTypeDF = clusterTypeCountsDF
+      .withColumn("rank", row_number().over(windowSpec))
+      .filter($"rank" === 1)
+      .select(col("predictedLabel"), col("actualLabel").as("majorityType"))
 
-  val totalPredictedPositivesDF = evaluationWithMajorityDF
-    .groupBy("majorityType")
-    .count()
-    .withColumnRenamed("count", "totalPredicted")
+    val evaluationWithMajorityDF = evaluationDF
+      .join(majorityTypeDF, Seq("predictedLabel"), "left")
+      .withColumn("correctAssignment",
+        when(col("actualLabel") === col("majorityType"), 1).otherwise(0)
+      )
 
-  val FN = totalActualPositivesDF
-    .join(
-      totalPredictedPositivesDF,
-      totalActualPositivesDF("actualLabel") === totalPredictedPositivesDF("majorityType"),
-      "left_anti"
-    )
-    .agg(coalesce(sum("totalActual"), lit(0)))
-    .collect()
-    .headOption.map(_.getLong(0))
-    .getOrElse(0L)
+    val TP = evaluationWithMajorityDF.filter($"correctAssignment" === 1).count()
+    val FP = evaluationWithMajorityDF.filter($"correctAssignment" === 0).count()
 
-  val precision = if (TP + FP > 0) TP.toDouble / (TP + FP) else 0.0
-  val recall    = if (TP + FN > 0) TP.toDouble / (TP + FN) else 0.0
-  val f1Score   = if (precision + recall > 0) 2 * (precision * recall) / (precision + recall) else 0.0
+    val totalActualPositivesDF = explodedOriginalDF
+      .groupBy(col("actualLabel"))
+      .agg(count("*").as("totalActual"))
 
-  println(s"False Negatives (FN): $FN")
-  majorityTypeDF.show()
-  totalActualPositivesDF.show()
-  totalPredictedPositivesDF.show()
+    val totalPredictedPositivesDF = evaluationWithMajorityDF
+      .groupBy(col("majorityType"))
+      .agg(count("*").as("totalPredicted"))
 
-  println(f"\nBatch #$batchIndex Node Evaluation Metrics:")
-  println(f"  Precision: $precision%.4f")
-  println(f"  Recall:    $recall%.4f")
-  println(f"  F1-Score:  $f1Score%.4f")
-}
+    val FN = totalActualPositivesDF
+      .join(totalPredictedPositivesDF, $"actualLabel" === $"majorityType", "left_anti")
+      .agg(coalesce(sum("totalActual"), lit(0L)).as("fnCount"))
+      .first()
+      .getLong(0)
 
-def computeIncrementalMetricsForEdges(
-  evaluationDF: DataFrame, 
-  predictedCol: String, 
-  relationshipTypeCol: String, 
-  srcLabelCol: String, 
-  dstLabelCol: String, 
-  propsCol: String, 
-  batchIndex: Int
-): Unit = {
-  val spark = evaluationDF.sparkSession
-  import spark.implicits._
-  import org.apache.spark.sql.expressions.Window
+    val precision = if (TP + FP > 0) TP.toDouble / (TP + FP) else 0.0
+    val recall = if (TP + FN > 0) TP.toDouble / (TP + FN) else 0.0
+    val f1Score = if (precision + recall > 0) 2 * (precision * recall) / (precision + recall) else 0.0
 
-  val explodedDF = evaluationDF
-    .withColumn(srcLabelCol, explode(col(srcLabelCol)))
-    .withColumn(dstLabelCol, explode(col(dstLabelCol)))
-    .withColumn(propsCol, explode(col(propsCol)))
+    println(s"True Positives (TP): $TP")
+    println(s"False Positives (FP): $FP")
+    println(s"False Negatives (FN): $FN")
+    println("Majority Type per Predicted Label:")
+    majorityTypeDF.show()
+    println("Total Actual Positives:")
+    totalActualPositivesDF.show()
+    println("Total Predicted Positives:")
+    totalPredictedPositivesDF.show()
 
+    println(f"\nNode Evaluation Metrics:")
+    println(f"  Precision: $precision%.4f")
+    println(f"  Recall:    $recall%.4f")
+    println(f"  F1-Score:  $f1Score%.4f")
+  }
 
-  val distinctGroundTruthEdges = explodedDF
-    .select(relationshipTypeCol, srcLabelCol, dstLabelCol, propsCol).distinct().count()
+  def computeMetricsForEdges(
+    spark: SparkSession,
+    originalEdgesDF: DataFrame, // Ground truth edges από DataLoader
+    predictedEdgesDF: DataFrame // Merged edges από LSH ή KMeans
+  ): Unit = {
+    import spark.implicits._
 
-  val distinctPredictedEdges = explodedDF
-    .select(col(predictedCol)).distinct().count()
+    // Explode τα predicted relationshipTypes και edgeIds από το predictedEdgesDF
+    val explodedPredictedDF = predictedEdgesDF
+      .withColumn("predictedRelationshipType", explode(col("relationshipTypes")))
+      .withColumn("edgeId", explode(col("edgeIdsInCluster")))
+      .select(
+        struct(col("edgeId.srcId").as("srcId"), col("edgeId.dstId").as("dstId")).as("edgeId"),
+        col("predictedRelationshipType")
+      )
 
-  println(s"Ground Truth Edges (distinct): $distinctGroundTruthEdges")
-  println(s"Predicted Edges (distinct):    $distinctPredictedEdges")
+    // Προετοιμασία του originalEdgesDF
+    val explodedOriginalDF = originalEdgesDF
+      .select(
+        struct(col("srcId"), col("dstId")).as("edgeId"),
+        col("relationshipType").as("actualRelationshipType"),
+        col("srcType").as("actualSrcLabel"),
+        col("dstType").as("actualDstLabel")
+      )
 
-  val clusterTypeCountsDF = explodedDF
-    .groupBy(predictedCol, relationshipTypeCol, srcLabelCol, dstLabelCol, propsCol)
-    .count()
+    // Join predicted και actual με βάση το edgeId
+    val evaluationDF = explodedPredictedDF
+      .join(explodedOriginalDF, "edgeId", "inner")
+      .select(
+        col("edgeId"),
+        col("predictedRelationshipType"),
+        col("actualRelationshipType"),
+        col("actualSrcLabel"),
+        col("actualDstLabel")
+      )
 
-  val windowSpec = Window.partitionBy(predictedCol).orderBy(col("count").desc)
+    // Υπολογισμός μοναδικών edges
+    val distinctGroundTruthEdges = explodedOriginalDF
+      .select(col("actualRelationshipType"), col("actualSrcLabel"), col("actualDstLabel"))
+      .distinct()
+      .count()
+    val distinctPredictedEdges = explodedPredictedDF
+      .select(col("predictedRelationshipType"))
+      .distinct()
+      .count()
 
-  val majorityTypeDF = clusterTypeCountsDF
-    .withColumn("rank", row_number().over(windowSpec))
-    .filter($"rank" === 1)
-    .select(
-      col(predictedCol),
-      col(relationshipTypeCol).as("majorityRelationshipType"),
-      col(srcLabelCol).as("majoritySrcLabel"),
-      col(dstLabelCol).as("majorityDstLabel"),
-      col(propsCol).as("majorityProperties")
-    )
+    println(s"Ground Truth Edges (distinct): $distinctGroundTruthEdges")
+    println(s"Predicted Edges (distinct):    $distinctPredictedEdges")
 
-  val evaluationWithMajorityDF = explodedDF
-    .join(majorityTypeDF, Seq(predictedCol), "left")
-    .withColumn("correctAssignment",
-      when(
-        col(relationshipTypeCol) === col("majorityRelationshipType") &&
-        col(srcLabelCol) === col("majoritySrcLabel") &&
-        col(dstLabelCol) === col("majorityDstLabel") &&
-        col(propsCol) === col("majorityProperties"), 1
-      ).otherwise(0)
-    )
+    // Υπολογισμός TP, FP, FN
+    val clusterTypeCountsDF = evaluationDF
+      .groupBy(
+        col("predictedRelationshipType"),
+        col("actualRelationshipType"),
+        col("actualSrcLabel"),
+        col("actualDstLabel")
+      )
+      .agg(count("*").as("count"))
 
-  val TP = evaluationWithMajorityDF.filter(col("correctAssignment") === 1).count()
-  val FP = evaluationWithMajorityDF.filter(col("correctAssignment") === 0).count()
+    val windowSpec = Window.partitionBy(col("predictedRelationshipType")).orderBy(col("count").desc)
 
-  val totalActualPositivesDF = explodedDF
-    .groupBy(relationshipTypeCol, srcLabelCol, dstLabelCol, propsCol)
-    .count()
-    .withColumnRenamed("count", "totalActual")
+    val majorityTypeDF = clusterTypeCountsDF
+      .withColumn("rank", row_number().over(windowSpec))
+      .filter($"rank" === 1)
+      .select(
+        col("predictedRelationshipType"),
+        col("actualRelationshipType").as("majorityRelationshipType"),
+        col("actualSrcLabel").as("majoritySrcLabel"),
+        col("actualDstLabel").as("majorityDstLabel")
+      )
 
-  val totalPredictedPositivesDF = evaluationWithMajorityDF
-    .groupBy("majorityRelationshipType", "majoritySrcLabel", "majorityDstLabel", "majorityProperties")
-    .count()
-    .withColumnRenamed("count", "totalPredicted")
+    val evaluationWithMajorityDF = evaluationDF
+      .join(majorityTypeDF, Seq("predictedRelationshipType"), "left")
+      .withColumn("correctAssignment",
+        when(
+          $"actualRelationshipType" === $"majorityRelationshipType" &&
+          $"actualSrcLabel" === $"majoritySrcLabel" &&
+          $"actualDstLabel" === $"majorityDstLabel",
+          1
+        ).otherwise(0)
+      )
 
-  val FN = totalActualPositivesDF
-    .join(
-      totalPredictedPositivesDF,
-      totalActualPositivesDF(relationshipTypeCol) === totalPredictedPositivesDF("majorityRelationshipType") &&
-      totalActualPositivesDF(srcLabelCol) === totalPredictedPositivesDF("majoritySrcLabel") &&
-      totalActualPositivesDF(dstLabelCol) === totalPredictedPositivesDF("majorityDstLabel") &&
-      totalActualPositivesDF(propsCol) === totalPredictedPositivesDF("majorityProperties"),
-      "left_anti"
-    )
-    .agg(coalesce(sum("totalActual"), lit(0)))
-    .collect()
-    .headOption.map(_.getLong(0))
-    .getOrElse(0L)
+    val TP = evaluationWithMajorityDF.filter($"correctAssignment" === 1).count()
+    val FP = evaluationWithMajorityDF.filter($"correctAssignment" === 0).count()
 
-  val precision = if (TP + FP > 0) TP.toDouble / (TP + FP) else 0.0
-  val recall    = if (TP + FN > 0) TP.toDouble / (TP + FN) else 0.0
-  val f1Score   = if (precision + recall > 0) 2 * (precision * recall) / (precision + recall) else 0.0
+    val totalActualPositivesDF = explodedOriginalDF
+      .groupBy(col("actualRelationshipType"), col("actualSrcLabel"), col("actualDstLabel"))
+      .agg(count("*").as("totalActual"))
 
-  println(f"\nBatch #$batchIndex Edge Evaluation Metrics:")
-  println(f"  Precision: $precision%.4f")
-  println(f"  Recall:    $recall%.4f")
-  println(f"  F1-Score:  $f1Score%.4f")
-}
+    val totalPredictedPositivesDF = evaluationWithMajorityDF
+      .groupBy(col("majorityRelationshipType"), col("majoritySrcLabel"), col("majorityDstLabel"))
+      .agg(count("*").as("totalPredicted"))
 
+    val FN = totalActualPositivesDF
+      .join(
+        totalPredictedPositivesDF,
+        $"actualRelationshipType" === $"majorityRelationshipType" &&
+        $"actualSrcLabel" === $"majoritySrcLabel" &&
+        $"actualDstLabel" === $"majorityDstLabel",
+        "left_anti"
+      )
+      .agg(coalesce(sum("totalActual"), lit(0L)).as("fnCount"))
+      .first()
+      .getLong(0)
+
+    val precision = if (TP + FP > 0) TP.toDouble / (TP + FP) else 0.0
+    val recall = if (TP + FN > 0) TP.toDouble / (TP + FN) else 0.0
+    val f1Score = if (precision + recall > 0) 2 * (precision * recall) / (precision + recall) else 0.0
+
+    println(s"True Positives (TP): $TP")
+    println(s"False Positives (FP): $FP")
+    println(s"False Negatives (FN): $FN")
+    println("Majority Type per Predicted Relationship Type:")
+    majorityTypeDF.show()
+    println("Total Actual Positives:")
+    totalActualPositivesDF.show()
+    println("Total Predicted Positives:")
+    totalPredictedPositivesDF.show()
+
+    println(f"\nEdge Evaluation Metrics:")
+    println(f"  Precision: $precision%.4f")
+    println(f"  Recall:    $recall%.4f")
+    println(f"  F1-Score:  $f1Score%.4f")
+  }
 }

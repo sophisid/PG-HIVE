@@ -15,7 +15,7 @@ object DataLoader {
     import spark.implicits._
     val uri = "bolt://localhost:7687"
     val user = "neo4j"
-    val password = "mypassword"
+    val password = "password"
 
     val driver = GraphDatabase.driver(uri, AuthTokens.basic(user, password))
     val session = driver.session()
@@ -38,7 +38,7 @@ object DataLoader {
       }
 
 
-      props + ("_nodeId" -> node.id()) + ("_labels" -> labels.mkString(":"))
+      props + ("_nodeId" -> node.id()) + ("_labels" -> labels.mkString(":")) + ("originalLabels" -> labels)
     }
 
     session.close()
@@ -47,6 +47,7 @@ object DataLoader {
     val allKeys = nodes.flatMap(_.keys).toSet
     val fields = allKeys.map {
       case "_nodeId" => StructField("_nodeId", LongType, nullable = false)
+      case  "originalLabels" => StructField("originalLabels", ArrayType(StringType), nullable = true)
       case key => StructField(key, StringType, nullable = true)
     }.toArray
     val schema = StructType(fields.toSeq)
@@ -65,7 +66,7 @@ object DataLoader {
     import spark.implicits._
     val uri = "bolt://localhost:7687"
     val user = "neo4j"
-    val password = "mypassword"
+    val password = "password"
 
     val driver = GraphDatabase.driver(uri, AuthTokens.basic(user, password))
     val session = driver.session()

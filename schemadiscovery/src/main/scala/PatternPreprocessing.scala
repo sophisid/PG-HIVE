@@ -4,73 +4,63 @@ import org.apache.spark.ml.feature.{Word2Vec, VectorAssembler}
 
 object PatternPreprocessing {
 
-  def encodePatterns(spark: SparkSession,
-                    patternsDF: DataFrame,
-                    allProperties: Set[String]): DataFrame = {
+  def encodePatterns(spark: SparkSession, patternsDF: DataFrame, allProperties: Set[String]): DataFrame = {
     import spark.implicits._
 
-    // Convert Set[String] columns to arrays
-    val patternsDFwithArray = patternsDF
-      .withColumn("propertiesArray", $"properties")
-      .withColumn("labelArray", array($"label".cast("string"))) // Convert Set[String] to array
+    val propertiesCols = allProperties.toArray
 
-    // Add binary columns for properties
-    val withBinaryColsDF = allProperties.foldLeft(patternsDFwithArray) { (tempDF, prop) =>
+    val withBinaryColsDF = propertiesCols.foldLeft(patternsDF) { (tempDF, prop) =>
       tempDF.withColumn(
         s"prop_$prop",
-        when(array_contains($"propertiesArray", prop), 1.0).otherwise(0.0)
+        when(col(prop).isNotNull, 1.0).otherwise(0.0)
       )
     }
 
-    // Apply Word2Vec to labelArray
+    val withLabelArrayDF = withBinaryColsDF
+      .withColumn("labelArray", array(coalesce($"_labels".cast("string"), lit(""))))
+
     val word2Vec = new Word2Vec()
       .setInputCol("labelArray")
       .setOutputCol("labelVector")
       .setVectorSize(3)
       .setMinCount(0)
 
-    val w2vModel = word2Vec.fit(withBinaryColsDF)
-    val withLabelVecDF = w2vModel.transform(withBinaryColsDF)
+    val w2vModel = word2Vec.fit(withLabelArrayDF)
+    val withLabelVecDF = w2vModel.transform(withLabelArrayDF)
 
-    // Assemble features
-    val binaryCols = allProperties.toArray.map(p => s"prop_$p")
+    val binaryCols = propertiesCols.map(p => s"prop_$p")
     val assembler = new VectorAssembler()
       .setInputCols(Array("labelVector") ++ binaryCols)
       .setOutputCol("features")
+      .setHandleInvalid("skip")
 
-    val finalDF = assembler.transform(withLabelVecDF)
-    finalDF
+    assembler.transform(withLabelVecDF)
   }
 
-  def encodeEdgePatterns(spark: SparkSession,
-                        edgesDF: DataFrame,
-                        allProperties: Set[String]): DataFrame = {
+  def encodeEdgePatterns(spark: SparkSession, edgesDF: DataFrame, allProperties: Set[String]): DataFrame = {
     import spark.implicits._
 
-    // Convert Set[String] columns to arrays
-    val withArrayDF = edgesDF
-      .withColumn("propertiesArray", $"properties")
-      .withColumn("relationshipTypeArray", array($"relationshipType".cast("string")))
-      .withColumn("srcLabelArray", array($"srcLabels".cast("string")))
-      .withColumn("dstLabelArray", array($"dstLabels".cast("string")))
+    val propertiesCols = allProperties.toArray
 
-    // Add binary columns for properties
-    val binDF = allProperties.foldLeft(withArrayDF) { (tempDF, prop) =>
+    val withBinaryColsDF = propertiesCols.foldLeft(edgesDF) { (tempDF, prop) =>
       tempDF.withColumn(
         s"prop_$prop",
-        when(array_contains($"propertiesArray", prop), 1.0).otherwise(0.0)
+        when(col(prop).isNotNull, 1.0).otherwise(0.0)
       )
     }
 
-    // Apply Word2Vec to relationshipType, srcLabels, and dstLabels
+    val withArraysDF = withBinaryColsDF
+      .withColumn("relationshipTypeArray", array(coalesce($"relationshipType".cast("string"), lit(""))))
+      .withColumn("srcLabelArray", array(coalesce($"srcType".cast("string"), lit(""))))
+      .withColumn("dstLabelArray", array(coalesce($"dstType".cast("string"), lit(""))))
+
     val word2VecRel = new Word2Vec()
       .setInputCol("relationshipTypeArray")
       .setOutputCol("relVector")
       .setVectorSize(3)
       .setMinCount(0)
-
-    val relModel = word2VecRel.fit(binDF)
-    val withRelVec = relModel.transform(binDF)
+    val relModel = word2VecRel.fit(withArraysDF)
+    val withRelVec = relModel.transform(withArraysDF)
 
     val word2VecSrc = new Word2Vec()
       .setInputCol("srcLabelArray")
@@ -90,13 +80,12 @@ object PatternPreprocessing {
     val dstModel = word2VecDst.fit(withSrcVec)
     val withDstVec = dstModel.transform(withSrcVec)
 
-    // Assemble features
-    val propCols = allProperties.toArray.sorted.map(p => s"prop_$p")
+    val binaryCols = propertiesCols.map(p => s"prop_$p")
     val assembler = new VectorAssembler()
-      .setInputCols(Array("relVector", "srcVector", "dstVector") ++ propCols)
+      .setInputCols(Array("relVector", "srcVector", "dstVector") ++ binaryCols)
       .setOutputCol("features")
+      .setHandleInvalid("skip")
 
-    val finalDF = assembler.transform(withDstVec)
-    finalDF
+    assembler.transform(withDstVec)
   }
 }
