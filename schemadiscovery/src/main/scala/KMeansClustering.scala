@@ -21,7 +21,7 @@ object KMeansClustering {
     val model = kmeans.fit(patternsDF)
     val clusteredDF = model.transform(patternsDF)
 
-    val propCols = patternsDF.columns.filterNot(Seq("_nodeId", "_labels", "features",  "originalLabels").contains)
+    val propCols = patternsDF.columns.filterNot(Seq("_nodeId", "_labels", "features", "originalLabels").contains)
     val nonNullProps = array(
       propCols.map(c => when(col(c).isNotNull, lit(c)).otherwise(null)).toSeq: _*
     ).as("nonNullProps")
@@ -96,7 +96,9 @@ object KMeansClustering {
 
     val mergedDF = clusteredEdges
       .withColumn("sortedRelationshipTypes", array_sort($"relsInCluster"))
-      .groupBy($"sortedRelationshipTypes")
+      .withColumn("sortedSrcLabels", array_sort($"srcLabelsInCluster"))
+      .withColumn("sortedDstLabels", array_sort($"dstLabelsInCluster"))
+      .groupBy($"sortedRelationshipTypes", $"sortedSrcLabels", $"sortedDstLabels")
       .agg(
         collect_list($"propsInCluster").as("propsNested"),
         flatten(collect_list($"edgeIdsInCluster")).as("edgeIdsInCluster")
@@ -113,11 +115,12 @@ object KMeansClustering {
       )
       .select(
         $"sortedRelationshipTypes".as("relationshipTypes"),
+        $"sortedSrcLabels".as("srcLabels"),
+        $"sortedDstLabels".as("dstLabels"),
         $"propsInCluster",
         $"edgeIdsInCluster",
         $"mandatoryProperties",
         $"optionalProperties"
       )
   }
-
 }

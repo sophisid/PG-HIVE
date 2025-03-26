@@ -123,7 +123,9 @@ def mergeEdgePatternsByLabel(spark: SparkSession, clusteredEdges: DataFrame): Da
 
   val mergedDF = filteredDF
     .withColumn("sortedRelationshipTypes", array_sort($"relsInCluster"))
-    .groupBy($"sortedRelationshipTypes")
+    .withColumn("sortedSrcLabels", array_sort($"srcLabelsInCluster"))
+    .withColumn("sortedDstLabels", array_sort($"dstLabelsInCluster"))
+    .groupBy($"sortedRelationshipTypes", $"sortedSrcLabels", $"sortedDstLabels")
     .agg(
       collect_list($"propsInCluster").as("propsNested"),
       flatten(collect_list($"edgeIdsInCluster")).as("edgeIdsInCluster")
@@ -144,6 +146,8 @@ def mergeEdgePatternsByLabel(spark: SparkSession, clusteredEdges: DataFrame): Da
     )
     .select(
       $"sortedRelationshipTypes".as("relationshipTypes"),
+      $"sortedSrcLabels".as("srcLabels"),
+      $"sortedDstLabels".as("dstLabels"),
       $"propsInCluster",
       $"edgeIdsInCluster",
       $"mandatoryProperties",
