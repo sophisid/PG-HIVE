@@ -74,27 +74,66 @@ object KMeansClustering {
   def mergePatternsByKMeansLabel(spark: SparkSession, clusteredNodes: DataFrame): DataFrame = {
     import spark.implicits._
 
-    val mergedDF = clusteredNodes
-      .withColumn("sortedLabels", array_sort($"labelsInCluster"))
-      .groupBy($"sortedLabels")
-      .agg(
-        collect_list($"propertiesInCluster").as("propertiesInCluster"),
-        flatten(collect_list($"nodeIdsInCluster")).as("nodeIdsInCluster")
-      )
+      clusteredNodes.cache()
 
-    mergedDF
-      .withColumn("mandatoryProperties",
-        aggregate($"propertiesInCluster", $"propertiesInCluster"(0), (acc, props) => array_intersect(acc, props))
-      )
-      .withColumn("allProperties", flatten($"propertiesInCluster"))
-      .withColumn("optionalProperties", array_distinct(array_except($"allProperties", $"mandatoryProperties")))
-      .drop("allProperties")
+      val withLabelsDF = clusteredNodes.filter(size($"labelsInCluster") > 0)
+      val noLabelsDF = clusteredNodes.filter(size($"labelsInCluster") === 0)
+
+      println(s"Number of node clusters before merge: ${clusteredNodes.count()}")
+
+      val mergedWLabelDF = withLabelsDF
+        .withColumn("sortedLabels", array_sort($"labelsInCluster"))
+        .groupBy($"sortedLabels")
+        .agg(
+          collect_list($"propertiesInCluster").as("propertiesInCluster"),
+          flatten(collect_list($"nodeIdsInCluster")).as("nodeIdsInCluster")
+        )
+
+      val finalDF = mergedWLabelDF
+        .withColumn("mandatoryProperties",
+          aggregate(
+            $"propertiesInCluster",
+            $"propertiesInCluster"(0),
+            (acc, props) => array_intersect(acc, props)
+          )
+        )
+        .withColumn("allProperties", flatten($"propertiesInCluster"))
+        .withColumn("optionalProperties",
+          array_distinct(array_except($"allProperties", $"mandatoryProperties"))
+        )
+        .drop("allProperties")
+
+      val noLabelsFinalDF = noLabelsDF
+        .select(
+          $"labelsInCluster".as("sortedLabels"),
+          array($"propertiesInCluster").as("propertiesInCluster"),
+          $"nodeIdsInCluster",
+          array(flatten($"propertiesInCluster")).as("mandatoryProperties"), 
+          array(array()).as("optionalProperties")
+        )
+
+      val returnedDF = finalDF.union(noLabelsFinalDF)
+
+      returnedDF
   }
 
   def mergeEdgePatternsByKMeansLabel(spark: SparkSession, clusteredEdges: DataFrame): DataFrame = {
     import spark.implicits._
 
-    val mergedDF = clusteredEdges
+    clusteredEdges.cache()
+
+    val withLabelsDF = clusteredEdges.filter(
+      (size($"relsInCluster") > 0) && 
+      (size($"srcLabelsInCluster") > 0 || size($"dstLabelsInCluster") > 0)
+    )
+    val noLabelsDF = clusteredEdges.filter(
+      (size($"relsInCluster") > 0) && 
+      (size($"srcLabelsInCluster") === 0 && size($"dstLabelsInCluster") === 0)
+    )
+
+    println(s"Number of edge clusters before merge: ${clusteredEdges.count()}")
+
+    val mergedDF = withLabelsDF
       .withColumn("sortedRelationshipTypes", array_sort($"relsInCluster"))
       .withColumn("sortedSrcLabels", array_sort($"srcLabelsInCluster"))
       .withColumn("sortedDstLabels", array_sort($"dstLabelsInCluster"))
@@ -104,10 +143,14 @@ object KMeansClustering {
         flatten(collect_list($"edgeIdsInCluster")).as("edgeIdsInCluster")
       )
 
-    mergedDF
+    val finalDF = mergedDF
       .withColumn("propsInCluster", flatten($"propsNested"))
       .withColumn("mandatoryProperties",
-        aggregate($"propsInCluster", $"propsInCluster"(0), (acc, props) => array_intersect(acc, props))
+        aggregate(
+          $"propsInCluster",
+          $"propsInCluster"(0),
+          (acc, props) => array_intersect(acc, props)
+        )
       )
       .withColumn("flattenedProps", flatten($"propsInCluster"))
       .withColumn("optionalProperties",
@@ -122,5 +165,20 @@ object KMeansClustering {
         $"mandatoryProperties",
         $"optionalProperties"
       )
+
+    val noLabelsFinalDF = noLabelsDF
+      .select(
+        $"relsInCluster".as("relationshipTypes"),
+        $"srcLabelsInCluster".as("srcLabels"),
+        $"dstLabelsInCluster".as("dstLabels"),
+        $"propsInCluster",
+        $"edgeIdsInCluster",
+        $"propsInCluster".as("mandatoryProperties"),
+        array().as("optionalProperties")
+      )
+
+    val returnedDF = finalDF.union(noLabelsFinalDF)
+
+    returnedDF
   }
 }

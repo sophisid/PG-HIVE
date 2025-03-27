@@ -51,7 +51,7 @@ object InferSchema {
     def isInteger(str: String): Boolean = Try(str.trim.toInt).isSuccess
     def isDouble(str: String): Boolean = Try(str.trim.toDouble).isSuccess
     def isDate(str: String): Boolean = {
-      val formats = Seq("yyyy-MM-dd", "dd/MM/yyyy", "MM-dd-yyyy", "yyyy/MM/dd")
+      val formats = Seq("yyyy-MM-dd", "dd/MM/yyyy", "MM-dd-yyyy", "yyyy/MM/dd", "yyyy", "yyyy/MM", "MM/yyyy")
       formats.exists(fmt => Try(new SimpleDateFormat(fmt).parse(str.trim)).isSuccess)
     }
     def isBoolean(str: String): Boolean = {
@@ -113,7 +113,7 @@ object InferSchema {
     updatedDF
   }
 
-  
+
   def inferCardinalities(edgesDF: DataFrame, mergedEdges: DataFrame): DataFrame = {
     import edgesDF.sparkSession.implicits._
 

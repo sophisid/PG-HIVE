@@ -85,7 +85,6 @@ def mergePatternsByLabel(spark: SparkSession, clusteredNodes: DataFrame): DataFr
 
   println(s"Number of node clusters before merge: ${clusteredNodes.count()}")
 
-  // Merge για clusters με labels (αμετάβλητο)
   val mergedWLabelDF = withLabelsDF
     .withColumn("sortedLabels", array_sort($"labelsInCluster"))
     .groupBy($"sortedLabels")
@@ -108,34 +107,38 @@ def mergePatternsByLabel(spark: SparkSession, clusteredNodes: DataFrame): DataFr
     )
     .drop("allProperties")
 
-  // Διορθωμένη διαχείριση clusters χωρίς labels
   val noLabelsFinalDF = noLabelsDF
     .select(
       $"labelsInCluster".as("sortedLabels"),
-      array($"propertiesInCluster").as("propertiesInCluster"), // Προσαρμόζουμε σε Array[Array[Array[String]]]
-      $"nodeIdsInCluster"
+      array($"propertiesInCluster").as("propertiesInCluster"),
+      $"nodeIdsInCluster",
+      array(flatten($"propertiesInCluster")).as("mandatoryProperties"), 
+      array(array()).as("optionalProperties")
     )
-    .withColumn("mandatoryProperties", flatten($"propertiesInCluster")) // Array[String]
-    .withColumn("optionalProperties", array()) // Array[String]
 
-  // Ένωση των δύο DataFrames
   val returnedDF = finalDF.union(noLabelsFinalDF)
 
   returnedDF
 }
 
-// do the same for edges
+
 def mergeEdgePatternsByLabel(spark: SparkSession, clusteredEdges: DataFrame): DataFrame = {
   import spark.implicits._
 
   clusteredEdges.cache()
 
-  val filteredDF = clusteredEdges
-    .filter(size($"relsInCluster") > 0)
+  val withLabelsDF = clusteredEdges.filter(
+    (size($"relsInCluster") > 0) && 
+    (size($"srcLabelsInCluster") > 0 || size($"dstLabelsInCluster") > 0)
+  )
+  val noLabelsDF = clusteredEdges.filter(
+    (size($"relsInCluster") > 0) && 
+    (size($"srcLabelsInCluster") === 0 && size($"dstLabelsInCluster") === 0)
+  )
 
-  println(s"Number of edge clusters before merge: ${filteredDF.count()}")
+  println(s"Number of edge clusters before merge: ${clusteredEdges.count()}")
 
-  val mergedDF = filteredDF
+  val mergedDF = withLabelsDF
     .withColumn("sortedRelationshipTypes", array_sort($"relsInCluster"))
     .withColumn("sortedSrcLabels", array_sort($"srcLabelsInCluster"))
     .withColumn("sortedDstLabels", array_sort($"dstLabelsInCluster"))
@@ -168,6 +171,19 @@ def mergeEdgePatternsByLabel(spark: SparkSession, clusteredEdges: DataFrame): Da
       $"optionalProperties"
     )
 
-  finalDF
+  val noLabelsFinalDF = noLabelsDF
+    .select(
+      $"relsInCluster".as("relationshipTypes"),
+      $"srcLabelsInCluster".as("srcLabels"),
+      $"dstLabelsInCluster".as("dstLabels"),
+      $"propsInCluster",
+      $"edgeIdsInCluster",
+      $"propsInCluster".as("mandatoryProperties"),
+      array().as("optionalProperties")
+    )
+
+  val returnedDF = finalDF.union(noLabelsFinalDF)
+
+  returnedDF
 }
 }
