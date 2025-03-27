@@ -75,17 +75,18 @@ object LSHClustering {
     groupedDF
   }
 
- def mergePatternsByLabel(spark: SparkSession, clusteredNodes: DataFrame): DataFrame = {
+def mergePatternsByLabel(spark: SparkSession, clusteredNodes: DataFrame): DataFrame = {
   import spark.implicits._
 
   clusteredNodes.cache()
 
-  val filteredDF = clusteredNodes
-    .filter(size($"labelsInCluster") > 0)
+  val withLabelsDF = clusteredNodes.filter(size($"labelsInCluster") > 0)
+  val noLabelsDF = clusteredNodes.filter(size($"labelsInCluster") === 0)
 
-  println(s"Number of node clusters before merge: ${filteredDF.count()}")
+  println(s"Number of node clusters before merge: ${clusteredNodes.count()}")
 
-  val mergedDF = filteredDF
+  // Merge για clusters με labels (αμετάβλητο)
+  val mergedWLabelDF = withLabelsDF
     .withColumn("sortedLabels", array_sort($"labelsInCluster"))
     .groupBy($"sortedLabels")
     .agg(
@@ -93,7 +94,7 @@ object LSHClustering {
       flatten(collect_list($"nodeIdsInCluster")).as("nodeIdsInCluster")
     )
 
-  val finalDF = mergedDF
+  val finalDF = mergedWLabelDF
     .withColumn("mandatoryProperties",
       aggregate(
         $"propertiesInCluster",
@@ -107,7 +108,20 @@ object LSHClustering {
     )
     .drop("allProperties")
 
-  finalDF
+  // Διορθωμένη διαχείριση clusters χωρίς labels
+  val noLabelsFinalDF = noLabelsDF
+    .select(
+      $"labelsInCluster".as("sortedLabels"),
+      array($"propertiesInCluster").as("propertiesInCluster"), // Προσαρμόζουμε σε Array[Array[Array[String]]]
+      $"nodeIdsInCluster"
+    )
+    .withColumn("mandatoryProperties", flatten($"propertiesInCluster")) // Array[String]
+    .withColumn("optionalProperties", array()) // Array[String]
+
+  // Ένωση των δύο DataFrames
+  val returnedDF = finalDF.union(noLabelsFinalDF)
+
+  returnedDF
 }
 
 // do the same for edges

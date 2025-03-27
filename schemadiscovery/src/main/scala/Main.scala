@@ -65,8 +65,8 @@ object Main {
       println("\n=== Evaluation for LSH Edges ===")
       Evaluation.computeMetricsForEdges(spark, edgesDF, mergedEdges)
 
-      val updatedMergedPatterns = InferTypes.inferPropertyTypesFromMerged(nodesDF, mergedPatterns, "LSH Merged Nodes", Seq("mandatoryProperties", "optionalProperties"), "_nodeId")
-      val updatedMergedEdges = InferTypes.inferPropertyTypesFromMerged(edgesDF, mergedEdges, "LSH Merged Edges", Seq("mandatoryProperties", "optionalProperties"), "edgeIdsInCluster")
+      val updatedMergedPatterns = InferSchema.inferPropertyTypesFromMerged(nodesDF, mergedPatterns, "LSH Merged Nodes", Seq("mandatoryProperties", "optionalProperties"), "_nodeId")
+      val updatedMergedEdges = InferSchema.inferPropertyTypesFromMerged(edgesDF, mergedEdges, "LSH Merged Edges", Seq("mandatoryProperties", "optionalProperties"), "edgeIdsInCluster")
 
       println("Updated Merged Patterns LSH with Types:")
       updatedMergedPatterns.printSchema()
@@ -75,6 +75,11 @@ object Main {
       println("Updated Merged Edges LSH with Types:")
       updatedMergedEdges.printSchema()
       updatedMergedEdges.show(5)
+
+      val updatedMergedEdgesWCardinalities = InferSchema.inferCardinalities(edgesDF, updatedMergedEdges)
+      println("Updated Merged Edges LSH with Types and Cardinalities:")
+      updatedMergedEdgesWCardinalities.printSchema()
+      updatedMergedEdgesWCardinalities.show(5)
     }
 
     if (clusteringMethod == "KMEANS" || clusteringMethod == "BOTH") {
@@ -95,8 +100,8 @@ object Main {
       println("\n=== Evaluation for KMeans Edges ===")
       Evaluation.computeMetricsForEdges(spark, edgesDF, mergedKMeansEdges)
 
-      val updatedMergedPatterns = InferTypes.inferPropertyTypesFromMerged(nodesDF, mergedKMeansNodes, "LSH Merged Nodes", Seq("mandatoryProperties", "optionalProperties"), "_nodeId")
-      val updatedMergedEdges = InferTypes.inferPropertyTypesFromMerged(edgesDF, mergedKMeansEdges, "LSH Merged Edges", Seq("mandatoryProperties", "optionalProperties"), "edgeIdsInCluster")
+      val updatedMergedPatterns = InferSchema.inferPropertyTypesFromMerged(nodesDF, mergedKMeansNodes, "LSH Merged Nodes", Seq("mandatoryProperties", "optionalProperties"), "_nodeId")
+      val updatedMergedEdges = InferSchema.inferPropertyTypesFromMerged(edgesDF, mergedKMeansEdges, "LSH Merged Edges", Seq("mandatoryProperties", "optionalProperties"), "edgeIdsInCluster")
 
       println("Updated Merged Patterns LSH with Types:")
       updatedMergedPatterns.printSchema()
@@ -105,6 +110,10 @@ object Main {
       println("Updated Merged Edges LSH with Types:")
       updatedMergedEdges.printSchema()
       updatedMergedEdges.show(5)
+      val updatedMergedEdgesWCardinalities = InferSchema.inferCardinalities(edgesDF, updatedMergedEdges)
+      println("Updated Merged Edges KMeans with Types and Cardinalities:")
+      updatedMergedEdgesWCardinalities.printSchema()
+      updatedMergedEdgesWCardinalities.show(5)
     }
 
     spark.stop()

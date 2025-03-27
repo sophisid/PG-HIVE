@@ -4,7 +4,7 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
 import scala.util.Try
 
-object InferTypes {
+object InferSchema {
   def inferPropertyTypesFromMerged(
     originalDF: DataFrame, 
     mergedDF: DataFrame, 
@@ -39,12 +39,10 @@ object InferTypes {
 
     val allProperties = allPropertiesRaw.map { prop =>
       if (prop.startsWith("prop_")) prop.stripPrefix("prop_") else prop
-    }.filter(prop => originalDF.columns.contains(prop) && prop != "original_label" ).distinct
-
+    }.filter(prop => originalDF.columns.contains(prop) && prop != "original_label").distinct
 
     println(s"Extracted properties: ${allPropertiesRaw.mkString(", ")}")
     println(s"Adjusted properties for $name: ${allProperties.mkString(", ")}")
-
 
     val sampleDF = originalDF.limit(1000).cache()
     println(s"SampleDF count: ${sampleDF.count()}")
@@ -60,7 +58,6 @@ object InferTypes {
       val boolValues = Set("true", "false", "yes", "no", "1", "0")
       boolValues.contains(str.trim.toLowerCase)
     }
-
 
     val inferredTypes = allProperties.map { prop =>
       val values = sampleDF.select(prop)
@@ -91,7 +88,6 @@ object InferTypes {
     println(s"\nInferred Property Types for $name:")
     inferredTypes.foreach { case (prop, typ) => println(s"Property: $prop, Inferred Type: $typ") }
 
-
     val typeMapUdf = udf((properties: Seq[String]) => 
       if (properties == null || properties.isEmpty) 
         Seq.empty[String]
@@ -115,5 +111,64 @@ object InferTypes {
     }
 
     updatedDF
+  }
+
+  
+  def inferCardinalities(edgesDF: DataFrame, mergedEdges: DataFrame): DataFrame = {
+    import edgesDF.sparkSession.implicits._
+
+    // scr->dst cardinality
+    val srcToDst = edgesDF.groupBy("relationshipType", "srcId")
+      .agg(countDistinct("dstId").as("dstCount"))
+      .groupBy("relationshipType")
+      .agg(
+        max("dstCount").as("maxDstPerSrc"),
+        min("dstCount").as("minDstPerSrc"),
+        avg("dstCount").as("avgDstPerSrc")
+      )
+    // dst->src cardinality
+    val dstToSrc = edgesDF.groupBy("relationshipType", "dstId")
+      .agg(countDistinct("srcId").as("srcCount"))
+      .groupBy("relationshipType")
+      .agg(
+        max("srcCount").as("maxSrcPerDst"),
+        min("srcCount").as("minSrcPerDst"),
+        avg("srcCount").as("avgSrcPerDst")
+      )
+
+    val cardinalityDF = srcToDst.join(dstToSrc, "relationshipType")
+    cardinalityDF.show()
+
+    val cardinalities = cardinalityDF.collect().map { row =>
+      val relType = row.getAs[String]("relationshipType")
+      val maxDstPerSrc = row.getAs[Long]("maxDstPerSrc")
+      val maxSrcPerDst = row.getAs[Long]("maxSrcPerDst")
+      val minDstPerSrc = row.getAs[Long]("minDstPerSrc")
+      val minSrcPerDst = row.getAs[Long]("minSrcPerDst")
+
+      val cardinality = (maxDstPerSrc, maxSrcPerDst) match {
+        case (1, 1) => "1:1"
+        case (dst, 1) if dst > 1 => "1:N"
+        case (1, src) if src > 1 => "N:1"
+        case (dst, src) if dst > 1 && src > 1 => "N:N"
+        case _ => "Unknown"
+      }
+
+      (relType, cardinality)
+    }.toMap
+
+    println("\nInferred Cardinalities for Edges:")
+    cardinalities.foreach { case (relType, card) => println(s"Relationship: $relType, Cardinality: $card") }
+
+    val cardinalityUdf = udf((relTypes: Seq[String]) => 
+      relTypes.map(relType => cardinalities.getOrElse(relType, "Unknown")).mkString(",")
+    )
+
+    val updatedMergedEdges = mergedEdges.withColumn(
+      "cardinality",
+      cardinalityUdf(col("relationshipTypes"))
+    )
+
+    updatedMergedEdges
   }
 }
