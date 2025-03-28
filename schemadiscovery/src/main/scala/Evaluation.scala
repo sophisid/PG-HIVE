@@ -1,6 +1,5 @@
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.expressions.Window
 
 object Evaluation {
 
@@ -14,7 +13,7 @@ object Evaluation {
     val explodedPredictedDF = predictedNodesDF
       .withColumn("nodeId", explode(col("nodeIdsInCluster")))
       .withColumn("predictedLabels", split(concat_ws(":", $"sortedLabels"), ":"))
-      .select(col("nodeId"), col("predictedLabels"))
+      .select(col("nodeId"), col("predictedLabels"), col("merged_cluster_id"))
       .where(col("nodeId").isNotNull)
 
     val explodedOriginalDF = originalNodesDF
@@ -24,13 +23,13 @@ object Evaluation {
 
     val evaluationDF = explodedPredictedDF
       .join(explodedOriginalDF, Seq("nodeId"), "inner")
-      .select(col("nodeId"), col("predictedLabels"), col("actualLabel"))
+      .select(col("nodeId"), col("predictedLabels"), col("actualLabel"), col("merged_cluster_id"))
 
     val distinctGroundTruthNodes = explodedOriginalDF.select(col("actualLabel")).distinct().count()
-    val distinctPredictedNodes = predictedNodesDF.select(col("sortedLabels")).distinct().count()
+    val distinctPredictedNodes = predictedNodesDF.select(col("merged_cluster_id")).distinct().count()
 
-    println(s"Ground Truth Nodes (distinct): $distinctGroundTruthNodes")
-    println(s"Predicted Nodes (distinct):    $distinctPredictedNodes")
+    println(s"Ground Truth Nodes (distinct labels): $distinctGroundTruthNodes")
+    println(s"Predicted Nodes (distinct clusters): $distinctPredictedNodes")
 
     val evaluationWithCorrectnessDF = evaluationDF
       .withColumn("correctAssignment",
@@ -52,8 +51,8 @@ object Evaluation {
       .withColumnRenamed("actualLabel", "actualLabelPredicted")
 
     val FN = totalActualPositivesDF
-      .join(totalPredictedPositivesDF, 
-            totalActualPositivesDF("actualLabelActual") === totalPredictedPositivesDF("actualLabelPredicted"), 
+      .join(totalPredictedPositivesDF,
+            totalActualPositivesDF("actualLabelActual") === totalPredictedPositivesDF("actualLabelPredicted"),
             "left_anti")
       .agg(coalesce(sum("totalActual"), lit(0L)).as("fnCount"))
       .first()
@@ -66,7 +65,7 @@ object Evaluation {
     println(s"True Positives (TP): $TP")
     println(s"False Positives (FP): $FP")
     println(s"False Negatives (FN): $FN")
-    println("Evaluation Sample:")
+    println("Evaluation Sample with Cluster IDs:")
     evaluationWithCorrectnessDF.show(10, false)
     println("Total Actual Positives:")
     totalActualPositivesDF.show(false)
@@ -86,14 +85,14 @@ object Evaluation {
   ): Unit = {
     import spark.implicits._
 
-    // Explode τα predicted relationshipTypes και edgeIds από το predictedEdgesDF
     val explodedPredictedDF = predictedEdgesDF
       .withColumn("edgeId", explode(col("edgeIdsInCluster")))
       .select(
         struct(col("edgeId.srcId").as("srcId"), col("edgeId.dstId").as("dstId")).as("edgeId"),
         col("relationshipTypes").as("predictedRelationshipTypes"),
         col("srcLabels").as("predictedSrcLabels"),
-        col("dstLabels").as("predictedDstLabels")
+        col("dstLabels").as("predictedDstLabels"),
+        col("merged_cluster_id")
       )
 
     val explodedOriginalDF = originalEdgesDF
@@ -113,7 +112,8 @@ object Evaluation {
         col("predictedDstLabels"),
         col("actualRelationshipType"),
         col("actualSrcLabel"),
-        col("actualDstLabel")
+        col("actualDstLabel"),
+        col("merged_cluster_id")
       )
 
     val distinctGroundTruthEdges = explodedOriginalDF
@@ -121,12 +121,12 @@ object Evaluation {
       .distinct()
       .count()
     val distinctPredictedEdges = predictedEdgesDF
-      .select(col("relationshipTypes"))
+      .select(col("merged_cluster_id"))
       .distinct()
       .count()
 
     println(s"Ground Truth Edges (distinct): $distinctGroundTruthEdges")
-    println(s"Predicted Edges (distinct):    $distinctPredictedEdges")
+    println(s"Predicted Edges (distinct clusters): $distinctPredictedEdges")
 
     val evaluationWithCorrectnessDF = evaluationDF
       .withColumn("correctAssignment",
@@ -140,7 +140,6 @@ object Evaluation {
 
     val TP = evaluationWithCorrectnessDF.filter($"correctAssignment" === 1).count()
     val FP = evaluationWithCorrectnessDF.filter($"correctAssignment" === 0).count()
-
 
     val totalActualPositivesDF = explodedOriginalDF
       .groupBy(col("actualRelationshipType"), col("actualSrcLabel"), col("actualDstLabel"))
@@ -169,7 +168,7 @@ object Evaluation {
     println(s"True Positives (TP): $TP")
     println(s"False Positives (FP): $FP")
     println(s"False Negatives (FN): $FN")
-    println("Evaluation Sample:")
+    println("Evaluation Sample with Cluster IDs:")
     evaluationWithCorrectnessDF.show(10, false)
     println("Total Actual Positives:")
     totalActualPositivesDF.show(false)
