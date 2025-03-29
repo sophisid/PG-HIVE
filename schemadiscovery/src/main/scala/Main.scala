@@ -57,7 +57,7 @@ object Main {
       val mergedEdges = LSHClustering.mergeEdgePatternsByLabel(spark, clusteredEdges)
       println("Merged Edges LSH by Label:")
       mergedEdges.printSchema()
-      mergedEdges.show(5)
+      mergedEdges.select("relationshipTypes","srcLabels","dstLabels","propsInCluster","merged_cluster_id").show(truncate = false , numRows = 500)
 
       // Evaluation for LSH
       println("\n=== Evaluation for LSH Nodes ===")
@@ -70,11 +70,11 @@ object Main {
 
       println("Updated Merged Patterns LSH with Types:")
       updatedMergedPatterns.printSchema()
-      updatedMergedPatterns.show(5)
+      updatedMergedPatterns.show(100)
 
       println("Updated Merged Edges LSH with Types:")
       updatedMergedEdges.printSchema()
-      updatedMergedEdges.show(5)
+      updatedMergedEdges.show(100)
 
       val updatedMergedEdgesWCardinalities = InferSchema.inferCardinalities(edgesDF, updatedMergedEdges)
       println("Updated Merged Edges LSH with Types and Cardinalities:")

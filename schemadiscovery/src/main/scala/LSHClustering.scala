@@ -7,7 +7,7 @@ import scala.math.sqrt
 
 object LSHClustering {
 
-  def estimateLSHParams(df: DataFrame, featuresCol: String, sampleSize: Int = 1000): (Double, Int) = {
+  def estimateLSHParams(df: DataFrame, featuresCol: String, sampleSize: Int = 10000): (Double, Int) = {
     import df.sparkSession.implicits._
 
     val sampledDF = df.sample(false, sampleSize.toDouble / df.count(), 42).limit(sampleSize).cache()
@@ -40,13 +40,11 @@ object LSHClustering {
 
     println(s"Avg Distance: $avgDistance, Min Distance: $minDistance, Max Distance: $maxDistance, StdDev: $stddevDistance")
 
-    val bucketLength = avgDistance * 0.1
-    println(s"Estimated bucketLength: $bucketLength")
+    val bucketLength = avgDistance * 2.0 
+    val numHashTables = math.min(5, math.max(3, (df.count() / 10000).toInt))
 
-    val totalRows = df.count()
-    val dimensionality = sampledDF.select(featuresCol).head().getAs[Vector](0).size
-    val numHashTables = math.min(10, math.max(5, (totalRows / 10000).toInt))
-    println(s"Estimated numHashTables: $numHashTables (based on $totalRows rows and $dimensionality dimensions)")
+    println(s"Estimated bucketLength: $bucketLength")
+    println(s"Estimated numHashTables: $numHashTables")
 
     sampledDF.unpersist()
 
@@ -133,15 +131,70 @@ object LSHClustering {
     groupedDF
   }
 
+  def mergeClustersByJaccard(df: DataFrame, similarityThreshold: Double = 0.8): DataFrame = {
+    import df.sparkSession.implicits._
+
+    val jaccardUdf = udf((labels1: Seq[String], labels2: Seq[String]) => {
+      val set1 = labels1.toSet
+      val set2 = labels2.toSet
+      val intersection = set1.intersect(set2).size
+      val union = set1.union(set2).size
+      if (union == 0) 0.0 else intersection.toDouble / union
+    })
+
+    val clusterPairs = df.crossJoin(df.withColumnRenamed("cluster_id", "cluster_id2")
+      .withColumnRenamed("labelsInCluster", "labelsInCluster2")
+      .withColumnRenamed("propertiesInCluster", "propertiesInCluster2")
+      .withColumnRenamed("nodeIdsInCluster", "nodeIdsInCluster2"))
+      .filter($"cluster_id" < $"cluster_id2") // Avoid self-comparison and duplicates
+      .withColumn("jaccard_similarity", jaccardUdf($"labelsInCluster", $"labelsInCluster2"))
+
+    val similarPairs = clusterPairs
+      .filter($"jaccard_similarity" >= similarityThreshold)
+      .select($"cluster_id", $"cluster_id2")
+
+    if (similarPairs.isEmpty) {
+      println("No clusters to merge based on Jaccard similarity.")
+      return df
+    }
+
+    val mergeGroups = similarPairs
+      .groupBy($"cluster_id")
+      .agg(collect_set($"cluster_id2").as("merge_with"))
+      .withColumn("all_clusters", array_union(array($"cluster_id"), $"merge_with"))
+      .select($"all_clusters")
+      .distinct()
+
+    val toMerge = df.join(mergeGroups, array_contains($"all_clusters", $"cluster_id"), "left_outer")
+      .groupBy($"all_clusters")
+      .agg(
+        flatten(collect_set($"labelsInCluster")).as("labelsInCluster"),
+        flatten(collect_set($"propertiesInCluster")).as("propertiesInCluster"),
+        flatten(collect_set($"nodeIdsInCluster")).as("nodeIdsInCluster")
+      )
+      .filter($"all_clusters".isNotNull)
+      .withColumn("cluster_id", concat(lit("merged_jaccard_node_"), monotonically_increasing_id()))
+
+    val unmerged = df.join(mergeGroups, array_contains($"all_clusters", $"cluster_id"), "left_anti")
+
+    val result = unmerged.select("cluster_id", "labelsInCluster", "propertiesInCluster", "nodeIdsInCluster")
+      .union(toMerge.select("cluster_id", "labelsInCluster", "propertiesInCluster", "nodeIdsInCluster"))
+
+    println(s"Merged clusters into ${result.count()} total clusters using Jaccard similarity.")
+    result
+  }
+
   def mergePatternsByLabel(spark: SparkSession, clusteredNodes: DataFrame): DataFrame = {
     import spark.implicits._
 
     clusteredNodes.cache()
 
-    val withLabelsDF = clusteredNodes.filter(size($"labelsInCluster") > 0)
-    val noLabelsDF = clusteredNodes.filter(size($"labelsInCluster") === 0)
+    val adjustedClusters = mergeClustersByJaccard(clusteredNodes, similarityThreshold = 0.8)
 
-    println(s"Number of node clusters before merge: ${clusteredNodes.count()}")
+    val withLabelsDF = adjustedClusters.filter(size($"labelsInCluster") > 0)
+    val noLabelsDF = adjustedClusters.filter(size($"labelsInCluster") === 0)
+
+    println(s"Number of node clusters before final merge: ${adjustedClusters.count()}")
 
     val mergedWLabelDF = withLabelsDF
       .withColumn("sortedLabels", array_sort($"labelsInCluster"))
