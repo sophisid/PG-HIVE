@@ -46,13 +46,13 @@ object Main {
       // Cluster nodes LSH 
       val clusteredNodes = LSHClustering.applyLSHNodes(spark, binaryNodesDF)
       val clusteredEdges = LSHClustering.applyLSHEdges(spark, binaryEdgesDF)
-      clusteredNodes.show()
+      clusteredNodes.show(500)
       clusteredEdges.show()
 
       val mergedPatterns = LSHClustering.mergePatternsByLabel(spark, clusteredNodes)
       println("Merged Patterns LSH by Label:")
       mergedPatterns.printSchema()
-      mergedPatterns.show(5)
+      mergedPatterns.select("sortedLabels", "propertiesInCluster", "original_cluster_ids").show(500)
 
       val mergedEdges = LSHClustering.mergeEdgePatternsByLabel(spark, clusteredEdges)
       println("Merged Edges LSH by Label:")
