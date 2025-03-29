@@ -6,10 +6,10 @@ import scala.util.Try
 
 object InferSchema {
   def inferPropertyTypesFromMerged(
-    originalDF: DataFrame, 
-    mergedDF: DataFrame, 
-    name: String, 
-    propertyCols: Seq[String], 
+    originalDF: DataFrame,
+    mergedDF: DataFrame,
+    name: String,
+    propertyCols: Seq[String],
     idCol: String
   ): DataFrame = {
     import originalDF.sparkSession.implicits._
@@ -44,9 +44,6 @@ object InferSchema {
     println(s"Extracted properties: ${allPropertiesRaw.mkString(", ")}")
     println(s"Adjusted properties for $name: ${allProperties.mkString(", ")}")
 
-    val sampleDF = originalDF.limit(1000).cache()
-    println(s"SampleDF count: ${sampleDF.count()}")
-    sampleDF.show(5)
 
     def isInteger(str: String): Boolean = Try(str.trim.toInt).isSuccess
     def isDouble(str: String): Boolean = Try(str.trim.toDouble).isSuccess
@@ -60,38 +57,47 @@ object InferSchema {
     }
 
     val inferredTypes = allProperties.map { prop =>
+      val sampleDF = originalDF
+        .filter(col(prop).isNotNull)
+        .limit(1000)
+        .cache()
+
+      val sampleCount = sampleDF.count()
+      println(s"Sampling $prop: $sampleCount rows with non-null values")
+
       val values = sampleDF.select(prop)
-        .na.drop()
         .collect()
         .map(_.getString(0))
         .toSeq
+
       println(s"Values for $prop: ${values.take(5).mkString(", ")} (total: ${values.length})")
 
-      if (values.isEmpty) {
-        (prop, "Unknown (empty)")
+      val inferredType = if (values.isEmpty) {
+        "Unknown (empty)"
       } else {
         val allIntegers = values.forall(isInteger)
         val allDoubles = values.forall(isDouble)
         val allDates = values.forall(isDate)
         val allBooleans = values.forall(isBoolean)
 
-        val inferredType = if (allIntegers) "Integer"
+        if (allIntegers) "Integer"
         else if (allDoubles) "Double"
         else if (allDates) "Date"
         else if (allBooleans) "Boolean"
         else "String"
-
-        (prop, inferredType)
       }
+
+      sampleDF.unpersist()
+      (prop, inferredType)
     }.toMap
 
     println(s"\nInferred Property Types for $name:")
     inferredTypes.foreach { case (prop, typ) => println(s"Property: $prop, Inferred Type: $typ") }
 
-    val typeMapUdf = udf((properties: Seq[String]) => 
-      if (properties == null || properties.isEmpty) 
+    val typeMapUdf = udf((properties: Seq[String]) =>
+      if (properties == null || properties.isEmpty)
         Seq.empty[String]
-      else 
+      else
         properties.map { prop =>
           val baseProp = if (prop.startsWith("prop_")) prop.stripPrefix("prop_") else prop
           s"$prop:${inferredTypes.getOrElse(baseProp, "Unknown")}"
@@ -109,6 +115,10 @@ object InferSchema {
           df.withColumn(s"${colName}_with_types", lit(null).cast(ArrayType(StringType)))
       }
     }
+
+    println("Updated Merged Patterns LSH with Types:")
+    updatedDF.printSchema()
+    updatedDF.show(5)
 
     updatedDF
   }
@@ -160,7 +170,7 @@ object InferSchema {
     println("\nInferred Cardinalities for Edges:")
     cardinalities.foreach { case (relType, card) => println(s"Relationship: $relType, Cardinality: $card") }
 
-    val cardinalityUdf = udf((relTypes: Seq[String]) => 
+    val cardinalityUdf = udf((relTypes: Seq[String]) =>
       relTypes.map(relType => cardinalities.getOrElse(relType, "Unknown")).mkString(",")
     )
 
