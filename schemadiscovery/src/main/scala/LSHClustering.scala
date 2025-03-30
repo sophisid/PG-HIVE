@@ -7,7 +7,7 @@ import scala.math.sqrt
 
 object LSHClustering {
 
-  def estimateLSHParams(df: DataFrame, featuresCol: String, sampleSize: Int = 10000): (Double, Int) = {
+  def estimateLSHParams(df: DataFrame, featuresCol: String, isEdge: Boolean = false, sampleSize: Int = 10000): (Double, Int) = {
     import df.sparkSession.implicits._
 
     val sampledDF = df.sample(false, sampleSize.toDouble / df.count(), 42).limit(sampleSize).cache()
@@ -40,8 +40,15 @@ object LSHClustering {
 
     println(s"Avg Distance: $avgDistance, Min Distance: $minDistance, Max Distance: $maxDistance, StdDev: $stddevDistance")
 
-    val bucketLength = avgDistance * 2.0 
-    val numHashTables = math.min(5, math.max(3, (df.count() / 10000).toInt))
+    val (bucketLength, numHashTables) = if (isEdge) {
+      val edgeBucketLength = avgDistance * 0.5
+      val edgeNumHashTables = math.min(10, math.max(5, (df.count() / 5000).toInt))
+      (edgeBucketLength, edgeNumHashTables)
+    } else {
+      val nodeBucketLength = avgDistance * 2.0 
+      val nodeNumHashTables = math.min(5, math.max(3, (df.count() / 10000).toInt))
+      (nodeBucketLength, nodeNumHashTables)
+    }
 
     println(s"Estimated bucketLength: $bucketLength")
     println(s"Estimated numHashTables: $numHashTables")
@@ -59,7 +66,7 @@ object LSHClustering {
       return spark.emptyDataFrame
     }
 
-    val (bucketLength, numHashTables) = estimateLSHParams(patternsDF, "features")
+    val (bucketLength, numHashTables) = estimateLSHParams(patternsDF, "features", isEdge = false)
     
     val lsh = new BucketedRandomProjectionLSH()
       .setBucketLength(bucketLength)
@@ -98,7 +105,7 @@ object LSHClustering {
       return spark.emptyDataFrame
     }
 
-    val (bucketLength, numHashTables) = estimateLSHParams(df, "features")
+    val (bucketLength, numHashTables) = estimateLSHParams(df, "features", isEdge = true)
 
     val lsh = new BucketedRandomProjectionLSH()
       .setBucketLength(bucketLength)
