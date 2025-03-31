@@ -7,7 +7,13 @@ import scala.math.sqrt
 
 object LSHClustering {
 
-  def estimateLSHParams(df: DataFrame, featuresCol: String, isEdge: Boolean = false, sampleSize: Int = 10000): (Double, Int) = {
+  def estimateLSHParams(
+    df: DataFrame, 
+    featuresCol: String, 
+    isEdge: Boolean = false, 
+    sampleSize: Int = 10000, 
+    uniqueLabelCount: Option[Long] = None
+  ): (Double, Int) = {
     import df.sparkSession.implicits._
 
     val sampledDF = df.sample(false, sampleSize.toDouble / df.count(), 42).limit(sampleSize).cache()
@@ -45,9 +51,29 @@ object LSHClustering {
       val edgeNumHashTables = math.min(8, math.max(3, (df.count() / 20000).toInt))
       (edgeBucketLength, edgeNumHashTables)
     } else {
-      val nodeBucketLength = avgDistance * 0.3 
-      val nodeNumHashTables = math.min(10, math.max(5, (df.count() / 30000).toInt))
-      (nodeBucketLength, nodeNumHashTables)
+      val baseNodeBucketLength = avgDistance * 0.3
+      val baseNodeNumHashTables = math.min(10, math.max(5, (df.count() / 30000).toInt))
+
+      uniqueLabelCount match {
+        case Some(labelCount) =>
+          val bucketLengthAdjustment = labelCount match {
+            case n if n <= 3  => 0.5
+            case n if n <= 10 => 1.0
+            case _            => 1.5
+          }
+          val numHashTablesAdjustment = labelCount match {
+            case n if n <= 3  => 1.5 
+            case n if n <= 10 => 1.0
+            case _            => 0.7
+          }
+
+          val adjustedBucketLength = baseNodeBucketLength * bucketLengthAdjustment
+          val adjustedNumHashTables = math.max(5, (baseNodeNumHashTables * numHashTablesAdjustment).toInt)
+
+          (adjustedBucketLength, adjustedNumHashTables)
+        case None =>
+          (baseNodeBucketLength, baseNodeNumHashTables)
+      }
     }
 
     println(s"Estimated bucketLength: $bucketLength")
@@ -65,8 +91,12 @@ object LSHClustering {
       println("No patterns to cluster.")
       return spark.emptyDataFrame
     }
-
-    val (bucketLength, numHashTables) = estimateLSHParams(patternsDF, "features", isEdge = false)
+    val uniqueLabelCount = patternsDF
+      .select(explode(split(col("_labels"), ",")))
+      .distinct()
+      .count()
+    println(s"Number of unique labels: $uniqueLabelCount")
+    val (bucketLength, numHashTables) = estimateLSHParams(patternsDF, "features", isEdge = false, uniqueLabelCount = Some(uniqueLabelCount))
     
     val lsh = new BucketedRandomProjectionLSH()
       .setBucketLength(bucketLength)
