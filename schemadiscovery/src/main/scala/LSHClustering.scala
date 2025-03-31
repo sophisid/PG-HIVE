@@ -41,12 +41,12 @@ object LSHClustering {
     println(s"Avg Distance: $avgDistance, Min Distance: $minDistance, Max Distance: $maxDistance, StdDev: $stddevDistance")
 
     val (bucketLength, numHashTables) = if (isEdge) {
-      val edgeBucketLength = avgDistance * 0.5
-      val edgeNumHashTables = math.min(10, math.max(5, (df.count() / 5000).toInt))
+      val edgeBucketLength = avgDistance * 0.2
+      val edgeNumHashTables = math.min(8, math.max(3, (df.count() / 20000).toInt))
       (edgeBucketLength, edgeNumHashTables)
     } else {
-      val nodeBucketLength = avgDistance * 2.0 
-      val nodeNumHashTables = math.min(5, math.max(3, (df.count() / 10000).toInt))
+      val nodeBucketLength = avgDistance * 0.3 
+      val nodeNumHashTables = math.min(10, math.max(5, (df.count() / 30000).toInt))
       (nodeBucketLength, nodeNumHashTables)
     }
 
@@ -153,7 +153,7 @@ object LSHClustering {
       .withColumnRenamed("labelsInCluster", "labelsInCluster2")
       .withColumnRenamed("propertiesInCluster", "propertiesInCluster2")
       .withColumnRenamed("nodeIdsInCluster", "nodeIdsInCluster2"))
-      .filter($"cluster_id" < $"cluster_id2") // Avoid self-comparison and duplicates
+      .filter($"cluster_id" < $"cluster_id2")
       .withColumn("jaccard_similarity", jaccardUdf($"labelsInCluster", $"labelsInCluster2"))
 
     val similarPairs = clusterPairs
@@ -196,12 +196,8 @@ object LSHClustering {
 
     clusteredNodes.cache()
 
-    val adjustedClusters = mergeClustersByJaccard(clusteredNodes, similarityThreshold = 0.8)
-
-    val withLabelsDF = adjustedClusters.filter(size($"labelsInCluster") > 0)
-    val noLabelsDF = adjustedClusters.filter(size($"labelsInCluster") === 0)
-
-    println(s"Number of node clusters before final merge: ${adjustedClusters.count()}")
+    val withLabelsDF = clusteredNodes.filter(size($"labelsInCluster") > 0)
+    val noLabelsDF = clusteredNodes.filter(size($"labelsInCluster") === 0)
 
     val mergedWLabelDF = withLabelsDF
       .withColumn("sortedLabels", array_sort($"labelsInCluster"))
@@ -320,6 +316,83 @@ object LSHClustering {
     println("Schema of finalDF:")
     finalDF.printSchema()
     println("Schema of noLabelsFinalDF:")
+    noLabelsFinalDF.printSchema()
+
+    val returnedDF = finalDF.union(noLabelsFinalDF)
+    returnedDF
+  }
+
+  def mergeEdgePatternsByEdgeLabel(spark: SparkSession, clusteredEdges: DataFrame): DataFrame = {
+    import spark.implicits._
+
+    clusteredEdges.cache()
+
+    val withLabelsDF = clusteredEdges.filter(
+      (size($"relsInCluster") > 0) &&
+      (size($"srcLabelsInCluster") > 0 || size($"dstLabelsInCluster") > 0)
+    )
+    val noLabelsDF = clusteredEdges.filter(
+      (size($"relsInCluster") > 0) &&
+      (size($"srcLabelsInCluster") === 0 && size($"dstLabelsInCluster") === 0)
+    )
+
+    println(s"Number of edge clusters before merge by edge label: ${clusteredEdges.count()}")
+
+    val mergedDF = withLabelsDF
+      .withColumn("sortedRelationshipTypes", array_sort($"relsInCluster"))
+      .groupBy($"sortedRelationshipTypes")
+      .agg(
+        collect_set($"srcLabelsInCluster").as("srcLabelsInCluster"),
+        collect_set($"dstLabelsInCluster").as("dstLabelsInCluster"),
+        collect_list($"propsInCluster").as("propsNested"),
+        flatten(collect_list($"edgeIdsInCluster")).as("edgeIdsInCluster"),
+        collect_set($"cluster_id").as("original_cluster_ids")
+      )
+
+    val finalDF = mergedDF
+      .withColumn("propsInCluster", flatten($"propsNested"))
+      .withColumn("mandatoryProperties",
+        aggregate(
+          $"propsInCluster",
+          $"propsInCluster"(0),
+          (acc, props) => array_intersect(acc, props)
+        )
+      )
+      .withColumn("flattenedProps", flatten($"propsInCluster"))
+      .withColumn("optionalProperties",
+        array_distinct(array_except($"flattenedProps", $"mandatoryProperties"))
+      )
+      .withColumn("row_num", row_number().over(Window.orderBy($"sortedRelationshipTypes")))
+      .withColumn("merged_cluster_id", concat(lit("merged_cluster_edge_by_label_"), $"row_num"))
+      .select(
+        $"sortedRelationshipTypes".as("relationshipTypes"),
+        $"srcLabelsInCluster".as("srcLabels"), 
+        $"dstLabelsInCluster".as("dstLabels"), 
+        $"propsInCluster",
+        $"edgeIdsInCluster",
+        $"mandatoryProperties",
+        $"optionalProperties",
+        $"original_cluster_ids",
+        $"merged_cluster_id"
+      )
+      .drop("flattenedProps", "row_num")
+
+    val noLabelsFinalDF = noLabelsDF
+      .select(
+        $"relsInCluster".as("relationshipTypes"),
+        $"srcLabelsInCluster".as("srcLabels"),
+        $"dstLabelsInCluster".as("dstLabels"),
+        $"propsInCluster",
+        $"edgeIdsInCluster",
+        flatten($"propsInCluster").as("mandatoryProperties"),
+        array().cast("array<string>").as("optionalProperties"),
+        array($"cluster_id").as("original_cluster_ids"),
+        $"cluster_id".as("merged_cluster_id")
+      )
+
+    println("Schema of finalDF (by edge label):")
+    finalDF.printSchema()
+    println("Schema of noLabelsFinalDF (by edge label):")
     noLabelsFinalDF.printSchema()
 
     val returnedDF = finalDF.union(noLabelsFinalDF)

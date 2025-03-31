@@ -54,19 +54,27 @@ object Main {
       mergedPatterns.printSchema()
       mergedPatterns.select("sortedLabels", "propertiesInCluster", "original_cluster_ids").show(500)
 
+      val mergedEdgesLabelOnly = LSHClustering.mergeEdgePatternsByLabel(spark, clusteredEdges)
+      println("Merged Edges LSH by Label Only:")
+      mergedEdgesLabelOnly.printSchema()
+      mergedEdgesLabelOnly.select("relationshipTypes","srcLabels","dstLabels","propsInCluster","merged_cluster_id").show(truncate = false , numRows = 500)
+
       val mergedEdges = LSHClustering.mergeEdgePatternsByLabel(spark, clusteredEdges)
-      println("Merged Edges LSH by Label:")
+      println("Merged Edges LSH by Label & SRC/DST:")
       mergedEdges.printSchema()
       mergedEdges.select("relationshipTypes","srcLabels","dstLabels","propsInCluster","merged_cluster_id").show(truncate = false , numRows = 500)
 
       // Evaluation for LSH
       println("\n=== Evaluation for LSH Nodes ===")
       Evaluation.computeMetricsForNodes(spark, nodesDF, mergedPatterns)
-      println("\n=== Evaluation for LSH Edges ===")
+      println("\n=== Evaluation for LSH Edges (LABEL MERGED)===")
+      Evaluation.computeMetricsForEdges(spark, edgesDF, mergedEdgesLabelOnly)
+
+      println("\n=== Evaluation for LSH Edges (FULLY MERGED)===")
       Evaluation.computeMetricsForEdges(spark, edgesDF, mergedEdges)
 
       val updatedMergedPatterns = InferSchema.inferPropertyTypesFromMerged(nodesDF, mergedPatterns, "LSH Merged Nodes", Seq("mandatoryProperties", "optionalProperties"), "_nodeId")
-      val updatedMergedEdges = InferSchema.inferPropertyTypesFromMerged(edgesDF, mergedEdges, "LSH Merged Edges", Seq("mandatoryProperties", "optionalProperties"), "edgeIdsInCluster")
+      val updatedMergedEdges = InferSchema.inferPropertyTypesFromMerged(edgesDF, mergedEdgesLabelOnly, "LSH Merged Edges", Seq("mandatoryProperties", "optionalProperties"), "edgeIdsInCluster")
 
       println("Updated Merged Patterns LSH with Types:")
       updatedMergedPatterns.printSchema()

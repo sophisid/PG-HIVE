@@ -55,6 +55,10 @@ object InferSchema {
       val boolValues = Set("true", "false", "yes", "no", "1", "0")
       boolValues.contains(str.trim.toLowerCase)
     }
+    def isIP(str: String): Boolean = {
+      val ipPattern = """^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$""".r
+      ipPattern.findFirstIn(str.trim).isDefined && str.split("\\.").forall(part => Try(part.toInt).isSuccess && part.toInt >= 0 && part.toInt <= 255)
+    }
 
     val inferredTypes = allProperties.map { prop =>
       val sampleDF = originalDF
@@ -80,7 +84,8 @@ object InferSchema {
         val allDates = values.forall(isDate)
         val allBooleans = values.forall(isBoolean)
 
-        if (allIntegers) "Integer"
+        if (prop == "locationIP" || values.forall(isIP)) "String"
+        else if (allIntegers) "Integer"
         else if (allDoubles) "Double"
         else if (allDates) "Date"
         else if (allBooleans) "Boolean"
