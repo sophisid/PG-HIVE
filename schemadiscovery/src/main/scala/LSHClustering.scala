@@ -12,7 +12,7 @@ object LSHClustering {
     featuresCol: String, 
     isEdge: Boolean = false, 
     sampleSize: Int = 10000, 
-    uniqueLabelCount: Option[Long] = None
+    uniqueLabelCount: Option[Long] = None 
   ): (Double, Int) = {
     import df.sparkSession.implicits._
 
@@ -372,8 +372,8 @@ object LSHClustering {
       .withColumn("sortedRelationshipTypes", array_sort($"relsInCluster"))
       .groupBy($"sortedRelationshipTypes")
       .agg(
-        collect_set($"srcLabelsInCluster").as("srcLabelsInCluster"),
-        collect_set($"dstLabelsInCluster").as("dstLabelsInCluster"),
+        flatten(collect_set($"srcLabelsInCluster")).as("srcLabels"),
+        flatten(collect_set($"dstLabelsInCluster")).as("dstLabels"),
         collect_list($"propsInCluster").as("propsNested"),
         flatten(collect_list($"edgeIdsInCluster")).as("edgeIdsInCluster"),
         collect_set($"cluster_id").as("original_cluster_ids")
@@ -396,8 +396,8 @@ object LSHClustering {
       .withColumn("merged_cluster_id", concat(lit("merged_cluster_edge_by_label_"), $"row_num"))
       .select(
         $"sortedRelationshipTypes".as("relationshipTypes"),
-        $"srcLabelsInCluster".as("srcLabels"), 
-        $"dstLabelsInCluster".as("dstLabels"), 
+        $"srcLabels",
+        $"dstLabels",
         $"propsInCluster",
         $"edgeIdsInCluster",
         $"mandatoryProperties",
