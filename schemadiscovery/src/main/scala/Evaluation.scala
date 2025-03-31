@@ -4,21 +4,19 @@ import org.apache.spark.sql.expressions.Window
 
 object Evaluation {
 
-  def computeMetricsForNodes(
+def computeMetricsForNodes(
     spark: SparkSession,
     originalNodesDF: DataFrame,
     predictedNodesDF: DataFrame
   ): Unit = {
     import spark.implicits._
 
-    // Explode predicted nodes to get nodeId and predicted labels
     val explodedPredictedDF = predictedNodesDF
       .withColumn("nodeId", explode(col("nodeIdsInCluster")))
       .withColumn("predictedLabels", array_distinct(split(concat_ws(":", $"sortedLabels"), ":")))
       .select(col("nodeId"), col("predictedLabels"), col("merged_cluster_id"))
       .where(col("nodeId").isNotNull)
 
-    // Explode original nodes to get nodeId and actual labels
     val explodedOriginalDF = originalNodesDF
       .withColumn("actualLabels",
         when(col("original_label").isNotNull, split(col("original_label"), ","))
@@ -26,43 +24,37 @@ object Evaluation {
       .select(col("_nodeId").as("nodeId"), col("actualLabels"))
       .where(col("nodeId").isNotNull)
 
-    // Join predicted and original for evaluation
     val evaluationDF = explodedPredictedDF
       .join(explodedOriginalDF, Seq("nodeId"), "inner")
       .select(col("nodeId"), col("predictedLabels"), col("actualLabels"), col("merged_cluster_id"))
 
-    // Compute distinct ground truth and predicted clusters
     val distinctGroundTruthNodes = explodedOriginalDF.select(col("actualLabels")).distinct().count()
     val distinctPredictedNodes = predictedNodesDF.select(col("merged_cluster_id")).distinct().count()
 
     println(s"Ground Truth Nodes (distinct label sets): $distinctGroundTruthNodes")
     println(s"Predicted Nodes (distinct clusters): $distinctPredictedNodes")
 
-    // Non-Strict Evaluation
     val evaluationNonStrictDF = evaluationDF
       .withColumn("correctAssignmentNonStrict",
         when(size(array_intersect(col("actualLabels"), col("predictedLabels"))) > 0, 1)
           .otherwise(0)
       )
 
-    // Strict Evaluation
     val evaluationWithCorrectnessDF = evaluationNonStrictDF
       .withColumn("correctAssignmentStrict",
         when(array_sort(col("actualLabels")) === array_sort(col("predictedLabels")), 1)
           .otherwise(0)
       )
 
-    // --- Majority Label Evaluation ---
-    // Step 1: Compute label frequencies per cluster
-    val labelFrequenciesDF = predictedNodesDF
-      .withColumn("label", explode(col("sortedLabels")))
+    val labelFrequenciesDF = explodedPredictedDF
+      .join(explodedOriginalDF, Seq("nodeId"), "inner")
+      .withColumn("label", explode(col("actualLabels")))
       .groupBy("merged_cluster_id", "label")
       .agg(count("*").as("freq"))
       .withColumn("rank", row_number().over(Window.partitionBy("merged_cluster_id").orderBy(desc("freq"))))
       .filter($"rank" === 1)
       .select($"merged_cluster_id", $"label".as("majority_label"))
 
-    // Step 2: Join majority label with evaluation DF and check correctness
     val evaluationWithMajorityDF = evaluationWithCorrectnessDF
       .join(labelFrequenciesDF, Seq("merged_cluster_id"), "inner")
       .withColumn("correctAssignmentMajority",
@@ -70,8 +62,6 @@ object Evaluation {
           .otherwise(0)
       )
 
-    // --- Compute Metrics ---
-    // Non-Strict Metrics
     val TPNonStrict = evaluationWithMajorityDF.filter($"correctAssignmentNonStrict" === 1).count()
     val FPNonStrict = evaluationWithMajorityDF.filter($"correctAssignmentNonStrict" === 0).count()
 
@@ -99,7 +89,6 @@ object Evaluation {
     val recallNonStrict = if (TPNonStrict + FNNonStrict > 0) TPNonStrict.toDouble / (TPNonStrict + FNNonStrict) else 0.0
     val f1ScoreNonStrict = if (precisionNonStrict + recallNonStrict > 0) 2 * (precisionNonStrict * recallNonStrict) / (precisionNonStrict + recallNonStrict) else 0.0
 
-    // Strict Metrics
     val TPStrict = evaluationWithMajorityDF.filter($"correctAssignmentStrict" === 1).count()
     val FPStrict = evaluationWithMajorityDF.filter($"correctAssignmentStrict" === 0).count()
 
@@ -123,7 +112,6 @@ object Evaluation {
     val recallStrict = if (TPStrict + FNStrict > 0) TPStrict.toDouble / (TPStrict + FNStrict) else 0.0
     val f1ScoreStrict = if (precisionStrict + recallStrict > 0) 2 * (precisionStrict * recallStrict) / (precisionStrict + recallStrict) else 0.0
 
-    // Majority Label Metrics
     val TPMajority = evaluationWithMajorityDF.filter($"correctAssignmentMajority" === 1).count()
     val FPMajority = evaluationWithMajorityDF.filter($"correctAssignmentMajority" === 0).count()
 
@@ -147,7 +135,6 @@ object Evaluation {
     val recallMajority = if (TPMajority + FNMajority > 0) TPMajority.toDouble / (TPMajority + FNMajority) else 0.0
     val f1ScoreMajority = if (precisionMajority + recallMajority > 0) 2 * (precisionMajority * recallMajority) / (precisionMajority + recallMajority) else 0.0
 
-    // --- Print Results ---
     println(s"\nNon-Strict Node Evaluation Metrics:")
     println(s"  True Positives (TP): $TPNonStrict")
     println(s"  False Positives (FP): $FPNonStrict")
@@ -196,7 +183,6 @@ object Evaluation {
     totalPredictedPositivesMajorityDF.show(false)
   }
 
-  // Η computeMetricsForEdges παραμένει ως έχει
   def computeMetricsForEdges(
     spark: SparkSession,
     originalEdgesDF: DataFrame,
