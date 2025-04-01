@@ -262,14 +262,30 @@ def computeMetricsForNodes(
         ).otherwise(0)
       )
 
-    val TPNonStrict = evaluationWithCorrectnessDF.filter($"correctAssignmentNonStrict" === 1).count()
-    val FPNonStrict = evaluationWithCorrectnessDF.filter($"correctAssignmentNonStrict" === 0).count()
+    val labelFrequenciesDF = explodedPredictedDF
+      .join(explodedOriginalDF, Seq("edgeId"), "inner")
+      .withColumn("relationshipType", explode(col("actualRelationshipTypes")))
+      .groupBy("merged_cluster_id", "relationshipType")
+      .agg(count("*").as("freq"))
+      .withColumn("rank", row_number().over(Window.partitionBy("merged_cluster_id").orderBy(desc("freq"))))
+      .filter($"rank" === 1)
+      .select($"merged_cluster_id", $"relationshipType".as("majority_relationship_type"))
+
+    val evaluationWithMajorityDF = evaluationWithCorrectnessDF
+      .join(labelFrequenciesDF, Seq("merged_cluster_id"), "inner")
+      .withColumn("correctAssignmentMajority",
+        when(array_contains($"actualRelationshipTypes", $"majority_relationship_type"), 1)
+          .otherwise(0)
+      )
+
+    val TPNonStrict = evaluationWithMajorityDF.filter($"correctAssignmentNonStrict" === 1).count()
+    val FPNonStrict = evaluationWithMajorityDF.filter($"correctAssignmentNonStrict" === 0).count()
 
     val totalActualPositivesDF = explodedOriginalDF
       .groupBy(col("actualRelationshipTypes"), col("actualSrcLabels"), col("actualDstLabels"))
       .agg(count("*").as("totalActual"))
 
-    val totalPredictedPositivesNonStrictDF = evaluationWithCorrectnessDF
+    val totalPredictedPositivesNonStrictDF = evaluationWithMajorityDF
       .filter($"correctAssignmentNonStrict" === 1)
       .groupBy(col("actualRelationshipTypes"), col("actualSrcLabels"), col("actualDstLabels"))
       .agg(count("*").as("totalPredicted"))
@@ -292,10 +308,11 @@ def computeMetricsForNodes(
     val recallNonStrict = if (TPNonStrict + FNNonStrict > 0) TPNonStrict.toDouble / (TPNonStrict + FNNonStrict) else 0.0
     val f1ScoreNonStrict = if (precisionNonStrict + recallNonStrict > 0) 2 * (precisionNonStrict * recallNonStrict) / (precisionNonStrict + recallNonStrict) else 0.0
 
-    val TPStrict = evaluationWithCorrectnessDF.filter($"correctAssignmentStrict" === 1).count()
-    val FPStrict = evaluationWithCorrectnessDF.filter($"correctAssignmentStrict" === 0).count()
+    // Strict metrics
+    val TPStrict = evaluationWithMajorityDF.filter($"correctAssignmentStrict" === 1).count()
+    val FPStrict = evaluationWithMajorityDF.filter($"correctAssignmentStrict" === 0).count()
 
-    val totalPredictedPositivesStrictDF = evaluationWithCorrectnessDF
+    val totalPredictedPositivesStrictDF = evaluationWithMajorityDF
       .filter($"correctAssignmentStrict" === 1)
       .groupBy(col("actualRelationshipTypes"), col("actualSrcLabels"), col("actualDstLabels"))
       .agg(count("*").as("totalPredicted"))
@@ -318,6 +335,34 @@ def computeMetricsForNodes(
     val recallStrict = if (TPStrict + FNStrict > 0) TPStrict.toDouble / (TPStrict + FNStrict) else 0.0
     val f1ScoreStrict = if (precisionStrict + recallStrict > 0) 2 * (precisionStrict * recallStrict) / (precisionStrict + recallStrict) else 0.0
 
+    // Majority metrics
+    val TPMajority = evaluationWithMajorityDF.filter($"correctAssignmentMajority" === 1).count()
+    val FPMajority = evaluationWithMajorityDF.filter($"correctAssignmentMajority" === 0).count()
+
+    val totalPredictedPositivesMajorityDF = evaluationWithMajorityDF
+      .filter($"correctAssignmentMajority" === 1)
+      .groupBy(col("actualRelationshipTypes"), col("actualSrcLabels"), col("actualDstLabels"))
+      .agg(count("*").as("totalPredicted"))
+
+    val FNMajority = totalActualPositivesDF
+      .join(totalPredictedPositivesMajorityDF,
+        Seq("actualRelationshipTypes", "actualSrcLabels", "actualDstLabels"),
+        "left_outer"
+      )
+      .select(
+        coalesce(col("totalActual"), lit(0L)).as("totalActual"),
+        coalesce(col("totalPredicted"), lit(0L)).as("totalPredicted")
+      )
+      .withColumn("fnPerGroup", when(col("totalActual") > col("totalPredicted"), col("totalActual") - col("totalPredicted")).otherwise(lit(0L)))
+      .agg(sum(col("fnPerGroup")).as("fnCount"))
+      .first()
+      .getLong(0)
+
+    val precisionMajority = if (TPMajority + FPMajority > 0) TPMajority.toDouble / (TPMajority + FPMajority) else 0.0
+    val recallMajority = if (TPMajority + FNMajority > 0) TPMajority.toDouble / (TPMajority + FNMajority) else 0.0
+    val f1ScoreMajority = if (precisionMajority + recallMajority > 0) 2 * (precisionMajority * recallMajority) / (precisionMajority + recallMajority) else 0.0
+
+    // Print metrics
     println(s"\nNon-Strict Edge Evaluation Metrics:")
     println(s"  True Positives (TP): $TPNonStrict")
     println(s"  False Positives (FP): $FPNonStrict")
@@ -334,13 +379,39 @@ def computeMetricsForNodes(
     println(f"  Recall:    $recallStrict%.4f")
     println(f"  F1-Score:  $f1ScoreStrict%.4f")
 
-    println("\nEvaluation Sample with Cluster IDs (Strict and Non-Strict):")
-    evaluationWithCorrectnessDF.show(10, false)
+    println(s"\nMajority Label Edge Evaluation Metrics:")
+    println(s"  True Positives (TP): $TPMajority")
+    println(s"  False Positives (FP): $FPMajority")
+    println(s"  False Negatives (FN): $FNMajority")
+    println(f"  Precision: $precisionMajority%.4f")
+    println(f"  Recall:    $recallMajority%.4f")
+    println(f"  F1-Score:  $f1ScoreMajority%.4f")
+
+    println("\nEvaluation Sample with Cluster IDs (Strict, Non-Strict, and Majority):")
+    evaluationWithMajorityDF
+      .select(
+        col("edgeId"),
+        col("predictedRelationshipTypes"),
+        col("predictedSrcLabels"),
+        col("predictedDstLabels"),
+        col("actualRelationshipTypes"),
+        col("actualSrcLabels"),
+        col("actualDstLabels"),
+        col("merged_cluster_id"),
+        col("majority_relationship_type"),
+        col("correctAssignmentNonStrict"),
+        col("correctAssignmentStrict"),
+        col("correctAssignmentMajority")
+      )
+      .show(10, false)
+
     println("Total Actual Positives:")
     totalActualPositivesDF.show(false)
     println("Total Predicted Positives (Non-Strict):")
     totalPredictedPositivesNonStrictDF.show(false)
     println("Total Predicted Positives (Strict):")
     totalPredictedPositivesStrictDF.show(false)
+    println("Total Predicted Positives (Majority):")
+    totalPredictedPositivesMajorityDF.show(false)
   }
 }
