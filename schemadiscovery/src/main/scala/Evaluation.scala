@@ -173,14 +173,14 @@ def computeMetricsForNodes(
       )
       .show(10, false)
 
-    println("Total Actual Positives:")
-    totalActualPositivesDF.show(false)
-    println("Total Predicted Positives (Non-Strict):")
-    totalPredictedPositivesNonStrictDF.show(false)
-    println("Total Predicted Positives (Strict):")
-    totalPredictedPositivesStrictDF.show(false)
-    println("Total Predicted Positives (Majority):")
-    totalPredictedPositivesMajorityDF.show(false)
+    // println("Total Actual Positives:")
+    // totalActualPositivesDF.show(false)
+    // println("Total Predicted Positives (Non-Strict):")
+    // totalPredictedPositivesNonStrictDF.show(false)
+    // println("Total Predicted Positives (Strict):")
+    // totalPredictedPositivesStrictDF.show(false)
+    // println("Total Predicted Positives (Majority):")
+    // totalPredictedPositivesMajorityDF.show(false)
   }
 
   def computeMetricsForEdges(
@@ -387,31 +387,31 @@ def computeMetricsForNodes(
     println(f"  Recall:    $recallMajority%.4f")
     println(f"  F1-Score:  $f1ScoreMajority%.4f")
 
-    println("\nEvaluation Sample with Cluster IDs (Strict, Non-Strict, and Majority):")
-    evaluationWithMajorityDF
-      .select(
-        col("edgeId"),
-        col("predictedRelationshipTypes"),
-        col("predictedSrcLabels"),
-        col("predictedDstLabels"),
-        col("actualRelationshipTypes"),
-        col("actualSrcLabels"),
-        col("actualDstLabels"),
-        col("merged_cluster_id"),
-        col("majority_relationship_type"),
-        col("correctAssignmentNonStrict"),
-        col("correctAssignmentStrict"),
-        col("correctAssignmentMajority")
-      )
-      .show(10, false)
+    // println("\nEvaluation Sample with Cluster IDs (Strict, Non-Strict, and Majority):")
+    // evaluationWithMajorityDF
+    //   .select(
+    //     col("edgeId"),
+    //     col("predictedRelationshipTypes"),
+    //     col("predictedSrcLabels"),
+    //     col("predictedDstLabels"),
+    //     col("actualRelationshipTypes"),
+    //     col("actualSrcLabels"),
+    //     col("actualDstLabels"),
+    //     col("merged_cluster_id"),
+    //     col("majority_relationship_type"),
+    //     col("correctAssignmentNonStrict"),
+    //     col("correctAssignmentStrict"),
+    //     col("correctAssignmentMajority")
+    //   )
+    //   .show(10, false)
 
-    println("Total Actual Positives:")
-    totalActualPositivesDF.show(false)
-    println("Total Predicted Positives (Non-Strict):")
-    totalPredictedPositivesNonStrictDF.show(false)
-    println("Total Predicted Positives (Strict):")
-    totalPredictedPositivesStrictDF.show(false)
-    println("Total Predicted Positives (Majority):")
-    totalPredictedPositivesMajorityDF.show(false)
+    // println("Total Actual Positives:")
+    // totalActualPositivesDF.show(false)
+    // println("Total Predicted Positives (Non-Strict):")
+    // totalPredictedPositivesNonStrictDF.show(false)
+    // println("Total Predicted Positives (Strict):")
+    // totalPredictedPositivesStrictDF.show(false)
+    // println("Total Predicted Positives (Majority):")
+    // totalPredictedPositivesMajorityDF.show(false)
   }
 }

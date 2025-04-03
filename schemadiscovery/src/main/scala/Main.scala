@@ -51,17 +51,17 @@ object Main {
 
       val mergedPatterns = LSHClustering.mergePatternsByLabel(spark, clusteredNodes)
       println("Merged Patterns LSH by Label:")
-      mergedPatterns.printSchema()
+      // mergedPatterns.printSchema()
       mergedPatterns.select("sortedLabels", "propertiesInCluster", "original_cluster_ids").show(500)
 
       val mergedEdgesLabelOnly = LSHClustering.mergeEdgePatternsByEdgeLabel(spark, clusteredEdges)
       println("Merged Edges LSH by Label Only:")
-      mergedEdgesLabelOnly.printSchema()
+      // mergedEdgesLabelOnly.printSchema()
       mergedEdgesLabelOnly.select("relationshipTypes","srcLabels","dstLabels","propsInCluster","merged_cluster_id").show(truncate = false , numRows = 500)
 
       val mergedEdges = LSHClustering.mergeEdgePatternsByLabel(spark, clusteredEdges)
       println("Merged Edges LSH by Label & SRC/DST:")
-      mergedEdges.printSchema()
+      // mergedEdges.printSchema()
       mergedEdges.select("relationshipTypes","srcLabels","dstLabels","propsInCluster","merged_cluster_id").show(truncate = false , numRows = 500)
 
       // Evaluation for LSH
@@ -77,16 +77,16 @@ object Main {
       val updatedMergedEdges = InferSchema.inferPropertyTypesFromMerged(edgesDF, mergedEdgesLabelOnly, "LSH Merged Edges", Seq("mandatoryProperties", "optionalProperties"), "edgeIdsInCluster")
 
       println("Updated Merged Patterns LSH with Types:")
-      updatedMergedPatterns.printSchema()
+      // updatedMergedPatterns.printSchema()
       updatedMergedPatterns.show(100)
 
       println("Updated Merged Edges LSH with Types:")
-      updatedMergedEdges.printSchema()
+      // updatedMergedEdges.printSchema()
       updatedMergedEdges.show(100)
 
       val updatedMergedEdgesWCardinalities = InferSchema.inferCardinalities(edgesDF, updatedMergedEdges)
       println("Updated Merged Edges LSH with Types and Cardinalities:")
-      updatedMergedEdgesWCardinalities.printSchema()
+      // updatedMergedEdgesWCardinalities.printSchema()
       updatedMergedEdgesWCardinalities.show(5)
     }
 

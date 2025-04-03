@@ -16,13 +16,14 @@ object LSHClustering {
   ): (Double, Int) = {
     import df.sparkSession.implicits._
 
+    val limitVal = math.min(sampleSize, df.count().toInt)
     val sampledDF = df.sample(false, sampleSize.toDouble / df.count(), 42).limit(sampleSize).cache()
-    println(s"Sampled ${sampledDF.count()} rows for LSH parameter estimation")
+    // println(s"Sampled ${sampledDF.count()} rows for LSH parameter estimation")
 
     val featurePairs = sampledDF.crossJoin(sampledDF.withColumnRenamed(featuresCol, "features2"))
       .select(col(featuresCol).as("f1"), col("features2").as("f2"))
       .filter(col("f1") =!= col("f2"))
-      .limit(10000)
+      .limit(limitVal)
 
     val distanceUdf = udf((v1: Vector, v2: Vector) => {
       val diff = v1.toArray.zip(v2.toArray).map { case (x, y) => (x - y) * (x - y) }
@@ -225,10 +226,9 @@ object LSHClustering {
     import spark.implicits._
 
     clusteredNodes.cache()
-
-    val withLabelsDF = clusteredNodes.filter(size($"labelsInCluster") > 0)
-    val noLabelsDF = clusteredNodes.filter(size($"labelsInCluster") === 0)
-
+    val mergedDF = mergeClustersByJaccard(clusteredNodes, similarityThreshold = 0.9)
+    val withLabelsDF = mergedDF.filter(size($"labelsInCluster") > 0)
+    val noLabelsDF = mergedDF.filter(size($"labelsInCluster") === 0)
     val mergedWLabelDF = withLabelsDF
       .withColumn("sortedLabels", array_sort($"labelsInCluster"))
       .groupBy($"sortedLabels")
@@ -237,7 +237,7 @@ object LSHClustering {
         flatten(collect_list($"nodeIdsInCluster")).as("nodeIdsInCluster"),
         collect_set($"cluster_id").as("original_cluster_ids")
       )
-
+      
     val finalDF = mergedWLabelDF
       .withColumn("mandatoryProperties",
         flatten(aggregate(
@@ -274,7 +274,7 @@ object LSHClustering {
     val returnedDF = finalDF.union(noLabelsFinalDF)
     returnedDF
   }
-
+  
   def mergeEdgePatternsByLabel(spark: SparkSession, clusteredEdges: DataFrame): DataFrame = {
     import spark.implicits._
 
@@ -351,7 +351,7 @@ object LSHClustering {
     val returnedDF = finalDF.union(noLabelsFinalDF)
     returnedDF
   }
-
+//simple merge only
   def mergeEdgePatternsByEdgeLabel(spark: SparkSession, clusteredEdges: DataFrame): DataFrame = {
     import spark.implicits._
 
