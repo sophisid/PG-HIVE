@@ -226,9 +226,12 @@ object LSHClustering {
     import spark.implicits._
 
     clusteredNodes.cache()
-    val mergedDF = mergeClustersByJaccard(clusteredNodes, similarityThreshold = 0.9)
-    val withLabelsDF = mergedDF.filter(size($"labelsInCluster") > 0)
-    val noLabelsDF = mergedDF.filter(size($"labelsInCluster") === 0)
+
+    val withLabelsDF = clusteredNodes.filter(size($"labelsInCluster") > 0)
+    val noLabelsDF = clusteredNodes.filter(size($"labelsInCluster") === 0)
+
+    println(s"Number of node clusters before merge: ${clusteredNodes.count()}")
+
     val mergedWLabelDF = withLabelsDF
       .withColumn("sortedLabels", array_sort($"labelsInCluster"))
       .groupBy($"sortedLabels")
@@ -237,7 +240,7 @@ object LSHClustering {
         flatten(collect_list($"nodeIdsInCluster")).as("nodeIdsInCluster"),
         collect_set($"cluster_id").as("original_cluster_ids")
       )
-      
+
     val finalDF = mergedWLabelDF
       .withColumn("mandatoryProperties",
         flatten(aggregate(
@@ -270,6 +273,8 @@ object LSHClustering {
     finalDF.printSchema()
     println("Schema of noLabelsFinalDF:")
     noLabelsFinalDF.printSchema()
+    println("Merged Patterns by Label:")
+    finalDF.show( 500)
 
     val returnedDF = finalDF.union(noLabelsFinalDF)
     returnedDF
