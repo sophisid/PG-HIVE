@@ -156,9 +156,12 @@ object LSHClustering {
     val model = lsh.fit(df)
     val transformedDF = model.transform(df)
 
-    val propCols = df.columns.filter(_.startsWith("prop_"))
+    val originalPropCols = df.columns
+      .filterNot(_.startsWith("prop_")) 
+      .filterNot(Seq("srcType", "srcId", "relationshipType", "dstType", "dstId", "relationshipTypeArray", "srcLabelArray", "dstLabelArray", "relVector", "srcVector", "dstVector", "features", "hashes").contains)
+
     val nonNullProps = array(
-      propCols.map(c => when(col(c).isNotNull, lit(c)).otherwise(lit(null))).toSeq: _*
+      originalPropCols.map(c => when(col(c).isNotNull, lit(c)).otherwise(lit(null))).toSeq: _*
     ).as("nonNullProps")
 
     val groupedDF = transformedDF
@@ -173,7 +176,13 @@ object LSHClustering {
       )
       .withColumn("row_num", row_number().over(Window.orderBy($"hashes")))
       .withColumn("cluster_id", concat(lit("cluster_edge_"), $"row_num"))
-      .drop("hashes", "row_num")
+      .drop("hashes", "row_num", "features", "relVector", "srcVector", "dstVector", "relationshipTypeArray", "srcLabelArray", "dstLabelArray", "nonNullProps")
+      .drop(df.columns.filter(_.startsWith("prop_")): _*)
+
+    println("Schema after LSH for edges:")
+    groupedDF.printSchema()
+    println("Sample after LSH for edges:")
+    groupedDF.show(5, truncate = false)
 
     groupedDF
   }

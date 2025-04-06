@@ -70,7 +70,7 @@ object DataLoader {
 
     val driver = GraphDatabase.driver(uri, AuthTokens.basic(user, password))
     val session = driver.session()
-
+    println("Loading all relationships from Neo4j")
     val result = session.run(
       """MATCH (n)-[r]->(m)
         |WITH n, r, m, rand() as random
