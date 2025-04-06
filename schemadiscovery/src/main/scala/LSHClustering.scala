@@ -108,9 +108,12 @@ object LSHClustering {
     val model = lsh.fit(patternsDF)
     val transformedDF = model.transform(patternsDF)
 
-    val propCols = patternsDF.columns.filterNot(Seq("_nodeId", "_labels", "originalLabels").contains)
+    val originalPropCols = patternsDF.columns
+      .filterNot(_.startsWith("prop_"))
+      .filterNot(Seq("_nodeId", "_labels", "originalLabels", "labelArray", "labelVector", "features", "hashes").contains)
+    
     val nonNullProps = array(
-      propCols.map(c => when(col(c).isNotNull, lit(c)).otherwise(lit(null))).toSeq: _*
+      originalPropCols.map(c => when(col(c).isNotNull, lit(c)).otherwise(lit(null))).toSeq: _*
     ).as("nonNullProps")
 
     val clusteredDF = transformedDF
@@ -123,7 +126,13 @@ object LSHClustering {
       )
       .withColumn("row_num", row_number().over(Window.orderBy($"hashes")))
       .withColumn("cluster_id", concat(lit("cluster_node_"), $"row_num"))
-      .drop("hashes", "row_num")
+      .drop("hashes", "row_num", "features", "labelVector", "labelArray", "nonNullProps")
+      .drop(patternsDF.columns.filter(_.startsWith("prop_")): _*)
+
+    println("Schema after LSH:")
+    clusteredDF.printSchema()
+    println("Sample after LSH:")
+    clusteredDF.show(5, truncate = false)
 
     clusteredDF
   }
