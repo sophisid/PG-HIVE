@@ -13,6 +13,7 @@ def computeMetricsForNodes(
 
     val explodedPredictedDF = predictedNodesDF
       .withColumn("nodeId", explode(col("nodeIdsInCluster")))
+      .withColumn("nodeId", col("nodeId").cast("long"))
       .withColumn("predictedLabels", array_distinct(split(concat_ws(":", $"sortedLabels"), ":")))
       .select(col("nodeId"), col("predictedLabels"), col("merged_cluster_id"))
       .where(col("nodeId").isNotNull)
@@ -25,7 +26,7 @@ def computeMetricsForNodes(
       .where(col("nodeId").isNotNull)
 
     val evaluationDF = explodedPredictedDF
-      .join(explodedOriginalDF, Seq("nodeId"), "inner")
+      .join(explodedOriginalDF, Seq("nodeId"), "left_outer")
       .select(col("nodeId"), col("predictedLabels"), col("actualLabels"), col("merged_cluster_id"))
 
     val distinctGroundTruthNodes = explodedOriginalDF.select(col("actualLabels")).distinct().count()
@@ -172,15 +173,6 @@ def computeMetricsForNodes(
         col("correctAssignmentMajority")
       )
       .show(10, false)
-
-    // println("Total Actual Positives:")
-    // totalActualPositivesDF.show(false)
-    // println("Total Predicted Positives (Non-Strict):")
-    // totalPredictedPositivesNonStrictDF.show(false)
-    // println("Total Predicted Positives (Strict):")
-    // totalPredictedPositivesStrictDF.show(false)
-    // println("Total Predicted Positives (Majority):")
-    // totalPredictedPositivesMajorityDF.show(false)
   }
 
   def computeMetricsForEdges(

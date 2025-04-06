@@ -52,7 +52,7 @@ object Main {
       val mergedPatterns = LSHClustering.mergePatternsByLabel(spark, clusteredNodes)
       println("Merged Patterns LSH by Label:")
       // mergedPatterns.printSchema()
-      mergedPatterns.select("sortedLabels", "propertiesInCluster", "original_cluster_ids").show(500)
+      mergedPatterns.select("sortedLabels", "propertiesInCluster","optionalProperties","mandatoryProperties" ,"original_cluster_ids").show(500)
 
       val mergedEdgesLabelOnly = LSHClustering.mergeEdgePatternsByEdgeLabel(spark, clusteredEdges)
       println("Merged Edges LSH by Label Only:")
