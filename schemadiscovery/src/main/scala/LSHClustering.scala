@@ -17,7 +17,7 @@ object LSHClustering {
     import df.sparkSession.implicits._
 
     val limitVal = math.min(sampleSize, df.count().toInt)
-    val sampledDF = df.sample(false, sampleSize.toDouble / df.count(), 42).limit(sampleSize).cache()
+    val sampledDF = df.sample(false, limitVal.toDouble / df.count(), 42).limit(limitVal).cache()
     // println(s"Sampled ${sampledDF.count()} rows for LSH parameter estimation")
 
     val featurePairs = sampledDF.crossJoin(sampledDF.withColumnRenamed(featuresCol, "features2"))
