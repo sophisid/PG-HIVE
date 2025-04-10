@@ -11,7 +11,7 @@ object LSHClustering {
     df: DataFrame, 
     featuresCol: String, 
     isEdge: Boolean = false, 
-    sampleSize: Int = 10000, 
+    sampleSize: Int = 1000, 
     uniqueLabelCount: Option[Long] = None 
   ): (Double, Int) = {
     import df.sparkSession.implicits._
