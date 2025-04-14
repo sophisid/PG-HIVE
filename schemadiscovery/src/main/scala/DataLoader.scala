@@ -15,7 +15,7 @@ object DataLoader {
     import spark.implicits._
     val uri = "bolt://localhost:7687"
     val user = "neo4j"
-    val password = "password"
+    val password = "mypassword"
 
     val driver = GraphDatabase.driver(uri, AuthTokens.basic(user, password))
     val session = driver.session()
@@ -66,7 +66,7 @@ object DataLoader {
     import spark.implicits._
     val uri = "bolt://localhost:7687"
     val user = "neo4j"
-    val password = "password"
+    val password = "mypassword"
 
     val driver = GraphDatabase.driver(uri, AuthTokens.basic(user, password))
     val session = driver.session()

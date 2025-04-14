@@ -96,6 +96,13 @@ object Main {
       println("Updated Merged Edges LSH with Types and Cardinalities:")
       // updatedMergedEdgesWCardinalities.printSchema()
       updatedMergedEdgesWCardinalities.show(5)
+
+
+      PGSchemaExporter.exportPGSchema(
+      updatedMergedPatterns,
+      updatedMergedEdgesWCardinalities,
+      "pg_schema_output.txt"
+      )
     }
 
     if (clusteringMethod == "KMEANS" || clusteringMethod == "BOTH") {
