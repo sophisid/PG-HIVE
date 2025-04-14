@@ -50,7 +50,7 @@ object Main {
       val clusteredEdges = LSHClustering.applyLSHEdges(spark, binaryEdgesDF)
       clusteredNodes.select("labelsInCluster", "propertiesInCluster").show(500, truncate = false)
       clusteredEdges.show()
-      calculate time for clustering
+      //calculate time for clustering
       val startClusteringTime = System.currentTimeMillis()
       val mergedPatterns = LSHClustering.mergePatternsByLabel(spark, clusteredNodes)
       val endClusteringTime = System.currentTimeMillis()
