@@ -20,7 +20,7 @@ object PGSchemaExporter {
         row.getAs[Seq[String]]("optionalProperties_with_types")
       ).filterNot(p => ignoreProps.exists(p.toLowerCase.contains))
         .map(_.split(":")).collect {
-          case Array(name, dtype) => s"${name.trim.toUpperCase} ${normalizeType(dtype)}"
+          case Array(name, dtype) => s"${name.trim} ${normalizeType(dtype)}"
         }
 
       if (allProps.nonEmpty)
@@ -31,24 +31,34 @@ object PGSchemaExporter {
     // --- EDGE TYPES ---
     edgesDF.collect().foreach { row =>
       val relTypes = row.getAs[Seq[String]]("relationshipTypes")
-      val relName = relTypes.mkString("_")
-      val relLabel = relName.toLowerCase
-
-      val src = row.getAs[Seq[String]]("srcLabels").mkString("_") + "Type"
-      val dst = row.getAs[Seq[String]]("dstLabels").mkString("_") + "Type"
+      val srcLabels = row.getAs[Seq[String]]("srcLabels")
+      val dstLabels = row.getAs[Seq[String]]("dstLabels")
 
       val allProps = (
         row.getAs[Seq[String]]("mandatoryProperties_with_types") ++
         row.getAs[Seq[String]]("optionalProperties_with_types")
       ).filterNot(p => ignoreProps.exists(p.toLowerCase.contains))
         .map(_.split(":")).collect {
-          case Array(name, dtype) => s"${name.trim.toUpperCase} ${normalizeType(dtype)}"
+          case Array(name, dtype) => s"${name.trim} ${normalizeType(dtype)}"
         }
 
       val propStr = if (allProps.nonEmpty) s" {${allProps.mkString(", ")}}" else ""
-      writer.println(s"  (:$src)-[$relName: $relLabel$propStr]->(:$dst),")
-    }
 
+      if (relTypes.length == srcLabels.length && srcLabels.length == dstLabels.length) {
+        relTypes.indices.foreach { i =>
+          val rel = relTypes(i)
+          val src = srcLabels(i) + "Type"
+          val dst = dstLabels(i) + "Type"
+          writer.println(s"  (:$src)-[$rel: ${rel.toLowerCase}$propStr]->(:$dst),")
+        }
+      } else {
+        val relName = relTypes.mkString("_")
+        val relLabel = relName.toLowerCase
+        val src = srcLabels.mkString("_") + "Type"
+        val dst = dstLabels.mkString("_") + "Type"
+        writer.println(s"  (:$src)-[$relName: $relLabel$propStr]->(:$dst),")
+      }
+    }
     writer.println("}")
     writer.close()
     println(s"✅ PG STRICT Schema has been successfully exported to $outputPath")
@@ -62,8 +72,7 @@ object PGSchemaExporter {
       case "integer"    => "INTEGER"
       case "date"       => "DATE"
       case "double"     => "DOUBLE"
-      case other        => other.toUpperCase
-      /* TODO::abstract */
+      case "boolean"   => "BOOLEAN"
        
     }
   }
