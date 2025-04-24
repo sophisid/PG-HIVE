@@ -1,0 +1,18 @@
+CREATE GRAPH TYPE NewGraphSchema LOOSE {
+  (PersonType: Person {browserUsed STRING, lastName STRING, firstName STRING, gender STRING, id DOUBLE, locationIP STRING, creationDate DATE, birthday DATE}),
+  (ForumType: Forum {id DOUBLE, title STRING, creationDate DATE}),
+  (PostType: Post {browserUsed STRING, id DOUBLE, locationIP STRING, length INTEGER, creationDate DATE, content STRING, language STRING, imageFile STRING}),
+  (TagType: Tag {name STRING, id DOUBLE, url STRING}),
+  (OrganisationType: Organisation {type STRING, name STRING, id DOUBLE, url STRING}),
+  (PlaceType: Place {type STRING, name STRING, id DOUBLE, url STRING}),
+  (CommentType: Comment {browserUsed STRING, content STRING, id DOUBLE, locationIP STRING, length INTEGER, creationDate DATE}),
+  (:Post|Comment|ForumType)-[CONTAINER_OF_HAS_CREATOR_REPLY_OF: CONTAINER_OF & HAS_CREATOR & REPLY_OF]->(:Post|Comment|PersonType),
+  (:Post|Forum|PersonType)-[HAS_CREATOR_HAS_TAG_IS_LOCATED_IN: HAS_CREATOR & HAS_TAG & IS_LOCATED_IN]->(:Tag|Place|CommentType),
+  (:PersonType)-[HAS_INTEREST: HAS_INTEREST]->(:TagType),
+  (:ForumType)-[HAS_MEMBER: HAS_MEMBER {joinDate DATE}]->(:PersonType),
+  (:Comment|ForumType)-[HAS_MODERATOR_REPLY_OF: HAS_MODERATOR & REPLY_OF]->(:Post|PersonType),
+  (:Comment|PersonType)-[HAS_TAG_IS_LOCATED_IN: HAS_TAG & IS_LOCATED_IN]->(:Tag|PlaceType),
+  (:PersonType)-[KNOWS: KNOWS {creationDate DATE}]->(:PersonType),
+  (:PersonType)-[LIKES: LIKES {creationDate DATE}]->(:Comment|PostType),
+  (:PersonType)-[WORKS_AT: WORKS_AT {workFrom INTEGER}]->(:OrganisationType),
+}

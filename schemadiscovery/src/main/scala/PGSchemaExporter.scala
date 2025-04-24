@@ -9,11 +9,14 @@ object PGSchemaExporter {
 
     val ignoreProps = Set("original_label", "labelArray", "labelVector", "features", "prop_original_label")
 
-// --- NODE TYPES ---
+    // --- NODE TYPES ---
     nodesDF.collect().foreach { row =>
       val labels = row.getAs[Seq[String]]("sortedLabels")
-      val typeName = labels.mkString("_") + "Type"
-      val baseLabel = labels.lastOption.getOrElse("Unknown")
+      val baseLabel = if (labels.nonEmpty) {
+        if (labels.size == 1) labels.head
+        else labels.mkString(" & ")
+      } else "Abstract"
+      val typeName = if (labels.nonEmpty) labels.mkString("_") + "Type" else "AbstractType"
 
       val allProps = (
         row.getAs[Seq[String]]("mandatoryProperties_with_types") ++
@@ -28,6 +31,7 @@ object PGSchemaExporter {
       else
         writer.println(s"  ($typeName: $baseLabel),")
     }
+
     // --- EDGE TYPES ---
     edgesDF.collect().foreach { row =>
       val relTypes = row.getAs[Seq[String]]("relationshipTypes")
@@ -44,24 +48,17 @@ object PGSchemaExporter {
 
       val propStr = if (allProps.nonEmpty) s" {${allProps.mkString(", ")}}" else ""
 
-      if (relTypes.length == srcLabels.length && srcLabels.length == dstLabels.length) {
-        relTypes.indices.foreach { i =>
-          val rel = relTypes(i)
-          val src = srcLabels(i) + "Type"
-          val dst = dstLabels(i) + "Type"
-          writer.println(s"  (:$src)-[$rel: ${rel.toLowerCase}$propStr]->(:$dst),")
-        }
-      } else {
-        val relName = relTypes.mkString("_")
-        val relLabel = relName.toLowerCase
-        val src = srcLabels.mkString("_") + "Type"
-        val dst = dstLabels.mkString("_") + "Type"
-        writer.println(s"  (:$src)-[$relName: $relLabel$propStr]->(:$dst),")
-      }
+      val relName = relTypes.mkString("_")
+      val relLabel = relTypes.mkString(" & ")
+      val src = srcLabels.mkString("|") + "Type"
+      val dst = dstLabels.mkString("|") + "Type"
+
+      writer.println(s"  (:$src)-[$relName: $relLabel$propStr]->(:$dst),")
     }
+
     writer.println("}")
     writer.close()
-    println(s"✅ PG STRICT Schema has been successfully exported to $outputPath")
+    println(s"✅ PG LOOSE Schema has been successfully exported to $outputPath")
   }
 
   def normalizeType(dt: String): String = {
@@ -72,8 +69,7 @@ object PGSchemaExporter {
       case "integer"    => "INTEGER"
       case "date"       => "DATE"
       case "double"     => "DOUBLE"
-      case "boolean"   => "BOOLEAN"
-       
+      case "boolean"    => "BOOLEAN"
     }
   }
 }
