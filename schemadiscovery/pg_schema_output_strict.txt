@@ -1,0 +1,45 @@
+-- NODE TYPES --
+CREATE NODE TYPE PersonType : Person {browserUsed STRING, lastName STRING, firstName STRING, gender STRING, id DOUBLE, locationIP STRING, creationDate DATE, birthday DATE};
+CREATE NODE TYPE ForumType : Forum {id DOUBLE, title STRING, creationDate DATE};
+CREATE NODE TYPE PostType : Post {browserUsed STRING, id DOUBLE, locationIP STRING, length INTEGER, creationDate DATE, OPTIONAL content STRING, OPTIONAL language STRING, OPTIONAL imageFile STRING};
+CREATE NODE TYPE TagType : Tag {name STRING, id DOUBLE, url STRING};
+CREATE NODE TYPE OrganisationType : Organisation {type STRING, name STRING, id DOUBLE, url STRING};
+CREATE NODE TYPE PlaceType : Place {type STRING, name STRING, id DOUBLE, url STRING};
+CREATE NODE TYPE CommentType : Comment {browserUsed STRING, content STRING, id DOUBLE, locationIP STRING, length INTEGER, creationDate DATE};
+
+-- EDGE TYPES --
+CREATE EDGE TYPE container_of_has_creator_reply_ofType : CONTAINER_OF & HAS_CREATOR & REPLY_OF;
+CREATE EDGE TYPE has_creator_has_tag_is_located_inType : HAS_CREATOR & HAS_TAG & IS_LOCATED_IN;
+CREATE EDGE TYPE has_interestType : HAS_INTEREST;
+CREATE EDGE TYPE has_memberType : HAS_MEMBER {joinDate DATE};
+CREATE EDGE TYPE has_moderator_reply_ofType : HAS_MODERATOR & REPLY_OF;
+CREATE EDGE TYPE has_tag_is_located_inType : HAS_TAG & IS_LOCATED_IN;
+CREATE EDGE TYPE knowsType : KNOWS {creationDate DATE};
+CREATE EDGE TYPE likesType : LIKES {creationDate DATE};
+CREATE EDGE TYPE works_atType : WORKS_AT {workFrom INTEGER};
+
+CREATE GRAPH TYPE NewGraphSchema STRICT {
+  (PersonType),
+  (ForumType),
+  (PostType),
+  (TagType),
+  (OrganisationType),
+  (PlaceType),
+  (CommentType),
+  (:Post|Comment|Forum)-[container_of_has_creator_reply_ofType]->(:Post|Comment|Person),
+  (:Post|Forum|Person)-[has_creator_has_tag_is_located_inType]->(:Tag|Place|Comment),
+  (:Person)-[has_interestType]->(:Tag),
+  (:Forum)-[has_memberType]->(:Person),
+  (:Comment|Forum)-[has_moderator_reply_ofType]->(:Post|Person),
+  (:Comment|Person)-[has_tag_is_located_inType]->(:Tag|Place),
+  (:Person)-[knowsType]->(:Person),
+  (:Person)-[likesType]->(:Comment|Post),
+  (:Person)-[works_atType]->(:Organisation),
+
+  // Constraints
+  FOR (x:Person) SINGLETON y WITHIN (x)-[y: has_interestType]->(:Tag)
+  FOR (x:Forum) SINGLETON y WITHIN (x)-[y: has_memberType]->(:Person)
+  FOR (x:Person) SINGLETON y WITHIN (x)-[y: knowsType]->(:Person)
+  FOR (x:Person) SINGLETON y WITHIN (x)-[y: likesType]->(:Comment|Post)
+  FOR (x:Person) SINGLETON y WITHIN (x)-[y: works_atType]->(:Organisation)
+}

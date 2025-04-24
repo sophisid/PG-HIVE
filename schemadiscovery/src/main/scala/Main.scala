@@ -93,7 +93,13 @@ object Main {
       PGSchemaExporter.exportPGSchema(
       updatedMergedPatterns,
       updatedMergedEdgesWCardinalities,
-      "pg_schema_output.txt"
+      "pg_schema_output_loose.txt"
+      )
+
+      PGSchemaExporterStrict.exportPGSchema(
+      updatedMergedPatterns,
+      updatedMergedEdgesWCardinalities,
+      "pg_schema_output_strict.txt"
       )
     }
 
