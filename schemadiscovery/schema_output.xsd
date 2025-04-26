@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema name="SmallGraphSchema" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <!-- NODE TYPES -->
+
+  <xs:complexType name="Person">
+    <xs:sequence>
+      <xs:element name="firstName" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="lastName" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="age" type="xs:int" minOccurs="1" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+    <xs:attribute name="label" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:complexType name="Post">
+    <xs:sequence>
+      <xs:element name="browserUsed" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="locationIP" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="length" type="xs:int" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="creationDate" type="xs:date" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="content" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="language" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="imageFile" type="xs:string" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+    <xs:attribute name="label" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:complexType name="Comment">
+    <xs:sequence>
+      <xs:element name="browserUsed" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="content" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="locationIP" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="length" type="xs:int" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="creationDate" type="xs:date" minOccurs="1" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+    <xs:attribute name="label" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:complexType name="Organization">
+    <xs:sequence>
+      <xs:element name="name" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="location" type="xs:string" minOccurs="1" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+    <xs:attribute name="label" type="xs:string"/>
+  </xs:complexType>
+
+  <!-- EDGE TYPES -->
+
+  <xs:complexType name="KNOWS">
+    <xs:sequence>
+      <xs:element name="source" type="Person" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="target" type="Person" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="creationDate" type="xs:date" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="LIKES">
+    <xs:sequence>
+      <xs:element name="source" type="Person" minOccurs="1" maxOccurs="1"/>
+      <xs:choice minOccurs="1" maxOccurs="1">
+        <xs:element name="target" type="Post"/>
+        <xs:element name="target" type="Comment"/>
+      </xs:choice>
+      <xs:element name="creationDate" type="xs:date" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="WORKS_AT">
+    <xs:sequence>
+      <xs:element name="source" type="Person" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="target" type="Organization" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="workFrom" type="xs:int" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+  </xs:complexType>
+
+</xs:schema>

@@ -1,80 +1,80 @@
-/* import java.io.{File, PrintWriter}
+import java.io.{File, PrintWriter}
 import scala.xml._
+import org.apache.spark.sql.DataFrame
 
-//TODO:: KANONIKA DEN PREPEI NA EINAI OLA REQUIRED 8A PREPEI NA VLEPW AN KATI EIANI OPTIONAL H OXI 
 object XSDExporter {
 
-  def exportXSD(): Unit = {
-    // Retrieve node and edge patterns from the repository
-    val nodePatterns = NodePatternRepository.allPatterns
-    val edgePatterns = EdgePatternRepository.allPatterns
+  def exportXSD(finalNodePatterns: DataFrame, finalEdgePatterns: DataFrame, outputPath: String): Unit = {
 
-    // Creating node types in the XSD schema
-    val nodeTypes = nodePatterns.map { pattern =>
-      val properties = pattern.properties.map(prop => <xs:element name={prop} type="xs:string" minOccurs="0"/>)
-      val sequence = if (properties.nonEmpty) <xs:sequence>{properties}</xs:sequence> else NodeSeq.Empty
+    val nodeTypes = finalNodePatterns.collect().map { row =>
+      val nodeType = row.getAs[Seq[String]]("sortedLabels").head
+      val mandatoryProps = row.getAs[Seq[String]]("mandatoryProperties")
+      val optionalProps = row.getAs[Seq[String]]("optionalProperties")
 
-      <xs:complexType name={pattern.label.head}>
+      val props = 
+        (mandatoryProps.map { prop =>
+          <xs:element name={prop} type="xs:string" minOccurs="1" maxOccurs="1"/>
+        } ++
+        optionalProps.map { prop =>
+          <xs:element name={prop} type="xs:string" minOccurs="0" maxOccurs="1"/>
+        })
+
+      val sequence = if (props.nonEmpty) <xs:sequence>{props}</xs:sequence> else NodeSeq.Empty
+
+      <xs:complexType name={nodeType}>
         {sequence}
         <xs:attribute name="id" type="xs:ID" use="required"/>
         <xs:attribute name="label" type="xs:string"/>
       </xs:complexType>
     }
 
-
-    // Group edges by relationshipType to merge different target types as choices
-    val edgeTypes = edgePatterns.groupBy(_.relationshipType.head).map { case (relType, patterns) =>
-    val sourceChoices = patterns.flatMap(_.srcLabels).toSet.map { src: String =>
-      <xs:element name="source" type={src}/>
+    val groupedEdges = finalEdgePatterns.collect().groupBy { row =>
+      row.getAs[Seq[String]]("relationshipTypes").head
     }
-      val sourceSequence =
-        if (sourceChoices.size > 1)
-          <xs:choice minOccurs="1">{sourceChoices}</xs:choice>
-        else
-          sourceChoices
 
-      val targetChoices = patterns.flatMap(_.dstLabels).toSet.map { target: String =>
-        <xs:element name="target" type={target}/>
+    val edgeTypes = groupedEdges.map { case (relType, patterns) =>
+      val sourceLabels = patterns.flatMap(_.getAs[Seq[String]]("srcLabels")).toSet
+      val targetLabels = patterns.flatMap(_.getAs[Seq[String]]("dstLabels")).toSet
+      val properties = patterns.flatMap(_.getAs[Seq[String]]("mandatoryProperties")).toSet
+
+      val sourceElements = sourceLabels.map { src =>
+        <xs:element name="source" type={src}/>
       }
-      val targetSequence =
-        if (targetChoices.size > 1)
-          <xs:choice minOccurs="1">{targetChoices}</xs:choice>
-        else
-          targetChoices
+      val targetElements = targetLabels.map { tgt =>
+        <xs:element name="target" type={tgt}/>
+      }
+
+      val sourceSeq =
+        if (sourceElements.size > 1) <xs:choice minOccurs="1">{sourceElements}</xs:choice>
+        else sourceElements
+
+      val targetSeq =
+        if (targetElements.size > 1) <xs:choice minOccurs="1">{targetElements}</xs:choice>
+        else targetElements
+
+      val propElements = properties.map { prop =>
+        <xs:element name={prop} type="xs:string" minOccurs="0" maxOccurs="1"/>
+      }
 
       <xs:complexType name={relType}>
         <xs:sequence>
-          {sourceSequence}
-          {targetSequence}
+          {sourceSeq}
+          {targetSeq}
+          {propElements}
         </xs:sequence>
       </xs:complexType>
     }
 
-
-    // Creating the Graph Schema, listing all node and edge types
-    val graphElement =
-      <xs:element name="Graph">
-        <xs:complexType>
-          <xs:sequence>
-            {nodePatterns.map(pattern => <xs:element name={pattern.label.head} type={pattern.label.head} maxOccurs="unbounded"/>)}
-            {edgePatterns.map(pattern => <xs:element name={pattern.relationshipType.head} type={pattern.relationshipType.head} maxOccurs="unbounded"/>)}
-          </xs:sequence>
-        </xs:complexType>
-      </xs:element>
-
-    // Complete XSD Schema
     val schema =
-      <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+      <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" name="NewGraphSchema">
         {nodeTypes}
         {edgeTypes}
-        {graphElement}
       </xs:schema>
 
-    // Save the generated XSD schema to a file
-    val writer = new PrintWriter(new File("schema_output.xsd"))
+    val writer = new PrintWriter(new File(outputPath))
     writer.write(new PrettyPrinter(80, 2).format(schema))
     writer.close()
 
-    println("✅ XSD Schema has been updated and generated correctly as 'schema_output.xsd'!")
+    println(s"✅ XSD Schema generated successfully at '$outputPath'!")
   }
-} */
+}
