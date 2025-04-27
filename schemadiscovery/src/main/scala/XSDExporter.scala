@@ -11,13 +11,13 @@ object XSDExporter {
       val mandatoryProps = row.getAs[Seq[String]]("mandatoryProperties")
       val optionalProps = row.getAs[Seq[String]]("optionalProperties")
 
-      val props = 
-        (mandatoryProps.map { prop =>
-          <xs:element name={prop} type="xs:string" minOccurs="1" maxOccurs="1"/>
-        } ++
-        optionalProps.map { prop =>
-          <xs:element name={prop} type="xs:string" minOccurs="0" maxOccurs="1"/>
-        })
+      val props =
+        (mandatoryProps ++ optionalProps)
+          .filterNot(prop => prop.toLowerCase.contains("original_label") || prop.toLowerCase.contains("original_data")) // <= ΕΔΩ
+          .map { prop =>
+            val minOccurs = if (mandatoryProps.contains(prop)) "1" else "0"
+            <xs:element name={prop} type="xs:string" minOccurs={minOccurs} maxOccurs="1"/>
+          }
 
       val sequence = if (props.nonEmpty) <xs:sequence>{props}</xs:sequence> else NodeSeq.Empty
 
@@ -35,7 +35,8 @@ object XSDExporter {
     val edgeTypes = groupedEdges.map { case (relType, patterns) =>
       val sourceLabels = patterns.flatMap(_.getAs[Seq[String]]("srcLabels")).toSet
       val targetLabels = patterns.flatMap(_.getAs[Seq[String]]("dstLabels")).toSet
-      val properties = patterns.flatMap(_.getAs[Seq[String]]("mandatoryProperties")).toSet
+      val properties = patterns.flatMap(_.getAs[Seq[String]]("mandatoryProperties"))
+        .filterNot(prop => prop.toLowerCase.contains("original_label") || prop.toLowerCase.contains("original_data")) // <= ΕΔΩ
 
       val sourceElements = sourceLabels.map { src =>
         <xs:element name="source" type={src}/>

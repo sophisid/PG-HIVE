@@ -1,26 +1,23 @@
 -- NODE TYPES --
-CREATE NODE TYPE PersonType : Person {firstName STRING, lastName STRING, age INTEGER};
-CREATE NODE TYPE PostType : Post {content STRING, creationDate DATE};
-CREATE NODE TYPE CommentType : Comment {content STRING, creationDate DATE};
-CREATE NODE TYPE OrganizationType : Organization {name STRING, location STRING};
+CREATE NODE TYPE OrganisationType : Organisation {type STRING, name STRING, id DOUBLE, url STRING};
+CREATE NODE TYPE PostType : Post {browserUsed STRING, id DOUBLE, locationIP STRING, length INTEGER, creationDate DATE, OPTIONAL content STRING, OPTIONAL language STRING, OPTIONAL imageFile STRING};
+CREATE NODE TYPE CommentType : Comment {browserUsed STRING, content STRING, id DOUBLE, locationIP STRING, length INTEGER, creationDate DATE};
+CREATE NODE TYPE PersonType : Person {browserUsed STRING, lastName STRING, firstName STRING, gender STRING, id DOUBLE, locationIP STRING, creationDate DATE, birthday DATE};
 
 -- EDGE TYPES --
-CREATE EDGE TYPE knowsType : KNOWS;
-CREATE EDGE TYPE likesType : LIKES;
-CREATE EDGE TYPE worksAtType : WORKS_AT;
+CREATE EDGE TYPE knowsType : KNOWS {creationDate DATE};
+CREATE EDGE TYPE likesType : LIKES {creationDate DATE};
+CREATE EDGE TYPE works_atType : WORKS_AT {workFrom INTEGER};
 
-CREATE GRAPH TYPE SmallGraphSchema STRICT {
-  (PersonType),
+CREATE GRAPH TYPE NewGraphSchema STRICT {
+  (OrganisationType),
   (PostType),
   (CommentType),
-  (OrganizationType),
-
+  (PersonType),
   (:PersonType)-[knowsType]->(:PersonType),
-  (:PersonType)-[likesType]->(:PostType|CommentType),
-  (:PersonType)-[worksAtType]->(:OrganizationType),
+  (:PersonType)-[likesType]->(:CommentType|PostType),
+  (:PersonType)-[works_atType]->(:OrganisationType),
 
   // Constraints
-  FOR (x:PersonType) SINGLETON y WITHIN (x)-[y: knowsType]->(:PersonType)
-  FOR (x:PersonType) SINGLETON y WITHIN (x)-[y: likesType]->(:PostType|CommentType)
-  FOR (x:PersonType) SINGLETON y WITHIN (x)-[y: worksAtType]->(:OrganizationType)
+  FOR (x:PersonType) SINGLETON y WITHIN (x)-[y: works_atType]->(:OrganisationType)
 }
