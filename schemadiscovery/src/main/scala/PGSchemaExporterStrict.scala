@@ -13,15 +13,15 @@ object PGSchemaExporterStrict {
     nodesDF.collect().foreach { row =>
       val labels = row.getAs[Seq[String]]("sortedLabels")
       val typeName = labels.mkString("_") + "Type"
-      val baseLabel = if (labels.size > 1) labels.mkString(" & ") else labels.lastOption.getOrElse("Unknown")
+      val baseLabel = if (labels.size > 1) labels.mkString(" | ") else labels.lastOption.getOrElse("Unknown")
 
-      val mandatoryProps = row.getAs[Seq[String]]("mandatoryProperties_with_types")
+      val mandatoryProps = Option(row.getAs[Seq[String]]("mandatoryProperties_with_types")).getOrElse(Seq.empty)
         .filterNot(p => ignoreProps.exists(p.toLowerCase.contains))
         .map(_.split(":")).collect {
           case Array(name, dtype) => s"${name.trim} ${normalizeType(dtype)}"
         }
 
-      val optionalProps = row.getAs[Seq[String]]("optionalProperties_with_types")
+      val optionalProps = Option(row.getAs[Seq[String]]("optionalProperties_with_types")).getOrElse(Seq.empty)
         .filterNot(p => ignoreProps.exists(p.toLowerCase.contains))
         .map(_.split(":")).collect {
           case Array(name, dtype) => s"OPTIONAL ${name.trim} ${normalizeType(dtype)}"
@@ -39,15 +39,15 @@ object PGSchemaExporterStrict {
     edgesDF.collect().foreach { row =>
       val relTypes = row.getAs[Seq[String]]("relationshipTypes")
       val relName = relTypes.mkString("_").toLowerCase + "Type"
-      val edgeLabel = relTypes.mkString(" & ")
+      val edgeLabel = relTypes.mkString(" | ")
 
-      val mandatoryProps = row.getAs[Seq[String]]("mandatoryProperties_with_types")
+      val mandatoryProps = Option(row.getAs[Seq[String]]("mandatoryProperties_with_types")).getOrElse(Seq.empty)
         .filterNot(p => ignoreProps.exists(p.toLowerCase.contains))
         .map(_.split(":")).collect {
           case Array(name, dtype) => s"${name.trim} ${normalizeType(dtype)}"
         }
 
-      val optionalProps = row.getAs[Seq[String]]("optionalProperties_with_types")
+      val optionalProps = Option(row.getAs[Seq[String]]("optionalProperties_with_types")).getOrElse(Seq.empty)
         .filterNot(p => ignoreProps.exists(p.toLowerCase.contains))
         .map(_.split(":")).collect {
           case Array(name, dtype) => s"OPTIONAL ${name.trim} ${normalizeType(dtype)}"
@@ -73,8 +73,8 @@ object PGSchemaExporterStrict {
       val relTypes = row.getAs[Seq[String]]("relationshipTypes")
       val relName = relTypes.mkString("_").toLowerCase + "Type"
 
-      val src = row.getAs[Seq[String]]("srcLabels").mkString("|")
-      val dst = row.getAs[Seq[String]]("dstLabels").mkString("|")
+      val src = row.getAs[Seq[String]]("srcLabels").map(_ + "Type").mkString("|")
+      val dst = row.getAs[Seq[String]]("dstLabels").map(_ + "Type").mkString("|")
 
       writer.println(s"  (:$src)-[$relName]->(:$dst),")
     }
@@ -86,18 +86,20 @@ object PGSchemaExporterStrict {
       val relTypes = row.getAs[Seq[String]]("relationshipTypes")
       val relName = relTypes.mkString("_").toLowerCase + "Type"
 
-      val src = row.getAs[Seq[String]]("srcLabels").mkString("|")
-      val dst = row.getAs[Seq[String]]("dstLabels").mkString("|")
+      val src = row.getAs[Seq[String]]("srcLabels").map(_ + "Type").mkString("|")
+      val dst = row.getAs[Seq[String]]("dstLabels").map(_ + "Type").mkString("|")
 
       val cardinality = row.getAs[String]("cardinality")
 
       cardinality match {
-        case c if c == "1:1" || c == "1:N" || c == "N:1" =>
+        case "1:1" | "1:N" =>
           writer.println(s"  FOR (x:$src) SINGLETON y WITHIN (x)-[y: $relName]->(:$dst)")
+        case "N:1" =>
+          writer.println(s"  FOR (y:$dst) SINGLETON x WITHIN (x)-[x: $relName]->(:$dst)")
         case _ => // N:N or unknown -> no constraint
       }
     }
-
+    
     writer.println("}")
     writer.close()
     println(s"✅ PG STRICT Schema with constraints has been successfully exported to $outputPath")

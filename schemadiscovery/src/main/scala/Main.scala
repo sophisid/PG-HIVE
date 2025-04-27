@@ -98,7 +98,7 @@ object Main {
       updatedMergedEdgesWCardinalities.show(5)
 
 
-      PGSchemaExporter.exportPGSchema(
+      PGSchemaExporterLoose.exportPGSchema(
       updatedMergedPatterns,
       updatedMergedEdgesWCardinalities,
       "pg_schema_output_loose.txt"
@@ -109,6 +109,9 @@ object Main {
       updatedMergedEdgesWCardinalities,
       "pg_schema_output_strict.txt"
       )
+
+      XSDExporter.exportXSD(updatedMergedPatterns, updatedMergedEdgesWCardinalities, "schema_output.xsd")
+ 
     }
 
     if (clusteringMethod == "KMEANS" || clusteringMethod == "BOTH") {
