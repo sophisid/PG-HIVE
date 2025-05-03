@@ -29,7 +29,7 @@ lazy val root = (project in file("."))
 
     // Ensure the application forks when running to use the Java options
     Compile / run / fork := true,
-    Compile / run / javaOptions ++= Seq(
+/*     Compile / run / javaOptions ++= Seq(
         "-Xmx128G", // Set max heap size
         "-Dspark.executor.memory=32G",
         "-Dspark.driver.memory=32G",
@@ -39,7 +39,15 @@ lazy val root = (project in file("."))
         "-Dspark.executor.instances=10",
         "-Dspark.yarn.executor.memoryOverhead=8G",
         "-Dspark.driver.maxResultSize=16G"
-    )
+    ) */
+   Compile / run / javaOptions ++= Seq(
+     "-Xmx4G", // Reduce from 128G to something reasonable for a laptop  
+     "-Dspark.executor.memory=2G",
+      "-Dspark.driver.memory=3G",
+       "-Dspark.driver.cores=2",
+        "-Dspark.executor.cores=2",
+         "-Dspark.executor.instances=1", // Use just 1 instance locally 
+        "-Dspark.driver.maxResultSize=1G")
   )
 
 import sbtassembly.AssemblyPlugin.autoImport._
