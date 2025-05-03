@@ -93,9 +93,9 @@ object PGSchemaExporterStrict {
 
       cardinality match {
         case "1:1" | "1:N" =>
-          writer.println(s"  FOR (x:$src) SINGLETON y WITHIN (x)-[y: $relName]->(:$dst)")
+          writer.println(s"  FOR (x:$src) SINGLETON x WITHIN (x)-[y: $relName]->(:$dst)")
         case "N:1" =>
-          writer.println(s"  FOR (y:$dst) SINGLETON x WITHIN (x)-[x: $relName]->(:$dst)")
+          writer.println(s"  FOR (y:$dst) SINGLETON y WITHIN (x)-[y: $relName]->(:$dst)")
         case _ => // N:N or unknown -> no constraint
       }
     }
