@@ -92,10 +92,12 @@ object PGSchemaExporterStrict {
       val cardinality = row.getAs[String]("cardinality")
 
       cardinality match {
-        case "1:1" | "1:N" =>
-          writer.println(s"  FOR (x:$src) SINGLETON y WITHIN (x)-[y: $relName]->(:$dst)")
+        case "1:1" =>
+          writer.println(s"  FOR (x:$src) SINGLETON x,y WITHIN (x)-[y: $relName]->(:$dst)")
         case "N:1" =>
-          writer.println(s"  FOR (y:$dst) SINGLETON x WITHIN (x)-[x: $relName]->(:$dst)")
+          writer.println(s"  FOR (x:$src) SINGLETON y WITHIN (x)-[y: $relName]->(:$dst)")
+        case "1:N" =>
+          writer.println(s"  FOR (x:$dst) SINGLETON x WITHIN (:$src)-[y: $relName]->(x)")
         case _ => // N:N or unknown -> no constraint
       }
     }

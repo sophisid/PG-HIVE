@@ -19,5 +19,5 @@ CREATE GRAPH TYPE NewGraphSchema STRICT {
   (:PersonType)-[works_atType]->(:OrganisationType),
 
   // Constraints
-  FOR (x:PersonType) SINGLETON y WITHIN (x)-[y: works_atType]->(:OrganisationType)
+  FOR (x:PersonType) SINGLETON x WITHIN (x)-[y: works_atType]->(:OrganisationType)
 }
