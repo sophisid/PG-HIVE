@@ -34,12 +34,12 @@ src_managed/
 .worksheet
 
 # Ignore everything inside datasets/
-datasets/FIB/**
-datasets/FIB/*.zip
+datasets/FIB25/**
+!datasets/FIB25/*.zip
 datasets/MB6/**
-datasets/MB6/*.zip
+!datasets/MB6/*.zip
 datasets/LDBC/**
-datasets/LDBC/*.zip
+!datasets/LDBC/*.zip
 datasets/LDBC/ldbc_inputs1
 datasets/LDBC/ldbc_inputs2
 datasets/LDBC/ldbc_inputs3
