@@ -39,7 +39,8 @@ lazy val root = (project in file("."))
         "-Dspark.executor.instances=10",
         "-Dspark.yarn.executor.memoryOverhead=8G",
         "-Dspark.driver.maxResultSize=16G"
-    )
+    ) 
+
   )
 
 import sbtassembly.AssemblyPlugin.autoImport._
