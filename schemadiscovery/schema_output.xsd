@@ -1,76 +1,223 @@
 <xs:schema name="NewGraphSchema" xmlns:xs="http://www.w3.org/2001/XMLSchema">
-  <xs:complexType name="Organisation">
+  <xs:complexType name="Synapse:mushroombody_Synapse">
     <xs:sequence>
       <xs:element name="type" type="xs:string" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="name" type="xs:string" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="id" type="xs:string" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="url" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="location" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="confidence" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="alpha2" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="alpha3" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="alpha1" type="xs:string" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
     <xs:attribute name="id" type="xs:ID" use="required"/>
     <xs:attribute name="label" type="xs:string"/>
   </xs:complexType>
-  <xs:complexType name="Post">
+  <xs:complexType name="Neuron">
     <xs:sequence>
-      <xs:element name="browserUsed" type="xs:string" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="id" type="xs:string" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="locationIP" type="xs:string" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="length" type="xs:string" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="creationDate" type="xs:string" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="content" type="xs:string" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="language" type="xs:string" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="imageFile" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="post" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="alpha3" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="type" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="instance" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="bodyId" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="statusLabel" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="size" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="alpha2" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="roiInfo" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="status" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="pre" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="cropped" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="alpha1" type="xs:string" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
     <xs:attribute name="id" type="xs:ID" use="required"/>
     <xs:attribute name="label" type="xs:string"/>
   </xs:complexType>
-  <xs:complexType name="Comment">
+  <xs:complexType name="Meta:medulla7column_Meta">
     <xs:sequence>
-      <xs:element name="browserUsed" type="xs:string" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="content" type="xs:string" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="id" type="xs:string" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="locationIP" type="xs:string" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="length" type="xs:string" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="creationDate" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element 
+      name="postHighAccuracyThreshold" type="xs:string" minOccurs="1" maxOccurs="1">
+</xs:element>
+      <xs:element name="totalPreCount" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element 
+      name="latestMutationId" type="xs:string" minOccurs="1" maxOccurs="1">
+</xs:element>
+      <xs:element name="preHPThreshold" type="xs:string" minOccurs="1" maxOccurs="1">
+      </xs:element>
+      <xs:element name="primaryRois" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element 
+      name="neuroglancerInfo" type="xs:string" minOccurs="1" maxOccurs="1">
+</xs:element>
+      <xs:element 
+      name="statusDefinitions" type="xs:string" minOccurs="1" maxOccurs="1">
+</xs:element>
+      <xs:element name="totalPostCount" type="xs:string" minOccurs="1" maxOccurs="1">
+      </xs:element>
+      <xs:element 
+      name="postHPThreshold" type="xs:string" minOccurs="1" maxOccurs="1">
+</xs:element>
+      <xs:element name="dataset" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="roiInfo" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="superLevelRois" type="xs:string" minOccurs="1" maxOccurs="1">
+      </xs:element>
+      <xs:element 
+      name="lastDatabaseEdit" type="xs:string" minOccurs="1" maxOccurs="1">
+</xs:element>
+      <xs:element 
+      name="neuroglancerMeta" type="xs:string" minOccurs="1" maxOccurs="1">
+</xs:element>
+      <xs:element name="uuid" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="meshHost" type="xs:string" minOccurs="1" maxOccurs="1"/>
     </xs:sequence>
     <xs:attribute name="id" type="xs:ID" use="required"/>
     <xs:attribute name="label" type="xs:string"/>
   </xs:complexType>
-  <xs:complexType name="Person">
+  <xs:complexType name="Segment:mushroombody_Segment:Neuron">
     <xs:sequence>
-      <xs:element name="browserUsed" type="xs:string" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="lastName" type="xs:string" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="firstName" type="xs:string" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="gender" type="xs:string" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="id" type="xs:string" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="locationIP" type="xs:string" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="creationDate" type="xs:string" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="birthday" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="post" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="bodyId" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="size" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="pre" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="cropped" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="alpha3" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="instance" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="statusLabel" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="status" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="alpha2" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="roiInfo" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="alpha1" type="xs:string" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
     <xs:attribute name="id" type="xs:ID" use="required"/>
     <xs:attribute name="label" type="xs:string"/>
   </xs:complexType>
-  <xs:complexType name="KNOWS">
+  <xs:complexType name="Segment:mushroombody_Segment:Neuron">
     <xs:sequence>
-      <xs:element name="source" type="Person"/>
-      <xs:element name="target" type="Person"/>
-      <xs:element name="creationDate" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="post" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="bodyId" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="size" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="pre" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="alpha3" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="instance" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="statusLabel" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="status" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="cropped" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="alpha2" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="roiInfo" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="type" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="alpha1" type="xs:string" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+    <xs:attribute name="label" type="xs:string"/>
   </xs:complexType>
-  <xs:complexType name="LIKES">
+  <xs:complexType name="SynapseSet:mushroombody_SynapseSet">
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+    <xs:attribute name="label" type="xs:string"/>
+  </xs:complexType>
+  <xs:complexType name="Neuron">
     <xs:sequence>
-      <xs:element name="source" type="Person"/>
+      <xs:element name="post" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="bodyId" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="statusLabel" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="size" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="roiInfo" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="status" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="pre" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="alpha3" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="instance" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="alpha2" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="cropped" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="type" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="alpha1" type="xs:string" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+    <xs:attribute name="label" type="xs:string"/>
+  </xs:complexType>
+  <xs:complexType name="Segment:mushroombody_Segment:Neuron:mushroombody_Neuron">
+    <xs:sequence>
+      <xs:element name="post" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="bodyId" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="size" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="pre" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="alpha3" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="instance" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="statusLabel" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="alpha2" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="alpha1" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="status" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="roiInfo" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="cropped" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="type" type="xs:string" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+    <xs:attribute name="label" type="xs:string"/>
+  </xs:complexType>
+  <xs:complexType name="Neuron">
+    <xs:sequence>
+      <xs:element name="post" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="bodyId" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="size" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="alpha1" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="roiInfo" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="pre" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="cropped" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="instance" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="statusLabel" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="status" type="xs:string" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+    <xs:attribute name="label" type="xs:string"/>
+  </xs:complexType>
+  <xs:complexType name="Neuron">
+    <xs:sequence>
+      <xs:element name="post" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="alpha3" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="bodyId" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="size" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="roiInfo" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="pre" type="xs:string" minOccurs="1" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+    <xs:attribute name="label" type="xs:string"/>
+  </xs:complexType>
+  <xs:complexType name="CONNECTS_TO">
+    <xs:sequence>
       <xs:choice minOccurs="1">
-        <xs:element name="target" type="Comment"/>
-        <xs:element name="target" type="Post"/>
+        <xs:element name="source" type="Neuron"/>
+        <xs:element name="source" type="Segment:mushroombody_Segment:Neuron"/>
+        <xs:element 
+        name="source" type="Segment:mushroombody_Segment:Neuron:mushroombody_Neuron">
+</xs:element>
+        <xs:element name="source" type="SynapseSet:mushroombody_SynapseSet"/>
       </xs:choice>
-      <xs:element name="creationDate" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:choice minOccurs="1">
+        <xs:element name="target" type="Neuron"/>
+        <xs:element name="target" type="Segment:mushroombody_Segment:Neuron"/>
+        <xs:element 
+        name="target" type="Segment:mushroombody_Segment:Neuron:mushroombody_Neuron">
+</xs:element>
+        <xs:element name="target" type="SynapseSet:mushroombody_SynapseSet"/>
+      </xs:choice>
+      <xs:element name="weightHP" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="weight" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="roiInfo" type="xs:string" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
-  <xs:complexType name="WORKS_AT">
+  <xs:complexType name="CONTAINS">
     <xs:sequence>
-      <xs:element name="source" type="Person"/>
-      <xs:element name="target" type="Organisation"/>
-      <xs:element name="workFrom" type="xs:string" minOccurs="0" maxOccurs="1"/>
+      <xs:choice minOccurs="1">
+        <xs:element name="source" type="Neuron"/>
+        <xs:element 
+        name="source" type="Segment:mushroombody_Segment:Neuron:mushroombody_Neuron">
+</xs:element>
+        <xs:element name="source" type="SynapseSet:mushroombody_SynapseSet"/>
+      </xs:choice>
+      <xs:choice minOccurs="1">
+        <xs:element name="target" type="Synapse:mushroombody_Synapse"/>
+        <xs:element name="target" type="SynapseSet:mushroombody_SynapseSet"/>
+      </xs:choice>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="SYNAPSES_TO">
+    <xs:sequence>
+      <xs:element name="source" type="Synapse:mushroombody_Synapse"/>
+      <xs:element name="target" type="Synapse:mushroombody_Synapse"/>
     </xs:sequence>
   </xs:complexType>
 </xs:schema>
