@@ -18,6 +18,7 @@ object LSHClustering {
 
     val limitVal = math.min(sampleSize, df.count().toInt)
     val sampledDF = df.sample(false, limitVal.toDouble / df.count(), 42).limit(limitVal).cache()
+    // println(s"Sampled ${sampledDF.count()} rows for LSH parameter estimation")
 
     val featurePairs = sampledDF.crossJoin(sampledDF.withColumnRenamed(featuresCol, "features2"))
       .select(col(featuresCol).as("f1"), col("features2").as("f2"))
@@ -241,13 +242,21 @@ object LSHClustering {
   def mergePatternsByLabel(spark: SparkSession, clusteredNodes: DataFrame): DataFrame = {
     import spark.implicits._
 
+    // println(s"Initial clusters: ${clusteredNodes.count()}")
+    // clusteredNodes.printSchema()
 
     val cleanedClusters = clusteredNodes
       .withColumn("cleanedLabels", array_distinct(filter($"labelsInCluster", label => label =!= "" && label.isNotNull)))
       .withColumn("sortedLabels", array_sort($"cleanedLabels"))
 
+    // println("Sample of cleanedClusters:")
+    // cleanedClusters.select("cluster_id", "labelsInCluster", "cleanedLabels", "sortedLabels").show(20)
+
     val withLabelsDF = cleanedClusters.filter(size($"cleanedLabels") > 0)
     val noLabelsDF = cleanedClusters.filter(size($"cleanedLabels") === 0)
+
+    // println(s"Clusters with labels: ${withLabelsDF.count()}")
+    // println(s"Clusters without labels: ${noLabelsDF.count()}")
 
     val mergedWithLabels = withLabelsDF
       .groupBy($"sortedLabels")
@@ -270,6 +279,9 @@ object LSHClustering {
       .withColumn("merged_cluster_id", concat(lit("merged_with_label_"), monotonically_increasing_id()))
       .drop("allProperties", "propertiesNested")
 
+    // println("Merged labeled clusters (grouped by identical labels):")
+    // mergedWithLabels.show(50)
+
     val jaccardUdf = udf((props1: Seq[String], props2: Seq[String]) => {
       val set1 = props1.toSet
       val set2 = props2.toSet
@@ -278,7 +290,7 @@ object LSHClustering {
       if (union == 0) 0.0 else intersection.toDouble / union
     })
 
-    val noLabelsWithMatchTempLabeled = noLabelsDF
+    val noLabelsWithMatchTemp = noLabelsDF
       .crossJoin(mergedWithLabels.select(
         $"sortedLabels".as("labeledLabels"),
         $"propertiesInCluster".as("labeledProps"),
@@ -298,33 +310,8 @@ object LSHClustering {
         $"existing_cluster_id".as("merged_cluster_id")
       )
 
-    val noLabelsUnmatched = noLabelsDF
-      .join(noLabelsWithMatchTempLabeled.select($"matchedOriginalIds").withColumnRenamed("matchedOriginalIds", "matched_ids"),
-        array_contains($"matched_ids", $"cluster_id"), "left_anti")
-
-    val noLabelsWithMatchTempUnlabeled = noLabelsUnmatched
-      .crossJoin(noLabelsUnmatched.withColumnRenamed("cluster_id", "cluster_id2")
-        .withColumnRenamed("labelsInCluster", "labelsInCluster2")
-        .withColumnRenamed("propertiesInCluster", "propertiesInCluster2")
-        .withColumnRenamed("nodeIdsInCluster", "nodeIdsInCluster2"))
-      .filter($"cluster_id" < $"cluster_id2")
-      .withColumn("jaccard_similarity", jaccardUdf(flatten($"propertiesInCluster"), flatten($"propertiesInCluster2")))
-      .filter($"jaccard_similarity" >= 0.9)
-      .select(
-        $"labelsInCluster".as("matchedSortedLabels"),
-        $"nodeIdsInCluster".as("matchedNodeIds"),
-        array($"cluster_id").as("matchedOriginalIds"),
-        flatten($"propertiesInCluster").as("matchedProperties"),
-        flatten($"propertiesInCluster").as("matchedMandatoryProperties"),
-        array().cast("array<string>").as("matchedOptionalProperties"),
-        $"cluster_id2".as("merged_cluster_id")
-      )
-
-    val allMatches = noLabelsWithMatchTempLabeled
-      .union(noLabelsWithMatchTempUnlabeled)
-
     val mergedWithLabelsUpdated = mergedWithLabels
-      .join(allMatches, Seq("merged_cluster_id"), "left_outer")
+      .join(noLabelsWithMatchTemp, Seq("merged_cluster_id"), "left_outer")
       .groupBy($"merged_cluster_id")
       .agg(
         first(mergedWithLabels("sortedLabels")).as("sortedLabels"),
@@ -335,8 +322,11 @@ object LSHClustering {
         array_distinct(flatten(collect_list(coalesce($"matchedOptionalProperties", mergedWithLabels("optionalProperties"))))).as("optionalProperties")
       )
 
-    val finalUnmatchedUnlabeled = noLabelsUnmatched
-      .join(noLabelsWithMatchTempUnlabeled.select($"matchedOriginalIds").withColumnRenamed("matchedOriginalIds", "matched_ids"),
+    // println("Merged labeled clusters with matched unlabeled:")
+    // mergedWithLabelsUpdated.show(50)
+
+    val noLabelsUnmatched = noLabelsDF
+      .join(noLabelsWithMatchTemp.select($"matchedOriginalIds").withColumnRenamed("matchedOriginalIds", "matched_ids"),
         array_contains($"matched_ids", $"cluster_id"), "left_anti")
       .select(
         $"cluster_id".as("merged_cluster_id"),
@@ -348,8 +338,18 @@ object LSHClustering {
         array().cast("array<string>").as("optionalProperties")
       )
 
+    // println("Unmatched unlabeled clusters:")
+    // noLabelsUnmatched.show(50)
+    // mergedWithLabelsUpdated.printSchema()
+    // noLabelsUnmatched.printSchema()
     val finalDF = mergedWithLabelsUpdated
-      .union(finalUnmatchedUnlabeled)
+      .union(noLabelsUnmatched)
+
+    // println(s"Clusters after merging: ${finalDF.count()}")
+    // println("Schema after merging:")
+    // finalDF.printSchema()
+    // println("Sample after merging:")
+    // finalDF.show(20)
 
     finalDF
   }
@@ -430,6 +430,7 @@ object LSHClustering {
     val returnedDF = finalDF.union(noLabelsFinalDF)
     returnedDF
   }
+//simple merge only
   def mergeEdgePatternsByEdgeLabel(spark: SparkSession, clusteredEdges: DataFrame): DataFrame = {
     import spark.implicits._
 
