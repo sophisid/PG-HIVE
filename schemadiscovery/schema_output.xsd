@@ -35,14 +35,14 @@
     <xs:attribute name="id" type="xs:ID" use="required"/>
     <xs:attribute name="label" type="xs:string"/>
   </xs:complexType>
-  <xs:complexType name="KNOWS">
+  <xs:complexType name="Segment:mushroombody_Segment:Neuron">
     <xs:sequence>
       <xs:element name="source" type="ABSTRACT_SRC1"/>
       <xs:element name="target" type="ABSTRACT_DST1"/>
       <xs:element name="creationDate" type="xs:date" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
-  <xs:complexType name="WORKS_AT">
+  <xs:complexType name="CONTAINS">
     <xs:sequence>
       <xs:element name="source" type="ABSTRACT_SRC2"/>
       <xs:element name="target" type="TestDstLabel"/>

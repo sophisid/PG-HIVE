@@ -40,7 +40,9 @@ object Main {
 
     // Preprocess nodes & edges 
     val binaryNodesDF = PatternPreprocessing.encodePatterns(spark, nodesDF, allNodeProperties)
-    val binaryEdgesDF = PatternPreprocessing.encodeEdgePatterns(spark, edgesDF, allEdgeProperties)    
+    val binaryEdgesDF = PatternPreprocessing.encodeEdgePatterns(spark, edgesDF, allEdgeProperties)  
+    //calculate time for clustering
+    val startTime = System.currentTimeMillis()  
 
     if (clusteringMethod == "LSH" || clusteringMethod == "BOTH") {
       // Cluster nodes LSH 
@@ -48,20 +50,26 @@ object Main {
       val clusteredEdges = LSHClustering.applyLSHEdges(spark, binaryEdgesDF)
       clusteredNodes.select("labelsInCluster", "propertiesInCluster").show(500, truncate = false)
       clusteredEdges.show()
-
+      //calculate time for clustering
+      val startClusteringTime = System.currentTimeMillis()
       val mergedPatterns = LSHClustering.mergePatternsByLabel(spark, clusteredNodes)
+      val endClusteringTime = System.currentTimeMillis()
+      val elapsedClusteringTime = endClusteringTime - startClusteringTime
+      val elapsedClusteringTimeInSeconds = elapsedClusteringTime / 1000.0
+      println(s"Elapsed time for clustering : $elapsedClusteringTimeInSeconds seconds")
+      println(s"Elapsed time for clustering: $elapsedClusteringTime milliseconds")
       println("Merged Patterns LSH by Label:")
-      // mergedPatterns.printSchema()
+      mergedPatterns.printSchema()
       mergedPatterns.select("sortedLabels", "propertiesInCluster","optionalProperties","mandatoryProperties" ,"original_cluster_ids").show(500)
 
       val mergedEdgesLabelOnly = LSHClustering.mergeEdgePatternsByEdgeLabel(spark, clusteredEdges)
       println("Merged Edges LSH by Label Only:")
-      // mergedEdgesLabelOnly.printSchema()
+      mergedEdgesLabelOnly.printSchema()
       mergedEdgesLabelOnly.select("relationshipTypes","srcLabels","dstLabels","propsInCluster","merged_cluster_id").show(truncate = false , numRows = 500)
 
       val mergedEdges = LSHClustering.mergeEdgePatternsByLabel(spark, clusteredEdges)
       println("Merged Edges LSH by Label & SRC/DST:")
-      // mergedEdges.printSchema()
+      mergedEdges.printSchema()
       mergedEdges.select("relationshipTypes","srcLabels","dstLabels","propsInCluster","merged_cluster_id").show(truncate = false , numRows = 500)
 
       // Evaluation for LSH
@@ -139,7 +147,11 @@ object Main {
       updatedMergedEdgesWCardinalities.printSchema()
       updatedMergedEdgesWCardinalities.show(5)
     }
-
+    val endTime = System.currentTimeMillis()
+    val elapsedTime = endTime - startTime
+    val elapsedTimeInSeconds = elapsedTime / 1000.0
+    println(s"Elapsed time for proccesing : $elapsedTimeInSeconds seconds")
+    println(s"Elapsed time for proccesing: $elapsedTime milliseconds")
     spark.stop()
   }
 }

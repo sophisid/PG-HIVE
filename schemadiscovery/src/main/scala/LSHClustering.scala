@@ -11,13 +11,13 @@ object LSHClustering {
     df: DataFrame, 
     featuresCol: String, 
     isEdge: Boolean = false, 
-    sampleSize: Int = 1000, 
+    sampleSize: Int = 10000, 
     uniqueLabelCount: Option[Long] = None 
   ): (Double, Int) = {
     import df.sparkSession.implicits._
 
     val limitVal = math.min(sampleSize, df.count().toInt)
-    val sampledDF = df.sample(false, sampleSize.toDouble / df.count(), 42).limit(sampleSize).cache()
+    val sampledDF = df.sample(false, limitVal.toDouble / df.count(), 42).limit(limitVal).cache()
     // println(s"Sampled ${sampledDF.count()} rows for LSH parameter estimation")
 
     val featurePairs = sampledDF.crossJoin(sampledDF.withColumnRenamed(featuresCol, "features2"))
@@ -353,64 +353,7 @@ object LSHClustering {
 
     finalDF
   }
-  // def mergePatternsByLabel(spark: SparkSession, clusteredNodes: DataFrame): DataFrame = {
-  //   import spark.implicits._
 
-  //   clusteredNodes.cache()
-
-  //   val withLabelsDF = clusteredNodes.filter(size($"labelsInCluster") > 0)
-  //   val noLabelsDF = clusteredNodes.filter(size($"labelsInCluster") === 0)
-
-  //   println(s"Number of node clusters before merge: ${clusteredNodes.count()}")
-
-  //   val mergedWLabelDF = withLabelsDF
-  //     .withColumn("sortedLabels", array_sort($"labelsInCluster"))
-  //     .groupBy($"sortedLabels")
-  //     .agg(
-  //       collect_list($"propertiesInCluster").as("propertiesInCluster"),
-  //       flatten(collect_list($"nodeIdsInCluster")).as("nodeIdsInCluster"),
-  //       collect_set($"cluster_id").as("original_cluster_ids")
-  //     )
-
-  //   val finalDF = mergedWLabelDF
-  //     .withColumn("mandatoryProperties",
-  //       flatten(aggregate(
-  //         $"propertiesInCluster",
-  //         $"propertiesInCluster"(0),
-  //         (acc, props) => array_intersect(acc, props)
-  //       ))
-  //     )
-  //     .withColumn("allProperties", flatten(flatten($"propertiesInCluster")))
-  //     .withColumn("optionalProperties",
-  //       array_distinct(array_except($"allProperties", $"mandatoryProperties"))
-  //     )
-  //     .drop("allProperties")
-  //     .withColumn("row_num", row_number().over(Window.orderBy($"sortedLabels")))
-  //     .withColumn("merged_cluster_id", concat(lit("merged_cluster_node_"), $"row_num"))
-  //     .drop("row_num")
-
-  //   val noLabelsFinalDF = noLabelsDF
-  //     .select(
-  //       $"labelsInCluster".as("sortedLabels"),
-  //       array($"propertiesInCluster").as("propertiesInCluster"),
-  //       $"nodeIdsInCluster",
-  //       flatten($"propertiesInCluster").as("mandatoryProperties"),
-  //       array().cast("array<string>").as("optionalProperties"),
-  //       array($"cluster_id").as("original_cluster_ids"),
-  //       $"cluster_id".as("merged_cluster_id")
-  //     )
-
-  //   println("Schema of finalDF:")
-  //   finalDF.printSchema()
-  //   println("Schema of noLabelsFinalDF:")
-  //   noLabelsFinalDF.printSchema()
-  //   println("Merged Patterns by Label:")
-  //   finalDF.show( 500)
-
-  //   val returnedDF = finalDF.union(noLabelsFinalDF)
-  //   returnedDF
-  // }
-  
   def mergeEdgePatternsByLabel(spark: SparkSession, clusteredEdges: DataFrame): DataFrame = {
     import spark.implicits._
 

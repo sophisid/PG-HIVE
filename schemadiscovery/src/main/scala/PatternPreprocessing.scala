@@ -22,7 +22,7 @@ object PatternPreprocessing {
     val word2Vec = new Word2Vec()
       .setInputCol("labelArray")
       .setOutputCol("labelVector")
-      .setVectorSize(3)
+      .setVectorSize(5)
       .setMinCount(0)
 
     val w2vModel = word2Vec.fit(withLabelArrayDF)
@@ -57,7 +57,7 @@ object PatternPreprocessing {
     val word2VecRel = new Word2Vec()
       .setInputCol("relationshipTypeArray")
       .setOutputCol("relVector")
-      .setVectorSize(3)
+      .setVectorSize(10)
       .setMinCount(0)
     val relModel = word2VecRel.fit(withArraysDF)
     val withRelVec = relModel.transform(withArraysDF)
@@ -65,7 +65,7 @@ object PatternPreprocessing {
     val word2VecSrc = new Word2Vec()
       .setInputCol("srcLabelArray")
       .setOutputCol("srcVector")
-      .setVectorSize(3)
+      .setVectorSize(4)
       .setMinCount(0)
 
     val srcModel = word2VecSrc.fit(withRelVec)
@@ -74,7 +74,7 @@ object PatternPreprocessing {
     val word2VecDst = new Word2Vec()
       .setInputCol("dstLabelArray")
       .setOutputCol("dstVector")
-      .setVectorSize(3)
+      .setVectorSize(4)
       .setMinCount(0)
 
     val dstModel = word2VecDst.fit(withSrcVec)
