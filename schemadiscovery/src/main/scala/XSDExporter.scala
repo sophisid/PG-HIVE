@@ -6,22 +6,40 @@ object XSDExporter {
 
   def exportXSD(finalNodePatterns: DataFrame, finalEdgePatterns: DataFrame, outputPath: String): Unit = {
 
+    var unknownCounter = 1
+    var abstractSrcCounter = 1
+    var abstractDstCounter = 1
+
+
     val nodeTypes = finalNodePatterns.collect().map { row =>
-      val nodeType = row.getAs[Seq[String]]("sortedLabels").head
-      val mandatoryProps = row.getAs[Seq[String]]("mandatoryProperties")
-      val optionalProps = row.getAs[Seq[String]]("optionalProperties")
+      val labels = row.getAs[Seq[String]]("sortedLabels")
+      val mandatoryPropsWithTypes = Option(row.getAs[Seq[String]]("mandatoryProperties_with_types")).getOrElse(Seq.empty)
+      val optionalPropsWithTypes = Option(row.getAs[Seq[String]]("optionalProperties_with_types")).getOrElse(Seq.empty)
+
+      val nodeTypeName = if (labels.isEmpty) {
+        val name = s"UNKNOWN_$unknownCounter"
+        unknownCounter += 1
+        name
+      } else {
+        labels.head
+      }
 
       val props =
-        (mandatoryProps ++ optionalProps)
-          .filterNot(prop => prop.toLowerCase.contains("original_label") || prop.toLowerCase.contains("original_data")) // <= ΕΔΩ
-          .map { prop =>
-            val minOccurs = if (mandatoryProps.contains(prop)) "1" else "0"
-            <xs:element name={prop} type="xs:string" minOccurs={minOccurs} maxOccurs="1"/>
+        (mandatoryPropsWithTypes ++ optionalPropsWithTypes)
+          .filterNot(prop => prop.toLowerCase.contains("original_label") || prop.toLowerCase.contains("original_data"))
+          .flatMap { propWithType =>
+            val parts = propWithType.split(":").map(_.trim)
+            if (parts.length == 2) {
+              val (name, dtypeRaw) = (parts(0), parts(1))
+              val minOccurs = if (mandatoryPropsWithTypes.exists(_.startsWith(name))) "1" else "0"
+              val xsdType = mapToXSDType(dtypeRaw)
+              Some(<xs:element name={name} type={xsdType} minOccurs={minOccurs} maxOccurs="1"/>)
+            } else None
           }
 
       val sequence = if (props.nonEmpty) <xs:sequence>{props}</xs:sequence> else NodeSeq.Empty
 
-      <xs:complexType name={nodeType}>
+      <xs:complexType name={nodeTypeName}>
         {sequence}
         <xs:attribute name="id" type="xs:ID" use="required"/>
         <xs:attribute name="label" type="xs:string"/>
@@ -29,38 +47,54 @@ object XSDExporter {
     }
 
     val groupedEdges = finalEdgePatterns.collect().groupBy { row =>
-      row.getAs[Seq[String]]("relationshipTypes").head
+      row.getAs[Seq[String]]("relationshipTypes").headOption.getOrElse("UnknownEdge")
     }
 
     val edgeTypes = groupedEdges.map { case (relType, patterns) =>
       val sourceLabels = patterns.flatMap(_.getAs[Seq[String]]("srcLabels")).toSet
       val targetLabels = patterns.flatMap(_.getAs[Seq[String]]("dstLabels")).toSet
-      val properties = patterns.flatMap(_.getAs[Seq[String]]("mandatoryProperties"))
-        .filterNot(prop => prop.toLowerCase.contains("original_label") || prop.toLowerCase.contains("original_data")) // <= ΕΔΩ
+      val mandatoryPropsWithTypes = patterns.flatMap(_.getAs[Seq[String]]("mandatoryProperties_with_types"))
+      val optionalPropsWithTypes = patterns.flatMap(_.getAs[Seq[String]]("optionalProperties_with_types"))
 
-      val sourceElements = sourceLabels.map { src =>
-        <xs:element name="source" type={src}/>
+
+
+      val sourceElements = if (sourceLabels.isEmpty || sourceLabels.forall(_.trim.isEmpty)) {
+        val abstractSrcType = s"ABSTRACT_SRC${abstractSrcCounter}"
+        abstractSrcCounter += 1
+        Seq(<xs:element name="source" type={abstractSrcType}/>)
+      } else {
+        sourceLabels.filter(_.trim.nonEmpty).map { src =>
+          <xs:element name="source" type={src}/>
+        }
       }
-      val targetElements = targetLabels.map { tgt =>
-        <xs:element name="target" type={tgt}/>
+
+
+      val targetElements = if (targetLabels.isEmpty || targetLabels.forall(_.trim.isEmpty)) {
+        val abstractDstType = s"ABSTRACT_DST${abstractDstCounter}"
+        abstractDstCounter += 1
+        Seq(<xs:element name="target" type={abstractDstType}/>)
+      } else {
+        targetLabels.filter(_.trim.nonEmpty).map { tgt =>
+          <xs:element name="target" type={tgt}/>
+        }
       }
 
-      val sourceSeq =
-        if (sourceElements.size > 1) <xs:choice minOccurs="1">{sourceElements}</xs:choice>
-        else sourceElements
 
-      val targetSeq =
-        if (targetElements.size > 1) <xs:choice minOccurs="1">{targetElements}</xs:choice>
-        else targetElements
 
-      val propElements = properties.map { prop =>
-        <xs:element name={prop} type="xs:string" minOccurs="0" maxOccurs="1"/>
+      val propElements = (mandatoryPropsWithTypes ++ optionalPropsWithTypes).flatMap { propWithType =>
+        val parts = propWithType.split(":").map(_.trim)
+        if (parts.length == 2) {
+          val (name, dtypeRaw) = (parts(0), parts(1))
+          val minOccurs = if (mandatoryPropsWithTypes.exists(_.startsWith(name))) "1" else "0"
+          val xsdType = mapToXSDType(dtypeRaw)
+          Some(<xs:element name={name} type={xsdType} minOccurs={minOccurs} maxOccurs="1"/>)
+        } else None
       }
 
       <xs:complexType name={relType}>
         <xs:sequence>
-          {sourceSeq}
-          {targetSeq}
+          {sourceElements}
+          {targetElements}
           {propElements}
         </xs:sequence>
       </xs:complexType>
@@ -77,5 +111,16 @@ object XSDExporter {
     writer.close()
 
     println(s"✅ XSD Schema generated successfully at '$outputPath'!")
+  }
+
+  def mapToXSDType(scalaType: String): String = {
+    scalaType.trim.toLowerCase match {
+      case "string" => "xs:string"
+      case "int" | "integer" | "int32" => "xs:integer"
+      case "double" => "xs:double"
+      case "boolean" => "xs:boolean"
+      case "date" => "xs:date"
+      case _ => "xs:string"
+    }
   }
 }

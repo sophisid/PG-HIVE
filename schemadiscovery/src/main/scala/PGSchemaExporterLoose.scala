@@ -9,6 +9,16 @@ object PGSchemaExporterLoose {
 
     val ignoreProps = Set("original_label", "labelArray", "labelVector", "features", "prop_original_label")
 
+    val edgeRows = edgesDF.collect()
+    val hasEmptySrc = edgeRows.exists { row =>
+      val srcLabels = row.getAs[Seq[String]]("srcLabels")
+      srcLabels.isEmpty || srcLabels == Seq("") || srcLabels.forall(_.trim.isEmpty)
+    }
+    val hasEmptyDst = edgeRows.exists { row =>
+      val dstLabels = row.getAs[Seq[String]]("dstLabels")
+      dstLabels.isEmpty || dstLabels == Seq("") || dstLabels.forall(_.trim.isEmpty)
+    }
+
     // --- NODE TYPES ---
     nodesDF.collect().foreach { row =>
       val labels = row.getAs[Seq[String]]("sortedLabels")
@@ -32,8 +42,11 @@ object PGSchemaExporterLoose {
         writer.println(s"  ($typeName: $baseLabel),")
     }
 
+    if (hasEmptySrc) writer.println(s"  (ABSTRACT_SRC: OPEN),")
+    if (hasEmptyDst) writer.println(s"  (ABSTRACT_DST: OPEN),")
+
     // --- EDGE TYPES ---
-    edgesDF.collect().foreach { row =>
+    edgeRows.foreach { row =>
       val relTypes = row.getAs[Seq[String]]("relationshipTypes")
       val srcLabels = row.getAs[Seq[String]]("srcLabels")
       val dstLabels = row.getAs[Seq[String]]("dstLabels")
@@ -50,8 +63,8 @@ object PGSchemaExporterLoose {
 
       val relName = relTypes.mkString("_") + "Type"
       val relLabel = relTypes.mkString(" | ")
-      val src = srcLabels.map(_ + "Type").mkString("|")
-      val dst = dstLabels.map(_ + "Type").mkString("|")
+      val src = if (srcLabels.isEmpty || srcLabels == Seq("") || srcLabels.forall(_.trim.isEmpty)) "ABSTRACT_SRC" else srcLabels.map(_ + "Type").mkString("|")
+      val dst = if (dstLabels.isEmpty || dstLabels == Seq("") || dstLabels.forall(_.trim.isEmpty)) "ABSTRACT_DST" else dstLabels.map(_ + "Type").mkString("|")
 
       writer.println(s"  (:$src)-[$relName: $relLabel$propStr]->(:$dst),")
     }

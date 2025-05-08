@@ -1,23 +1,27 @@
 -- NODE TYPES --
-CREATE NODE TYPE OrganisationType : Organisation {type STRING, name STRING, id DOUBLE, url STRING};
-CREATE NODE TYPE PostType : Post {browserUsed STRING, id DOUBLE, locationIP STRING, length INTEGER, creationDate DATE, OPTIONAL content STRING, OPTIONAL language STRING, OPTIONAL imageFile STRING};
-CREATE NODE TYPE CommentType : Comment {browserUsed STRING, content STRING, id DOUBLE, locationIP STRING, length INTEGER, creationDate DATE};
-CREATE NODE TYPE PersonType : Person {browserUsed STRING, lastName STRING, firstName STRING, gender STRING, id DOUBLE, locationIP STRING, creationDate DATE, birthday DATE};
+CREATE NODE TYPE AbstractType_1 : ABSTRACT_1;
+CREATE NODE TYPE AbstractType_2 : ABSTRACT_2 {creationDate DATE};
+CREATE NODE TYPE AbstractType_3 : ABSTRACT_3 {creationDate DATE, OPTIONAL browserUsed STRING, OPTIONAL language STRING};
+CREATE NODE TYPE AbstractType_4 : ABSTRACT_4 {creationDate DATE, OPTIONAL browserUsed STRING, OPTIONAL language STRING};
+CREATE NODE TYPE TestNodeLabelType : TestNodeLabel {creationDate DATE};
+CREATE NODE TYPE ABSTRACT_SRC : OPEN;
+CREATE NODE TYPE ABSTRACT_DST : OPEN;
 
 -- EDGE TYPES --
-CREATE EDGE TYPE knowsType : KNOWS {creationDate DATE};
-CREATE EDGE TYPE likesType : LIKES {creationDate DATE};
+CREATE EDGE TYPE knows_likesType : KNOWS | LIKES {OPTIONAL creationDate DATE};
 CREATE EDGE TYPE works_atType : WORKS_AT {workFrom INTEGER};
 
 CREATE GRAPH TYPE NewGraphSchema STRICT {
-  (OrganisationType),
-  (PostType),
-  (CommentType),
-  (PersonType),
-  (:PersonType)-[knowsType]->(:PersonType),
-  (:PersonType)-[likesType]->(:CommentType|PostType),
-  (:PersonType)-[works_atType]->(:OrganisationType),
+  (AbstractType_1),
+  (AbstractType_2),
+  (AbstractType_3),
+  (AbstractType_4),
+  (TestNodeLabelType),
+  (ABSTRACT_SRC),
+  (ABSTRACT_DST),
+  (:ABSTRACT_SRC)-[knows_likesType]->(:ABSTRACT_DST),
+  (:ABSTRACT_SRC)-[works_atType]->(:TestDstLabelType),
 
   // Constraints
-  FOR (x:PersonType) SINGLETON x WITHIN (x)-[y: works_atType]->(:OrganisationType)
+  FOR (x:ABSTRACT_SRC) SINGLETON x,y WITHIN (x)-[y: works_atType]->(:TestDstLabelType)
 }
