@@ -4,7 +4,7 @@
 
 **PG-HIVE** is a tool is designed to discover schemas within **Property Graph Databases**. It supports incremental schema discovery and helps identify the structure, patterns, and relationships in graph data, even in the absence of type labels, facilitating the understanding and exploration of datasets.
 
-The project supports schema discovery on popular datasets like **LDBC**, **FIB25**, and **MB6**, and integrates with **Neo4j** for seamless graph data management.
+The project supports schema discovery on popular datasets like **LDBC**, **FIB25**, **MB6** and **Cord-19**, and integrates with **Neo4j** for seamless graph data management.
 
 ---
 
@@ -29,11 +29,7 @@ The project supports schema discovery on popular datasets like **LDBC**, **FIB25
 
 To install and set up **PG-HIVE**, follow these steps:
 
-### 1. Clone the Repository
-
-```
-Download from here: https://anonymous.4open.science/api/repo/HybridIncrementalLSHSchemaDiscovery-79B3/zip
-```
+### 1. Clone the Repository from here https://anonymous.4open.science/r/HybridIncrementalLSHSchemaDiscovery-79B3/
 
 ### 2. Build the Project
 
@@ -83,7 +79,7 @@ Neo4j will be available at [http://localhost:7474](http://localhost:7474).
 
 The project includes **evaluation datasets** (FIB25, LDBC, MB6) that need to be unzipped and loaded into Neo4j.
 
-### 1. Unzip the Datasets
+### 1. Unzip the Datasets 
 
 ```
 cd datasets
@@ -94,6 +90,7 @@ unzip LDBC/ldbc_neo4j_inputs3.zip
 unzip LDBC/ldbc_neo4j_inputs4.zip
 unzip MB6/mb6_neo4j_inputs1.zip
 ```
+if you want to test Cord-19 graph codebase, you can do it from [here](https://github.com/covidgraph/data_cord19)
 
 ### 2. Load Datasets into Neo4j
 
@@ -260,22 +257,6 @@ If you prefer more control, follow the manual steps:
    sbt "run LSH"  # LSH clustering
    ```
 5. Stop Neo4j and clean up if needed.
-
-### Incremental Script
-
-An incremental script is also provided (an example shown below) to process datasets incrementally. This script follows a similar pattern but runs the Scala program in an "incremental" mode (indicated by `sbt "run LSH i 500000"`) after importing the dataset. It then stops Neo4j, cleans up processes, and moves on to the next dataset.
-
-**Usage Incremental Script:**  
-1. Set environment variables and directories inside these scripts.
-2. Make them executable:
-   ```
-   chmod +x run_pghive_ldbc_incremental.sh
-   ```
-3. Run the script for the desired dataset:
-   ```
-   ./run_pghive_ldbc_incremental.sh
-   ```
----
 
 ## License
 
