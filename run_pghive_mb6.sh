@@ -1,7 +1,7 @@
 #!/bin/bash
 
-ROOT_DIR="/mnt/fast/sophisid"
-PROJECT_DIR="/mnt/fast/sophisid/HybridLSHSchemaDiscovery"
+ROOT_DIR="<your_root_directory>"
+PROJECT_DIR="<your_project_directory>"
 DATASETS_DIR="$PROJECT_DIR/noisy_datasets/MB6"
 SCHEMA_DISCOVERY_DIR="$PROJECT_DIR/schemadiscovery"
 NEO4J_TAR="neo4j-community.tar.gz"

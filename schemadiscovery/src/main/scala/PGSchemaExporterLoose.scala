@@ -58,7 +58,7 @@ object PGSchemaExporterLoose {
 
     writer.println("}")
     writer.close()
-    println(s"✅ PG LOOSE Schema has been successfully exported to $outputPath")
+    println(s"PG LOOSE Schema has been successfully exported to $outputPath")
   }
 
   def normalizeType(dt: String): String = {

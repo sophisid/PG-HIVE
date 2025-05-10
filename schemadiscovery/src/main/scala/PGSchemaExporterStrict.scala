@@ -104,7 +104,7 @@ object PGSchemaExporterStrict {
     
     writer.println("}")
     writer.close()
-    println(s"✅ PG STRICT Schema with constraints has been successfully exported to $outputPath")
+    println(s"PG STRICT Schema with constraints has been successfully exported to $outputPath")
   }
 
   def normalizeType(dt: String): String = {

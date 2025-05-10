@@ -64,6 +64,6 @@ load.txt
 .DS_Store
 
 #run scripts
-# run_fib.sh
-# run_mb.sh
-# run_ldbc.sh
+run_fib.sh
+run_mb6.sh
+run_ldbc.sh
