@@ -39,6 +39,10 @@ Navigate to the **`schemadiscovery`** directory and build the project using `sbt
 cd schemadiscovery
 sbt compile
 ```
+in order for PG-HIVE to evaluate the data, you need to perform this cypher query:
+```
+CALL { MATCH (n) SET n.original_label = labels(n) } IN TRANSACTIONS OF 1000 ROWS
+```
 
 ---
 
