@@ -254,13 +254,18 @@ The scripts handle:
 If you prefer more control, follow the manual steps:
 1. Stop Neo4j, remove old database, re-extract Neo4j.
 2. Import the desired dataset with `neo4j-admin import`.
-3. Start Neo4j.
-4. Run:
+3. In order for PG-HIVE to evaluate the data, you need to perform this cypher query:
+```
+CALL { MATCH (n) SET n.original_label = labels(n) } IN TRANSACTIONS OF 1000 ROWS
+```
+
+4. Start Neo4j.
+5. Run:
    ```
    cd schemadiscovery
    sbt "run LSH"  # LSH clustering
    ```
-5. Stop Neo4j and clean up if needed.
+6. Stop Neo4j and clean up if needed.
 
 ## License
 
