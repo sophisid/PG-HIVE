@@ -98,7 +98,7 @@ do
 
         echo "Running Schema Discovery with $percentage label removal (non incremental)..."
         cd "$SCHEMA_DISCOVERY_DIR"
-        sbt run > "$OUTPUT_BASE_DIR/output_Hybrid_LDBC_${dataset#corrupted}_${percentage}.txt"
+        sbt "run LSH" > "$OUTPUT_BASE_DIR/output_Hybrid_LDBC_${dataset#corrupted}_${percentage}.txt"
         cd "$ROOT_DIR"
     done
 
