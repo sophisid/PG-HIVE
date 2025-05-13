@@ -226,19 +226,19 @@ Once the setup is complete and the datasets are loaded, you can run **PG-HIVE** 
 
 ### Option 1: Using the Automated Script
 
-Scripts (e.g., `run_pghive_ldbc.sh`, `run_pghive_fib25.sh`, `run_pghive_mb6.sh`) are provided to automate the entire process:
+Scripts (e.g., `run_pghive_ldbc.sh`, `run_pghive_fib.sh`, `run_pghive_mb6.sh`) are provided to automate the entire process:
 
 1. Set environment variables and directories inside these scripts.
 2. Make them executable:
    ```
    chmod +x run_pghive_ldbc.sh
-   chmod +x run_pghive_fib25.sh
+   chmod +x run_pghive_fib.sh
    chmod +x run_pghive_mb6.sh
    ```
 3. Run the script for the desired dataset:
    ```
    ./run_pghive_ldbc.sh
-   ./run_pghive_fib25.sh
+   ./run_pghive_fib.sh
    ./run_pghive_mb6.sh
    ```
 
@@ -275,6 +275,23 @@ CALL { MATCH (n) SET n.original_label = labels(n) } IN TRANSACTIONS OF 1000 ROWS
 
 #### ⚠️ Testing locally 
 If you are testing PG-HIVE on a local machine or with a large dataset, make sure to add a LIMIT clause in the loadAllNodes and loadAllRelationships methods inside DataLoader.scala to avoid excessive memory consumption or long execution times.
+
+### Incremental Script
+Scripts (e.g., `run_pghive_ldbc_incremental.sh`, `run_pghive_fib_incremental.sh`, `run_pghive_mb6_incremental.sh`) are provided to automate the entire process:
+
+1. Set environment variables and directories inside these scripts.
+2. Make them executable:
+   ```
+   chmod +x run_pghive_ldbc_incremental.sh
+   chmod +x run_pghive_fib_incremental.sh
+   chmod +x run_pghive_mb6_incremental.sh
+   ```
+3. Run the script for the desired dataset:
+   ```
+   ./run_pghive_ldbc_incremental.sh
+   ./run_pghive_fib_incremental.sh
+   ./run_pghive_mb6_incremental.sh
+   ```
 
 ## License
 
