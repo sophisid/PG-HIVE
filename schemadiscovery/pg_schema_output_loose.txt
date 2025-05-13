@@ -1,8 +1,9 @@
 CREATE GRAPH TYPE NewGraphSchema LOOSE {
-  (PlaceType: Place {type UNKNOWN, name UNKNOWN, id UNKNOWN, url UNKNOWN,  UNKNOWN}),
-  (PersonType: Person {browserUsed UNKNOWN, lastName UNKNOWN, firstName UNKNOWN, gender UNKNOWN, id UNKNOWN, locationIP UNKNOWN, creationDate UNKNOWN, birthday UNKNOWN,  UNKNOWN}),
-  (EmailType: Email {address STRING,  UNKNOWN}),
-  (:PersonType)-[IS_LOCATED_INType: IS_LOCATED_IN]->(:PlaceType),
-  (:PersonType)-[HAS_EMAILType: HAS_EMAIL]->(:EmailType),
-  (:PlaceType)-[IS_PART_OFType: IS_PART_OF]->(:PlaceType),
+  (OrganisationType: Organisation {type STRING, name STRING, id DOUBLE, url STRING}),
+  (PostType: Post {browserUsed STRING, id DOUBLE, locationIP STRING, length INTEGER, creationDate DATE, content STRING, language STRING, imageFile STRING}),
+  (CommentType: Comment {browserUsed STRING, content STRING, id DOUBLE, locationIP STRING, length INTEGER, creationDate DATE}),
+  (PersonType: Person {browserUsed STRING, lastName STRING, firstName STRING, gender STRING, id DOUBLE, locationIP STRING, creationDate DATE, birthday DATE}),
+  (:PersonType)-[KNOWSType: KNOWS {creationDate DATE}]->(:PersonType),
+  (:PersonType)-[LIKESType: LIKES {creationDate DATE}]->(:CommentType|PostType),
+  (:PersonType)-[WORKS_ATType: WORKS_AT {workFrom INTEGER}]->(:OrganisationType),
 }
