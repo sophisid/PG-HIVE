@@ -116,7 +116,7 @@ object PGSchemaExporterStrict {
       case "date"       => "DATE"
       case "double"     => "DOUBLE"
       case "boolean"    => "BOOLEAN"
-      case other         => other.toUpperCase
+      case other         => "STRING" // Default to STRING for unknown types
     }
   }
 }
