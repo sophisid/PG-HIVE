@@ -132,7 +132,7 @@ object PGSchemaExporterStrict {
 
     writer.println("}")
     writer.close()
-    println(s"✅ PG STRICT Schema with constraints has been successfully exported to $outputPath")
+    println(s"PG STRICT Schema with constraints has been successfully exported to $outputPath")
   }
 
   def normalizeType(dt: String): String = {
@@ -144,7 +144,7 @@ object PGSchemaExporterStrict {
       case "date"       => "DATE"
       case "double"     => "DOUBLE"
       case "boolean"    => "BOOLEAN"
-      case other        => other.toUpperCase
+      case other         => "STRING" // Default to STRING for unknown types
     }
   }
 }

@@ -2,9 +2,9 @@
 
 ## Overview
 
-**PG-HIVE** is a tool is designed to discover schemas within **Property Graph Databases**. It supports incremental schema discovery and helps identify the structure, patterns, and relationships in graph data, even in the absence of type labels, facilitating the understanding and exploration of datasets.
+**PG-HIVE** is a tool designed to discover schemas within **Property Graph Databases**. It supports incremental schema discovery and helps identify the structure, patterns, and relationships in graph data, even in the absence of type labels, facilitating the understanding and exploration of datasets.
 
-The project supports schema discovery on popular datasets like **LDBC**, **FIB25**, and **MB6**, and integrates with **Neo4j** for seamless graph data management.
+The project supports schema discovery on popular datasets like **LDBC**, **FIB25**, **MB6** and **Cord-19**, and integrates with **Neo4j** for seamless graph data management.
 
 ---
 
@@ -29,11 +29,7 @@ The project supports schema discovery on popular datasets like **LDBC**, **FIB25
 
 To install and set up **PG-HIVE**, follow these steps:
 
-### 1. Clone the Repository
-
-```
-Download from here: https://anonymous.4open.science/api/repo/HybridIncrementalLSHSchemaDiscovery-79B3/zip
-```
+### 1. Clone the Repository from here https://anonymous.4open.science/r/HybridIncrementalLSHSchemaDiscovery-79B3/
 
 ### 2. Build the Project
 
@@ -42,6 +38,10 @@ Navigate to the **`schemadiscovery`** directory and build the project using `sbt
 ```
 cd schemadiscovery
 sbt compile
+```
+in order for PG-HIVE to evaluate the data, you need to perform this cypher query:
+```
+CALL { MATCH (n) SET n.original_label = labels(n) } IN TRANSACTIONS OF 1000 ROWS
 ```
 
 ---
@@ -83,7 +83,7 @@ Neo4j will be available at [http://localhost:7474](http://localhost:7474).
 
 The project includes **evaluation datasets** (FIB25, LDBC, MB6) that need to be unzipped and loaded into Neo4j.
 
-### 1. Unzip the Datasets
+### 1. Unzip the Datasets 
 
 ```
 cd datasets
@@ -94,6 +94,7 @@ unzip LDBC/ldbc_neo4j_inputs3.zip
 unzip LDBC/ldbc_neo4j_inputs4.zip
 unzip MB6/mb6_neo4j_inputs1.zip
 ```
+if you want to test Cord-19 graph codebase, you can do it from [here](https://github.com/covidgraph/data_cord19)
 
 ### 2. Load Datasets into Neo4j
 
@@ -225,19 +226,19 @@ Once the setup is complete and the datasets are loaded, you can run **PG-HIVE** 
 
 ### Option 1: Using the Automated Script
 
-Scripts (e.g., `run_pghive_ldbc.sh`, `run_pghive_fib25.sh`, `run_pghive_mb6.sh`) are provided to automate the entire process:
+Scripts (e.g., `run_pghive_ldbc.sh`, `run_pghive_fib.sh`, `run_pghive_mb6.sh`) are provided to automate the entire process:
 
 1. Set environment variables and directories inside these scripts.
 2. Make them executable:
    ```
    chmod +x run_pghive_ldbc.sh
-   chmod +x run_pghive_fib25.sh
+   chmod +x run_pghive_fib.sh
    chmod +x run_pghive_mb6.sh
    ```
 3. Run the script for the desired dataset:
    ```
    ./run_pghive_ldbc.sh
-   ./run_pghive_fib25.sh
+   ./run_pghive_fib.sh
    ./run_pghive_mb6.sh
    ```
 
@@ -253,29 +254,44 @@ The scripts handle:
 If you prefer more control, follow the manual steps:
 1. Stop Neo4j, remove old database, re-extract Neo4j.
 2. Import the desired dataset with `neo4j-admin import`.
-3. Start Neo4j.
-4. Run:
+3. In order for PG-HIVE to evaluate the data, you need to perform this cypher query:
+```
+CALL { MATCH (n) SET n.original_label = labels(n) } IN TRANSACTIONS OF 1000 ROWS
+```
+
+4. Start Neo4j.
+5. Run:
    ```
    cd schemadiscovery
    sbt "run LSH"  # LSH clustering
    ```
-5. Stop Neo4j and clean up if needed.
+6. or for incremental execution:
+   ```
+   cd schemadiscovery
+   sbt "run LSH INCREMENTAL"  # LSH clustering
+   ```
+
+7. Stop Neo4j and clean up if needed.
+
+#### ⚠️ Testing locally 
+If you are testing PG-HIVE on a local machine or with a large dataset, make sure to add a LIMIT clause in the loadAllNodes and loadAllRelationships methods inside DataLoader.scala to avoid excessive memory consumption or long execution times.
 
 ### Incremental Script
+Scripts (e.g., `run_pghive_ldbc_incremental.sh`, `run_pghive_fib_incremental.sh`, `run_pghive_mb6_incremental.sh`) are provided to automate the entire process:
 
-An incremental script is also provided (an example shown below) to process datasets incrementally. This script follows a similar pattern but runs the Scala program in an "incremental" mode (indicated by `sbt "run LSH i 500000"`) after importing the dataset. It then stops Neo4j, cleans up processes, and moves on to the next dataset.
-
-**Usage Incremental Script:**  
 1. Set environment variables and directories inside these scripts.
 2. Make them executable:
    ```
    chmod +x run_pghive_ldbc_incremental.sh
+   chmod +x run_pghive_fib_incremental.sh
+   chmod +x run_pghive_mb6_incremental.sh
    ```
 3. Run the script for the desired dataset:
    ```
    ./run_pghive_ldbc_incremental.sh
+   ./run_pghive_fib_incremental.sh
+   ./run_pghive_mb6_incremental.sh
    ```
----
 
 ## License
 

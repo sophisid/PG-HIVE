@@ -97,8 +97,9 @@ object LSHClustering {
       .distinct()
       .count()
     println(s"Number of unique labels: $uniqueLabelCount")
-    val (bucketLength, numHashTables) = estimateLSHParams(patternsDF, "features", isEdge = false, uniqueLabelCount = Some(uniqueLabelCount))
-    
+    val (rawBucketLength, rawNumHashTables) = estimateLSHParams(patternsDF, "features", isEdge = false, uniqueLabelCount = Some(uniqueLabelCount))
+    val bucketLength = if (rawBucketLength == 0.0) 0.2 else rawBucketLength
+    val numHashTables = if (rawNumHashTables == 0) 5 else rawNumHashTables
     val lsh = new BucketedRandomProjectionLSH()
       .setBucketLength(bucketLength)
       .setNumHashTables(numHashTables)
@@ -145,7 +146,9 @@ object LSHClustering {
       return spark.emptyDataFrame
     }
 
-    val (bucketLength, numHashTables) = estimateLSHParams(df, "features", isEdge = true)
+    val (rawBucketLength, rawNumHashTables) = estimateLSHParams(df, "features", isEdge = true)
+    val bucketLength = if (rawBucketLength == 0.0) 0.2 else rawBucketLength
+    val numHashTables = if (rawNumHashTables == 0) 5 else rawNumHashTables
 
     val lsh = new BucketedRandomProjectionLSH()
       .setBucketLength(bucketLength)

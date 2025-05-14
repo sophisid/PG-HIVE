@@ -110,7 +110,7 @@ object XSDExporter {
     writer.write(new PrettyPrinter(80, 2).format(schema))
     writer.close()
 
-    println(s"✅ XSD Schema generated successfully at '$outputPath'!")
+    println(s"XSD Schema generated successfully at '$outputPath'!")
   }
 
   def mapToXSDType(scalaType: String): String = {

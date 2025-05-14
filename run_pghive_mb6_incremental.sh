@@ -1,7 +1,7 @@
 #!/bin/bash
 
-ROOT_DIR="/mnt/fast/sophisid"
-PROJECT_DIR="/mnt/fast/sophisid/HybridLSHSchemaDiscovery"
+ROOT_DIR="<your_root_directory>"
+PROJECT_DIR="<your_project_directory>"
 DATASETS_DIR="$PROJECT_DIR/noisy_datasets/MB6"
 SCHEMA_DISCOVERY_DIR="$PROJECT_DIR/schemadiscovery"
 NEO4J_TAR="neo4j-community.tar.gz"
@@ -73,7 +73,7 @@ do
 
         echo "Running Schema Discovery with $percentage label removal (non incremental)..."
         cd "$SCHEMA_DISCOVERY_DIR"
-        sbt run > "$OUTPUT_BASE_DIR/output_Hybrid_MB6_${dataset#corrupted}_${percentage}.txt"
+        sbt "run LSH INCREMENTAL" > "$OUTPUT_BASE_DIR/output_Hybrid_MB6_INC_${dataset#corrupted}_${percentage}.txt"
         cd "$ROOT_DIR"
     done
 
