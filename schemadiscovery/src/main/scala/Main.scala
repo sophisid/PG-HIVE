@@ -219,8 +219,8 @@ def alignSchemas(df1: DataFrame, df2: DataFrame): (DataFrame, DataFrame) = {
           println(s"Loaded ${nodesDF.count()} nodes and ${edgesDF.count()} edges in batch $batchIndex")
           val binaryNodesDF = PatternPreprocessing.encodePatterns(spark, nodesDF, allNodeProperties)
           val binaryEdgesDF = PatternPreprocessing.encodeEdgePatterns(spark, edgesDF, allEdgeProperties)
-          binaryNodesDF.select("_labels").distinct().show(false)
-          binaryEdgesDF.select("relationshipTypeArray").distinct().show(false)
+          // binaryNodesDF.select("_labels").distinct().show(false)
+          // binaryEdgesDF.select("relationshipTypeArray").distinct().show(false)
 
           // Cluster nodes LSH 
           val clusteredNodes = LSHClustering.applyLSHNodes(spark, binaryNodesDF)
