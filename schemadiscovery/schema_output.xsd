@@ -1,4 +1,15 @@
 <xs:schema name="NewGraphSchema" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:complexType name="Place">
+    <xs:sequence>
+      <xs:element name="type" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="name" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="id" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="url" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="" type="xs:string" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+    <xs:attribute name="label" type="xs:string"/>
+  </xs:complexType>
   <xs:complexType name="Person">
     <xs:sequence>
       <xs:element name="browserUsed" type="xs:string" minOccurs="1" maxOccurs="1"/>
@@ -9,16 +20,7 @@
       <xs:element name="locationIP" type="xs:string" minOccurs="1" maxOccurs="1"/>
       <xs:element name="creationDate" type="xs:string" minOccurs="1" maxOccurs="1"/>
       <xs:element name="birthday" type="xs:string" minOccurs="1" maxOccurs="1"/>
-    </xs:sequence>
-    <xs:attribute name="id" type="xs:ID" use="required"/>
-    <xs:attribute name="label" type="xs:string"/>
-  </xs:complexType>
-  <xs:complexType name="Place">
-    <xs:sequence>
-      <xs:element name="type" type="xs:string" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="name" type="xs:string" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="id" type="xs:string" minOccurs="1" maxOccurs="1"/>
-      <xs:element name="url" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="" type="xs:string" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
     <xs:attribute name="id" type="xs:ID" use="required"/>
     <xs:attribute name="label" type="xs:string"/>
@@ -26,20 +28,21 @@
   <xs:complexType name="Email">
     <xs:sequence>
       <xs:element name="address" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="" type="xs:string" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
     <xs:attribute name="id" type="xs:ID" use="required"/>
     <xs:attribute name="label" type="xs:string"/>
-  </xs:complexType>
-  <xs:complexType name="HAS_EMAIL">
-    <xs:sequence>
-      <xs:element name="source" type="Person"/>
-      <xs:element name="target" type="Email"/>
-    </xs:sequence>
   </xs:complexType>
   <xs:complexType name="IS_LOCATED_IN">
     <xs:sequence>
       <xs:element name="source" type="Person"/>
       <xs:element name="target" type="Place"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="HAS_EMAIL">
+    <xs:sequence>
+      <xs:element name="source" type="Person"/>
+      <xs:element name="target" type="Email"/>
     </xs:sequence>
   </xs:complexType>
   <xs:complexType name="IS_PART_OF">
