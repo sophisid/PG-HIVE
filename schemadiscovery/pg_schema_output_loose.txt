@@ -1,8 +1,8 @@
 CREATE GRAPH TYPE NewGraphSchema LOOSE {
-  (PlaceType: Place {type STRING, name STRING, id STRING, url STRING,  STRING}),
-  (PersonType: Person {browserUsed STRING, lastName STRING, firstName STRING, gender STRING, id STRING, locationIP STRING, creationDate STRING, birthday STRING,  STRING}),
-  (EmailType: Email {address STRING,  STRING}),
-  (:PersonType)-[IS_LOCATED_INType: IS_LOCATED_IN]->(:PlaceType),
+  (PlaceType: Place {type STRING, name STRING, id DOUBLE, url STRING}),
+  (PersonType: Person {browserUsed STRING, lastName STRING, firstName STRING, gender STRING, id DOUBLE, locationIP STRING, creationDate DATE, birthday DATE}),
+  (EmailType: Email {address STRING}),
   (:PersonType)-[HAS_EMAILType: HAS_EMAIL]->(:EmailType),
+  (:PersonType)-[IS_LOCATED_INType: IS_LOCATED_IN]->(:PlaceType),
   (:PlaceType)-[IS_PART_OFType: IS_PART_OF]->(:PlaceType),
 }
