@@ -7,7 +7,7 @@ import scala.collection.JavaConverters._
 object DataLoader {
   def loadNodesBatch(spark: SparkSession, batchSize: Int, offset: Long): DataFrame = {
     import spark.implicits._
-    val uri = "bolt://localhost:7690"
+    val uri = "bolt://localhost:7687"
     val user = "neo4j"
     val password = "password"
 
@@ -60,7 +60,7 @@ object DataLoader {
 
   def loadRelationshipsBatch(spark: SparkSession, batchSize: Int, offset: Long): DataFrame = {
     import spark.implicits._
-    val uri = "bolt://localhost:7690"
+    val uri = "bolt://localhost:7687"
     val user = "neo4j"
     val password = "password"
 
@@ -116,7 +116,7 @@ object DataLoader {
 
   def loadAllNodes(spark: SparkSession): DataFrame = {
     import spark.implicits._
-    val uri = "bolt://localhost:7690"
+    val uri = "bolt://localhost:7687"
     val user = "neo4j"
     val password = "password"
 
@@ -167,7 +167,7 @@ object DataLoader {
 
   def loadAllRelationships(spark: SparkSession): DataFrame = {
     import spark.implicits._
-    val uri = "bolt://localhost:7690"
+    val uri = "bolt://localhost:7687"
     val user = "neo4j"
     val password = "password"
 
