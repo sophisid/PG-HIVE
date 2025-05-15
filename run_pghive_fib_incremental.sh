@@ -71,9 +71,9 @@ do
             } IN TRANSACTIONS OF 1000 ROWS"
 
 
-        echo "Running Schema Discovery with $percentage label removal (non incremental)..."
+        echo "Running Schema Discovery with $percentage label removal (incremental)..."
         cd "$SCHEMA_DISCOVERY_DIR"
-        sbt "run LSH" > "$OUTPUT_BASE_DIR/output_Hybrid_FIB_${dataset#corrupted}_${percentage}.txt"
+        sbt "run LSH INCREMENTAL" > "$OUTPUT_BASE_DIR/output_Hybrid_FIB_INC_${dataset#corrupted}_${percentage}.txt"
         cd "$ROOT_DIR"
     done
 

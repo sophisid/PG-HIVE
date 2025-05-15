@@ -11,6 +11,11 @@ def computeMetricsForNodes(
   ): Unit = {
     import spark.implicits._
 
+    if (!originalNodesDF.columns.contains("original_label")) {
+      println("[ERROR] Column 'original_label' is missing from the originalNodesDF. Please include it before running evaluation.")
+      return
+    }
+
     val explodedPredictedDF = predictedNodesDF
       .withColumn("nodeId", explode(col("nodeIdsInCluster")))
       .withColumn("nodeId", col("nodeId").cast("long"))
@@ -123,6 +128,14 @@ def computeMetricsForNodes(
     predictedEdgesDF: DataFrame
   ): Unit = {
     import spark.implicits._
+
+    val requiredEdgeCols = Seq("relationshipType", "srcType", "dstType")
+    val missingCols = requiredEdgeCols.filterNot(originalEdgesDF.columns.contains)
+
+    if (missingCols.nonEmpty) {
+      println(s"[ERROR] Missing required columns in originalEdgesDF: ${missingCols.mkString(", ")}. Please include them before running evaluation.")
+      return
+    }
 
     val explodedPredictedDF = predictedEdgesDF
       .withColumn("edgeId", explode(col("edgeIdsInCluster")))

@@ -2,7 +2,7 @@
 
 ROOT_DIR="<your_root_directory>"
 PROJECT_DIR="<your_project_directory>"
-DATASETS_DIR="$PROJECT_DIR/noisy_datasets/FIB"
+DATASETS_DIR="$PROJECT_DIR/noisy_datasets/MB6"
 SCHEMA_DISCOVERY_DIR="$PROJECT_DIR/schemadiscovery"
 NEO4J_TAR="neo4j-community.tar.gz"
 NEO4J_VERSION="neo4j-community-4.4.0"
@@ -34,15 +34,15 @@ do
     # Step 3: Import the CSV files into Neo4j
      echo "Importing data into Neo4j from $current_dataset_dir..."
     "$NEO4J_DIR/bin/neo4j-admin" import --database=neo4j --delimiter=',' \
-        --nodes=Meta="$current_dataset_dir/Neuprint_Meta_fib25_corrupted.csv" \
-        --nodes=Neuron="$current_dataset_dir/Neuprint_Neurons_fib25_corrupted.csv" \
-        --relationships=CONNECTS_TO="$current_dataset_dir/Neuprint_Neuron_Connections_fib25_corrupted.csv" \
-        --nodes=SynapseSet="$current_dataset_dir/Neuprint_SynapseSet_fib25_corrupted.csv" \
-        --relationships=CONNECTS_TO="$current_dataset_dir/Neuprint_SynapseSet_to_SynapseSet_fib25_corrupted.csv" \
-        --relationships=CONTAINS="$current_dataset_dir/Neuprint_Neuron_to_SynapseSet_fib25_corrupted.csv" \
-        --nodes=Synapse="$current_dataset_dir/Neuprint_Synapses_fib25_corrupted.csv" \
-        --relationships=SYNAPSES_TO="$current_dataset_dir/Neuprint_Synapse_Connections_fib25_corrupted.csv" \
-        --relationships=CONTAINS="$current_dataset_dir/Neuprint_SynapseSet_to_Synapses_fib25_corrupted.csv"
+        --nodes=Meta="$current_dataset_dir/Neuprint_Meta_mb6_corrupted.csv" \
+        --nodes=Neuron="$current_dataset_dir/Neuprint_Neurons_mb6_corrupted.csv" \
+        --relationships=CONNECTS_TO="$current_dataset_dir/Neuprint_Neuron_Connections_mb6_corrupted.csv" \
+        --nodes=SynapseSet="$current_dataset_dir/Neuprint_SynapseSet_mb6_corrupted.csv" \
+        --relationships=CONNECTS_TO="$current_dataset_dir/Neuprint_SynapseSet_to_SynapseSet_mb6_corrupted.csv" \
+        --relationships=CONTAINS="$current_dataset_dir/Neuprint_Neuron_to_SynapseSet_mb6_corrupted.csv" \
+        --nodes=Synapse="$current_dataset_dir/Neuprint_Synapses_mb6_corrupted.csv" \
+        --relationships=SYNAPSES_TO="$current_dataset_dir/Neuprint_Synapse_Connections_mb6_corrupted.csv" \
+        --relationships=CONTAINS="$current_dataset_dir/Neuprint_SynapseSet_to_Synapses_mb6_corrupted.csv"
 
     # Step 4: Start Neo4j
     echo "Starting Neo4j..."
@@ -71,9 +71,9 @@ do
             } IN TRANSACTIONS OF 1000 ROWS"
 
 
-        echo "Running Schema Discovery with $percentage label removal (non incremental)..."
+        echo "Running Schema Discovery with $percentage label removal (incremental)..."
         cd "$SCHEMA_DISCOVERY_DIR"
-        sbt "run LSH" > "$OUTPUT_BASE_DIR/output_Hybrid_FIB_${dataset#corrupted}_${percentage}.txt"
+        sbt "run LSH INCREMENTAL" > "$OUTPUT_BASE_DIR/output_Hybrid_MB6_INC_${dataset#corrupted}_${percentage}.txt"
         cd "$ROOT_DIR"
     done
 

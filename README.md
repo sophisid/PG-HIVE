@@ -2,7 +2,7 @@
 
 ## Overview
 
-**PG-HIVE** is a tool is designed to discover schemas within **Property Graph Databases**. It supports incremental schema discovery and helps identify the structure, patterns, and relationships in graph data, even in the absence of type labels, facilitating the understanding and exploration of datasets.
+**PG-HIVE** is a tool designed to discover schemas within **Property Graph Databases**. It supports incremental schema discovery and helps identify the structure, patterns, and relationships in graph data, even in the absence of type labels, facilitating the understanding and exploration of datasets.
 
 The project supports schema discovery on popular datasets like **LDBC**, **FIB25**, **MB6** and **Cord-19**, and integrates with **Neo4j** for seamless graph data management.
 
@@ -226,19 +226,19 @@ Once the setup is complete and the datasets are loaded, you can run **PG-HIVE** 
 
 ### Option 1: Using the Automated Script
 
-Scripts (e.g., `run_pghive_ldbc.sh`, `run_pghive_fib25.sh`, `run_pghive_mb6.sh`) are provided to automate the entire process:
+Scripts (e.g., `run_pghive_ldbc.sh`, `run_pghive_fib.sh`, `run_pghive_mb6.sh`) are provided to automate the entire process:
 
 1. Set environment variables and directories inside these scripts.
 2. Make them executable:
    ```
    chmod +x run_pghive_ldbc.sh
-   chmod +x run_pghive_fib25.sh
+   chmod +x run_pghive_fib.sh
    chmod +x run_pghive_mb6.sh
    ```
 3. Run the script for the desired dataset:
    ```
    ./run_pghive_ldbc.sh
-   ./run_pghive_fib25.sh
+   ./run_pghive_fib.sh
    ./run_pghive_mb6.sh
    ```
 
@@ -265,7 +265,33 @@ CALL { MATCH (n) SET n.original_label = labels(n) } IN TRANSACTIONS OF 1000 ROWS
    cd schemadiscovery
    sbt "run LSH"  # LSH clustering
    ```
-6. Stop Neo4j and clean up if needed.
+6. or for incremental execution:
+   ```
+   cd schemadiscovery
+   sbt "run LSH INCREMENTAL"  # LSH clustering
+   ```
+
+7. Stop Neo4j and clean up if needed.
+
+#### ⚠️ Testing locally 
+If you are testing PG-HIVE on a local machine or with a large dataset, make sure to add a LIMIT clause in the loadAllNodes and loadAllRelationships methods inside DataLoader.scala to avoid excessive memory consumption or long execution times.
+
+### Incremental Script
+Scripts (e.g., `run_pghive_ldbc_incremental.sh`, `run_pghive_fib_incremental.sh`, `run_pghive_mb6_incremental.sh`) are provided to automate the entire process:
+
+1. Set environment variables and directories inside these scripts.
+2. Make them executable:
+   ```
+   chmod +x run_pghive_ldbc_incremental.sh
+   chmod +x run_pghive_fib_incremental.sh
+   chmod +x run_pghive_mb6_incremental.sh
+   ```
+3. Run the script for the desired dataset:
+   ```
+   ./run_pghive_ldbc_incremental.sh
+   ./run_pghive_fib_incremental.sh
+   ./run_pghive_mb6_incremental.sh
+   ```
 
 ## License
 

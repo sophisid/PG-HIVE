@@ -51,10 +51,12 @@ object XSDExporter {
     }
 
     val edgeTypes = groupedEdges.map { case (relType, patterns) =>
-      val sourceLabels = patterns.flatMap(_.getAs[Seq[String]]("srcLabels")).toSet
-      val targetLabels = patterns.flatMap(_.getAs[Seq[String]]("dstLabels")).toSet
-      val mandatoryPropsWithTypes = patterns.flatMap(_.getAs[Seq[String]]("mandatoryProperties_with_types"))
-      val optionalPropsWithTypes = patterns.flatMap(_.getAs[Seq[String]]("optionalProperties_with_types"))
+      val sourceLabels = patterns.flatMap(r => Option(r.getAs[Seq[String]]("srcLabels")).getOrElse(Seq.empty)).toSet
+      val targetLabels = patterns.flatMap(r => Option(r.getAs[Seq[String]]("dstLabels")).getOrElse(Seq.empty)).toSet
+
+      val mandatoryPropsWithTypes = patterns.flatMap(r => Option(r.getAs[Seq[String]]("mandatoryProperties_with_types")).getOrElse(Seq.empty))
+      val optionalPropsWithTypes = patterns.flatMap(r => Option(r.getAs[Seq[String]]("optionalProperties_with_types")).getOrElse(Seq.empty))
+
 
 
 

@@ -18,11 +18,11 @@ object DataLoader {
 
     val query = s"""
       MATCH (n)
-      WITH n, labels(n) AS labels, rand() AS random
+      WITH n, labels(n) AS labels
+      ORDER by id(n)
       SKIP $offset
       LIMIT $batchSize
       RETURN n, labels
-      ORDER BY random
     """
     val result = session.run(query)
     val nodes = result.list().asScala.map { record =>
@@ -71,13 +71,13 @@ object DataLoader {
 
     val query = s"""
       MATCH (n)-[r]->(m)
-      WITH n, r, m, rand() AS random
+      WITH n, r, m
+      ORDER BY id(r)
       SKIP $offset
       LIMIT $batchSize
       RETURN id(n) AS srcId, labels(n) AS srcType,
              id(m) AS dstId, labels(m) AS dstType,
              type(r) AS relationshipType, properties(r) AS properties
-      ORDER BY random
     """
     val result = session.run(query)
     val relationships = result.list().asScala.map { record =>

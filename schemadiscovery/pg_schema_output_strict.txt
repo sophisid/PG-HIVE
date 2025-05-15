@@ -1,20 +1,23 @@
 -- NODE TYPES --
-CREATE NODE TYPE OrganisationType : Organisation {type STRING, name STRING, id DOUBLE, url STRING};
-CREATE NODE TYPE PostType : Post {browserUsed STRING, id DOUBLE, locationIP STRING, length INTEGER, creationDate DATE, OPTIONAL content STRING, OPTIONAL language STRING, OPTIONAL imageFile STRING};
-CREATE NODE TYPE CommentType : Comment {browserUsed STRING, content STRING, id DOUBLE, locationIP STRING, length INTEGER, creationDate DATE};
+CREATE NODE TYPE PlaceType : Place {type STRING, name STRING, id DOUBLE, url STRING};
 CREATE NODE TYPE PersonType : Person {browserUsed STRING, lastName STRING, firstName STRING, gender STRING, id DOUBLE, locationIP STRING, creationDate DATE, birthday DATE};
- 
+CREATE NODE TYPE EmailType : Email {address STRING};
+
 -- EDGE TYPES --
-CREATE EDGE TYPE knowsType : KNOWS {creationDate DATE};
-CREATE EDGE TYPE likesType : LIKES {creationDate DATE};
-CREATE EDGE TYPE works_atType : WORKS_AT {workFrom INTEGER};
+CREATE EDGE TYPE has_emailType : HAS_EMAIL;
+CREATE EDGE TYPE is_located_inType : IS_LOCATED_IN;
+CREATE EDGE TYPE is_part_ofType : IS_PART_OF;
+
 CREATE GRAPH TYPE NewGraphSchema STRICT {
   (PlaceType),
   (PersonType),
-  (:PersonType)-[knowsType]->(:PersonType),
-  (:PersonType)-[likesType]->(:CommentType|PostType),
-  (:PersonType)-[works_atType]->(:OrganisationType),
- 
+  (EmailType),
+  (:PersonType)-[has_emailType]->(:EmailType),
+  (:PersonType)-[is_located_inType]->(:PlaceType),
+  (:PlaceType)-[is_part_ofType]->(:PlaceType),
+
   // Constraints
-  FOR (x:PersonType) SINGLETON x WITHIN (x)-[y: works_atType]->(:OrganisationType)
+  FOR (x:EmailType) SINGLETON x WITHIN (:PersonType)-[y: has_emailType]->(x)
+  FOR (x:PersonType) SINGLETON y WITHIN (x)-[y: is_located_inType]->(:PlaceType)
+  FOR (x:PlaceType) SINGLETON y WITHIN (x)-[y: is_part_ofType]->(:PlaceType)
 }

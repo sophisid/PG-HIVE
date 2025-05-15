@@ -185,7 +185,7 @@ def alignSchemas(df1: DataFrame, df2: DataFrame): (DataFrame, DataFrame) = {
     val startTime = System.currentTimeMillis() 
     spark.sparkContext.setLogLevel("ERROR")
     if(incremental){
-      val batchSize = 10000 // Adjust based on your dataset and memory constraints
+      val batchSize = 1000000 // Adjust based on your dataset and memory constraints
       val jaccardThreshold = 0.9
       val computePostProcessing = true
       
@@ -219,6 +219,8 @@ def alignSchemas(df1: DataFrame, df2: DataFrame): (DataFrame, DataFrame) = {
           println(s"Loaded ${nodesDF.count()} nodes and ${edgesDF.count()} edges in batch $batchIndex")
           val binaryNodesDF = PatternPreprocessing.encodePatterns(spark, nodesDF, allNodeProperties)
           val binaryEdgesDF = PatternPreprocessing.encodeEdgePatterns(spark, edgesDF, allEdgeProperties)
+          // binaryNodesDF.select("_labels").distinct().show(false)
+          // binaryEdgesDF.select("relationshipTypeArray").distinct().show(false)
 
           // Cluster nodes LSH 
           val clusteredNodes = LSHClustering.applyLSHNodes(spark, binaryNodesDF)
@@ -285,8 +287,13 @@ def alignSchemas(df1: DataFrame, df2: DataFrame): (DataFrame, DataFrame) = {
       println("Final Merged Edges:")
       mergedBatchedEdges.printSchema()
       mergedBatchedEdges.show(100)
-      Evaluation.computeMetricsForNodes(spark, allNodesAccum, mergedBatchedPatterns)
-      Evaluation.computeMetricsForEdges(spark, allEdgesAccum, mergedBatchedEdges)
+      if (!allNodesAccum.columns.contains("original_label")) {
+        println("[INFO] Column 'original_label' is missing from the originalNodesDF. Please include it before running evaluation.")
+      }
+      else{
+        Evaluation.computeMetricsForNodes(spark, allNodesAccum, mergedBatchedPatterns)
+        Evaluation.computeMetricsForEdges(spark, allEdgesAccum, mergedBatchedEdges)
+      }
     }
     else {
       val nodesDF = DataLoader.loadAllNodes(spark)
@@ -334,14 +341,19 @@ def alignSchemas(df1: DataFrame, df2: DataFrame): (DataFrame, DataFrame) = {
         mergedEdges.printSchema()
         mergedEdges.select("relationshipTypes","srcLabels","dstLabels","propsInCluster","merged_cluster_id").show(truncate = false , numRows = 500)
 
-        // Evaluation for LSH
-        println("\n=== Evaluation for LSH Nodes ===")
-        Evaluation.computeMetricsForNodes(spark, nodesDF, mergedPatterns)
-        println("\n=== Evaluation for LSH Edges (LABEL MERGED)===")
-        Evaluation.computeMetricsForEdges(spark, edgesDF, mergedEdgesLabelOnly)
+        if (!nodesDF.columns.contains("original_label")) {
+          println("[INFO] Column 'original_label' is missing from the originalNodesDF. Please include it before running evaluation.")
+        }
+        else{
+          // Evaluation for LSH
+          println("\n=== Evaluation for LSH Nodes ===")
+          Evaluation.computeMetricsForNodes(spark, nodesDF, mergedPatterns)
+          println("\n=== Evaluation for LSH Edges (LABEL MERGED)===")
+          Evaluation.computeMetricsForEdges(spark, edgesDF, mergedEdgesLabelOnly)
 
-        println("\n=== Evaluation for LSH Edges (FULLY MERGED)===")
-        Evaluation.computeMetricsForEdges(spark, edgesDF, mergedEdges)
+          println("\n=== Evaluation for LSH Edges (FULLY MERGED)===")
+          Evaluation.computeMetricsForEdges(spark, edgesDF, mergedEdges)
+        }
 
         val updatedMergedPatterns = InferSchema.inferPropertyTypesFromMerged(nodesDF, mergedPatterns, "LSH Merged Nodes", Seq("mandatoryProperties", "optionalProperties"), "_nodeId")
         val updatedMergedEdges = InferSchema.inferPropertyTypesFromMerged(edgesDF, mergedEdgesLabelOnly, "LSH Merged Edges", Seq("mandatoryProperties", "optionalProperties"), "edgeIdsInCluster")
@@ -389,10 +401,15 @@ def alignSchemas(df1: DataFrame, df2: DataFrame): (DataFrame, DataFrame) = {
         mergedKMeansEdges.show()
 
         // Evaluation for KMeans
-        println("\n=== Evaluation for KMeans Nodes ===")
-        Evaluation.computeMetricsForNodes(spark, nodesDF, mergedKMeansNodes)
-        println("\n=== Evaluation for KMeans Edges ===")
-        Evaluation.computeMetricsForEdges(spark, edgesDF, mergedKMeansEdges)
+        if (!nodesDF.columns.contains("original_label")) {
+          println("[INFO] Column 'original_label' is missing from the originalNodesDF. Please include it before running evaluation.")
+        }
+        else{
+          println("\n=== Evaluation for KMeans Nodes ===")
+          Evaluation.computeMetricsForNodes(spark, nodesDF, mergedKMeansNodes)
+          println("\n=== Evaluation for KMeans Edges ===")
+          Evaluation.computeMetricsForEdges(spark, edgesDF, mergedKMeansEdges)
+        }
 
         val updatedMergedPatterns = InferSchema.inferPropertyTypesFromMerged(nodesDF, mergedKMeansNodes, "LSH Merged Nodes", Seq("mandatoryProperties", "optionalProperties"), "_nodeId")
         val updatedMergedEdges = InferSchema.inferPropertyTypesFromMerged(edgesDF, mergedKMeansEdges, "LSH Merged Edges", Seq("mandatoryProperties", "optionalProperties"), "edgeIdsInCluster")
