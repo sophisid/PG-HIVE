@@ -1,6 +1,6 @@
 -- NODE TYPES --
-CREATE NODE TYPE PlaceType : Place {type STRING, name STRING, id DOUBLE, url STRING};
 CREATE NODE TYPE PersonType : Person {browserUsed STRING, lastName STRING, firstName STRING, gender STRING, id DOUBLE, locationIP STRING, creationDate DATE, birthday DATE};
+CREATE NODE TYPE PlaceType : Place {type STRING, name STRING, id DOUBLE, url STRING};
 CREATE NODE TYPE EmailType : Email {address STRING};
 
 -- EDGE TYPES --
@@ -9,8 +9,8 @@ CREATE EDGE TYPE is_located_inType : IS_LOCATED_IN;
 CREATE EDGE TYPE is_part_ofType : IS_PART_OF;
 
 CREATE GRAPH TYPE NewGraphSchema STRICT {
-  (PlaceType),
   (PersonType),
+  (PlaceType),
   (EmailType),
   (:PersonType)-[has_emailType]->(:EmailType),
   (:PersonType)-[is_located_inType]->(:PlaceType),

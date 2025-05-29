@@ -28,7 +28,9 @@ object XSDToXMLExporter {
     mergedPatterns: DataFrame,
     mergedEdges: DataFrame,
     allNodesDF: DataFrame,
-    allEdgesDF: DataFrame
+    allEdgesDF: DataFrame,
+    splitPerItems: Boolean = false,
+    itemsPerFile: Int = 10000
   ): Unit = {
 
     val complexTypes = parseXSD(xsdPath)
@@ -50,46 +52,67 @@ object XSDToXMLExporter {
       val props = row.schema.fields
         .filterNot(f => Set("srcId", "dstId", "srcType", "dstType", "relationshipType").contains(f.name))
         .map(f => f.name -> Option(row.getAs[Any](f.name)).map(_.toString).getOrElse(""))
-        .toMap ++ Map(
-          "srcId" -> src.toString,
-          "dstId" -> dst.toString,
-          "srcType" -> srcType,
-          "dstType" -> dstType
-        )
+        .toMap ++ Map("srcId" -> src.toString, "dstId" -> dst.toString, "srcType" -> srcType, "dstType" -> dstType)
       (src, dst) -> props
     }.toMap
 
-    val groupedNodeElems = complexTypes.filter(_.kind == "node").map { nodeType =>
+    val pp = new PrettyPrinter(120, 2)
+
+    def writeXml(elem: Elem, filePath: String): Unit = {
+      val pretty = pp.format(elem)
+      val writer = new java.io.PrintWriter(filePath, "UTF-8")
+      writer.println("""<?xml version="1.0" encoding="UTF-8"?>""")
+      writer.println(pretty)
+      writer.close()
+      println(s"[INFO] Written $filePath")
+    }
+
+    def chunkedWrite(groupName: String, nodeType: String, elements: Seq[Elem]): Unit = {
+      val folder = new java.io.File(outputPath)
+      if (!folder.exists()) folder.mkdirs()
+
+      if (splitPerItems && elements.nonEmpty) {
+        elements.grouped(itemsPerFile).zipWithIndex.foreach { case (chunk, i) =>
+          val grouped = Elem(null, s"${groupName}Group", scala.xml.Attribute(null, "type", nodeType, Null), TopScope, true, chunk: _*)
+          val fileName = new java.io.File(folder, s"${groupName}Group_$i.xml")
+          writeXml(grouped, fileName.getAbsolutePath)
+        }
+      } else {
+        val group = Elem(null, s"${groupName}Group", scala.xml.Attribute(null, "type", nodeType, Null), TopScope, true, elements: _*)
+        val fileName = new java.io.File(folder, s"${groupName}Group.xml")
+        writeXml(group, fileName.getAbsolutePath)
+      }
+    }
+
+    val allNodeGroups = complexTypes.filter(_.kind == "node").flatMap { nodeType =>
       val matchingDF = mergedPatterns.filter(array_contains(col("sortedLabels"), nodeType.name))
-      val nodes = matchingDF.collect().flatMap { row =>
+      val elems = matchingDF.collect().flatMap { row =>
         val nodeIds = row.getAs[Seq[Any]]("nodeIdsInCluster")
         val propsWithTypes = row.getAs[Seq[String]]("mandatoryProperties_with_types") ++ row.getAs[Seq[String]]("optionalProperties_with_types")
 
         nodeIds.map { idAny =>
           val id = idAny.toString.toLong
           val propMap = nodeIdToProps.getOrElse(id, Map.empty)
-
           val children = propsWithTypes.map { p =>
             val Array(name, _) = p.split(":", 2)
             val value = propMap.getOrElse(name, "")
             Elem(null, name, Null, TopScope, true, Text(value))
-          } ++ Seq(
+          }.filterNot(_.text.trim.isEmpty) ++ Seq(
             Elem(null, "id", Null, TopScope, true, Text(id.toString)),
             Elem(null, "original_label", Null, TopScope, true, Text(nodeType.name))
           )
-
           Elem(null, nodeType.name, Null, TopScope, true, children: _*)
         }
       }
 
-      Elem(null, s"${nodeType.name}Group", scala.xml.Attribute(null, "type", "node", Null), TopScope, true, nodes: _*)
+      chunkedWrite(nodeType.name, "node", elems)
+      elems
     }
 
-    val groupedEdgeElems = complexTypes.filter(_.kind == "edge").map { edgeType =>
+    val allEdgeGroups = complexTypes.filter(_.kind == "edge").flatMap { edgeType =>
       val matchingDF = mergedEdges.filter(array_contains(col("relationshipTypes"), edgeType.name))
-      val edges = matchingDF.collect().flatMap { row =>
+      val elems = matchingDF.collect().flatMap { row =>
         val edgeIds = row.getAs[Seq[Row]]("edgeIdsInCluster")
-
         edgeIds.map { eid =>
           val src = eid.getAs[Any]("srcId").toString.toLong
           val dst = eid.getAs[Any]("dstId").toString.toLong
@@ -98,7 +121,7 @@ object XSDToXMLExporter {
           val props = edgeType.fields.map { case (name, _) =>
             val value = propMap.getOrElse(name, "")
             Elem(null, name, Null, TopScope, true, Text(value))
-          }
+          }.filterNot(_.text.trim.isEmpty)
 
           val srcType = propMap("srcType")
           val dstType = propMap("dstType")
@@ -116,16 +139,17 @@ object XSDToXMLExporter {
         }
       }
 
-      Elem(null, s"${edgeType.name}Group", scala.xml.Attribute(null, "type", "edge", Null), TopScope, true, edges: _*)
+      chunkedWrite(edgeType.name, "edge", elems)
+      elems
     }
 
-    val finalXml = Elem(null, "Graph", Null, TopScope, true, (groupedNodeElems ++ groupedEdgeElems): _*)
-    val pp = new PrettyPrinter(120, 2)
-    val prettyXml = pp.format(finalXml)
-    val writer = new java.io.PrintWriter(outputPath, "UTF-8")
-    writer.println("""<?xml version="1.0" encoding="UTF-8"?>""")
-    writer.println(prettyXml)
-    writer.close()
-    println(s"[DONE] Exported XML to $outputPath")
+    if (!splitPerItems) {
+      val folder = new java.io.File(outputPath)
+      if (!folder.exists()) folder.mkdirs()
+
+      val finalXml = Elem(null, "Graph", Null, TopScope, true, (allNodeGroups ++ allEdgeGroups): _*)
+      val fileName = new java.io.File(folder, "Graph.xml")
+      writeXml(finalXml, fileName.getAbsolutePath)
+    }
   }
 }

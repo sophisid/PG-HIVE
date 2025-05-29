@@ -366,12 +366,14 @@ def alignSchemas(df1: DataFrame, df2: DataFrame): (DataFrame, DataFrame) = {
         // XSDToXMLExporter.exportToXML(spark, xsdPath, outputXmlPath)
         XSDToXMLExporter.exportToXMLFromDataframes(
           spark,
-          xsdPath = "schema_output.xsd",
-          outputPath = "final_output.xml",
-          mergedPatterns = updatedMergedPatterns,
-          mergedEdges = updatedMergedEdgesWCardinalities,
-          allNodesDF = nodesDF,
-          allEdgesDF = edgesDF
+          "schema_output.xsd",
+          "output_xml",
+          updatedMergedPatterns,
+          updatedMergedEdgesWCardinalities,
+          nodesDF,
+          edgesDF,
+          splitPerItems = true,
+          itemsPerFile = 10000
         )
       }
 
