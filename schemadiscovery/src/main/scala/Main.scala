@@ -294,32 +294,21 @@ def alignSchemas(df1: DataFrame, df2: DataFrame): (DataFrame, DataFrame) = {
         Evaluation.computeMetricsForNodes(spark, allNodesAccum, mergedBatchedPatterns)
         Evaluation.computeMetricsForEdges(spark, allEdgesAccum, mergedBatchedEdges)
       }
-    }
-    else {
+    
+  }else {
       val nodesDF = DataLoader.loadAllNodes(spark)
       val edgesDF = DataLoader.loadAllRelationships(spark)
 
-      println("Nodes Schema:")
-      nodesDF.printSchema()
-      println("Edges Schema:")
-      edgesDF.printSchema()
-
-      // Find distinct properties
       val allNodeProperties = nodesDF.columns.filterNot(Seq("_nodeId", "_labels", "originalLabels").contains).toSet    
       val allEdgeProperties = edgesDF.columns.filterNot(Seq("srcId", "dstId", "srcType", "dstType", "relationshipType").contains).toSet
 
-      // Preprocess nodes & edges 
       val binaryNodesDF = PatternPreprocessing.encodePatterns(spark, nodesDF, allNodeProperties)
       val binaryEdgesDF = PatternPreprocessing.encodeEdgePatterns(spark, edgesDF, allEdgeProperties)  
-      //calculate time for clustering
 
       if (clusteringMethod == "LSH" || clusteringMethod == "BOTH") {
-        // Cluster nodes LSH 
         val clusteredNodes = LSHClustering.applyLSHNodes(spark, binaryNodesDF)
         val clusteredEdges = LSHClustering.applyLSHEdges(spark, binaryEdgesDF)
-        clusteredNodes.select("labelsInCluster", "propertiesInCluster").show(500, truncate = false)
-        clusteredEdges.show()
-        //calculate time for clustering
+
         val startClusteringTime = System.currentTimeMillis()
         val mergedPatterns = LSHClustering.mergePatternsByLabel(spark, clusteredNodes)
         val endClusteringTime = System.currentTimeMillis()
@@ -327,19 +316,8 @@ def alignSchemas(df1: DataFrame, df2: DataFrame): (DataFrame, DataFrame) = {
         val elapsedClusteringTimeInSeconds = elapsedClusteringTime / 1000.0
         println(s"Elapsed time for clustering : $elapsedClusteringTimeInSeconds seconds")
         println(s"Elapsed time for clustering: $elapsedClusteringTime milliseconds")
-        println("Merged Patterns LSH by Label:")
-        mergedPatterns.printSchema()
-        mergedPatterns.select("sortedLabels", "propertiesInCluster","optionalProperties","mandatoryProperties" ,"original_cluster_ids").show(500)
 
         val mergedEdgesLabelOnly = LSHClustering.mergeEdgePatternsByEdgeLabel(spark, clusteredEdges)
-        println("Merged Edges LSH by Label Only:")
-        mergedEdgesLabelOnly.printSchema()
-        mergedEdgesLabelOnly.select("relationshipTypes","srcLabels","dstLabels","propsInCluster","merged_cluster_id").show(truncate = false , numRows = 500)
-
-        val mergedEdges = LSHClustering.mergeEdgePatternsByLabel(spark, clusteredEdges)
-        println("Merged Edges LSH by Label & SRC/DST:")
-        mergedEdges.printSchema()
-        mergedEdges.select("relationshipTypes","srcLabels","dstLabels","propsInCluster","merged_cluster_id").show(truncate = false , numRows = 500)
 
         if (!nodesDF.columns.contains("original_label")) {
           println("[INFO] Column 'original_label' is missing from the originalNodesDF. Please include it before running evaluation.")
@@ -351,8 +329,6 @@ def alignSchemas(df1: DataFrame, df2: DataFrame): (DataFrame, DataFrame) = {
           println("\n=== Evaluation for LSH Edges (LABEL MERGED)===")
           Evaluation.computeMetricsForEdges(spark, edgesDF, mergedEdgesLabelOnly)
 
-          println("\n=== Evaluation for LSH Edges (FULLY MERGED)===")
-          Evaluation.computeMetricsForEdges(spark, edgesDF, mergedEdges)
         }
 
         val updatedMergedPatterns = InferSchema.inferPropertyTypesFromMerged(nodesDF, mergedPatterns, "LSH Merged Nodes", Seq("mandatoryProperties", "optionalProperties"), "_nodeId")
@@ -368,7 +344,6 @@ def alignSchemas(df1: DataFrame, df2: DataFrame): (DataFrame, DataFrame) = {
 
         val updatedMergedEdgesWCardinalities = InferSchema.inferCardinalities(edgesDF, updatedMergedEdges)
         println("Updated Merged Edges LSH with Types and Cardinalities:")
-        // updatedMergedEdgesWCardinalities.printSchema()
         updatedMergedEdgesWCardinalities.show(5)
 
 
@@ -385,7 +360,19 @@ def alignSchemas(df1: DataFrame, df2: DataFrame): (DataFrame, DataFrame) = {
         )
 
         XSDExporter.exportXSD(updatedMergedPatterns, updatedMergedEdgesWCardinalities, "schema_output.xsd")
-  
+
+        val xsdPath = "schema_output.xsd"
+        val outputXmlPath = "final_output.xml"
+        // XSDToXMLExporter.exportToXML(spark, xsdPath, outputXmlPath)
+        XSDToXMLExporter.exportToXMLFromDataframes(
+          spark,
+          xsdPath = "schema_output.xsd",
+          outputPath = "final_output.xml",
+          mergedPatterns = updatedMergedPatterns,
+          mergedEdges = updatedMergedEdgesWCardinalities,
+          allNodesDF = nodesDF,
+          allEdgesDF = edgesDF
+        )
       }
 
       if (clusteringMethod == "KMEANS" || clusteringMethod == "BOTH") {

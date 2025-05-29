@@ -40,6 +40,11 @@ object XSDExporter {
       val sequence = if (props.nonEmpty) <xs:sequence>{props}</xs:sequence> else NodeSeq.Empty
 
       <xs:complexType name={nodeTypeName}>
+        <xs:annotation>
+          <xs:appinfo>
+            <type>node</type>
+          </xs:appinfo>
+        </xs:annotation>
         {sequence}
         <xs:attribute name="id" type="xs:ID" use="required"/>
         <xs:attribute name="label" type="xs:string"/>
@@ -95,6 +100,11 @@ object XSDExporter {
 
       <xs:complexType name={relType}>
         <xs:sequence>
+           <xs:annotation>
+            <xs:appinfo>
+              <type>edge</type>
+            </xs:appinfo>
+          </xs:annotation>
           {sourceElements}
           {targetElements}
           {propElements}
