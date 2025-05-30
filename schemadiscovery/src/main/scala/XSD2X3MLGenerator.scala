@@ -84,7 +84,6 @@ object XSD2X3MLGenerator {
         Seq(<mapping namedgraph="custom">{domain ++ links}</mapping>)
 
       case ct if ct.kind == "edge" =>
-        // Παίρνουμε τα πιθανά source και target node types από τα πεδία
         val sourceTypeOpt = ct.fields.find(_._1 == "source").map(_._2).getOrElse("UnknownSource")
         val targetTypeOpt = ct.fields.find(_._1 == "target").map(_._2).getOrElse("UnknownTarget")
 
