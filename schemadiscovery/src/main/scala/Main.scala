@@ -362,11 +362,9 @@ def alignSchemas(df1: DataFrame, df2: DataFrame): (DataFrame, DataFrame) = {
         XSDExporter.exportXSD(updatedMergedPatterns, updatedMergedEdgesWCardinalities, "schema_output.xsd")
 
         val xsdPath = "schema_output.xsd"
-        val outputXmlPath = "final_output.xml"
-        // XSDToXMLExporter.exportToXML(spark, xsdPath, outputXmlPath)
         XSDToXMLExporter.exportToXMLFromDataframes(
           spark,
-          "schema_output.xsd",
+          xsdPath,
           "output_xml",
           updatedMergedPatterns,
           updatedMergedEdgesWCardinalities,
@@ -375,6 +373,11 @@ def alignSchemas(df1: DataFrame, df2: DataFrame): (DataFrame, DataFrame) = {
           splitPerItems = true,
           itemsPerFile = 10000
         )
+        XSD2X3MLGenerator.generateX3ML(
+          xsdPath,
+          outputPath = "output_mappings.x3ml"
+        )
+
       }
 
       if (clusteringMethod == "KMEANS" || clusteringMethod == "BOTH") {

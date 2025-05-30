@@ -126,7 +126,7 @@ object DataLoader {
     println("Loading all nodes from Neo4j")
 
     // The query to return property labels
-    val result = session.run("MATCH (n) WITH n, rand() AS random RETURN n, labels(n) AS labels ORDER BY random")
+    val result = session.run("MATCH (n) WITH n, rand() AS random RETURN n, labels(n) AS labels ORDER BY random LIMIT 1000")
     val nodes = result.list().asScala.map { record =>
       val node = record.get("n").asNode()
       val labels = record.get("labels").asList().asScala.map(_.toString)
@@ -180,7 +180,7 @@ object DataLoader {
         |RETURN id(n) AS srcId, labels(n) AS srcType,
         |       id(m) AS dstId, labels(m) AS dstType,
         |       type(r) AS relationshipType, properties(r) AS properties
-        | ORDER BY random""".stripMargin
+        | ORDER BY random LIMIT 1000""".stripMargin
     )
 
     val relationships = result.list().asScala.map { record =>
