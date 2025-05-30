@@ -367,6 +367,27 @@ source_type="xpath" version="1.0" xsi:noNamespaceSchemaLocation="x3ml_v1.0.xsd" 
           </target_node>
         </range>
       </link>
+      <link>
+        <path>
+          <source_relation>
+            <relation>../../since</relation>
+          </source_relation>
+          <target_relation>
+            <relationship>custom:HAS_EMAIL_since</relationship>
+          </target_relation>
+        </path>
+        <range>
+          <source_node>../../since</source_node>
+          <target_node>
+            <entity>
+              <type>rdfs:Literal</type>
+              <instance_generator name="Literal">
+                <arg name="text" type="xpath">text()</arg>
+              </instance_generator>
+            </entity>
+          </target_node>
+        </range>
+      </link>
     </mapping>
     <mapping namedgraph="custom">
       <domain>

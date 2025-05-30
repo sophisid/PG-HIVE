@@ -67,3 +67,8 @@ load.txt
 run_fib.sh
 run_mb6.sh
 run_ldbc.sh
+
+# output files
+schemadiscovery/output_trig
+schemadiscovery/output_xml
+

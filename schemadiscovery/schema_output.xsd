@@ -54,6 +54,7 @@
       </xs:annotation>
       <xs:element name="source" type="Person"/>
       <xs:element name="target" type="Email"/>
+      <xs:element name="since" type="xs:integer" minOccurs="1" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>
   <xs:complexType name="IS_LOCATED_IN">

@@ -2,7 +2,7 @@ CREATE GRAPH TYPE NewGraphSchema LOOSE {
   (PersonType: Person {browserUsed STRING, lastName STRING, firstName STRING, gender STRING, id DOUBLE, locationIP STRING, creationDate DATE, birthday DATE}),
   (PlaceType: Place {type STRING, name STRING, id DOUBLE, url STRING}),
   (EmailType: Email {address STRING}),
-  (:PersonType)-[HAS_EMAILType: HAS_EMAIL]->(:EmailType),
+  (:PersonType)-[HAS_EMAILType: HAS_EMAIL {since INTEGER}]->(:EmailType),
   (:PersonType)-[IS_LOCATED_INType: IS_LOCATED_IN]->(:PlaceType),
   (:PlaceType)-[IS_PART_OFType: IS_PART_OF]->(:PlaceType),
 }

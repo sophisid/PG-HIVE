@@ -371,12 +371,21 @@ def alignSchemas(df1: DataFrame, df2: DataFrame): (DataFrame, DataFrame) = {
           nodesDF,
           edgesDF,
           splitPerItems = true,
-          itemsPerFile = 10000
+          itemsPerFile = 100
         )
         XSD2X3MLGenerator.generateX3ML(
           xsdPath,
           outputPath = "output_mappings.x3ml"
         )
+        X3MLBatchRunner.runX3MLBatch(
+          inputFolder = "output_xml",
+          x3mlMapping = "output_mappings.x3ml",
+          policyFile = "generator-policies.xml",
+          x3mlEngineJar = "../../x3ml-engine.jar",
+          outputFolder = "output_trig"
+        )
+
+
 
       }
 

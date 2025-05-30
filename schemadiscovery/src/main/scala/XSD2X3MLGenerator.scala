@@ -10,14 +10,12 @@ object XSD2X3MLGenerator {
     (xsd \ "complexType").map { ct =>
       val name = (ct \ "@name").text
       val kind = {
-      val appinfoText = (ct \ "annotation" \ "appinfo").text +
-                        (ct \ "sequence" \ "annotation" \ "appinfo").text
-      if (appinfoText.contains("node")) "node"
-      else if (appinfoText.contains("edge")) "edge"
-      else "unknown"
-    }
-
-
+        val appinfoText = (ct \ "annotation" \ "appinfo").text +
+                          (ct \ "sequence" \ "annotation" \ "appinfo").text
+        if (appinfoText.contains("node")) "node"
+        else if (appinfoText.contains("edge")) "edge"
+        else "unknown"
+      }
       val fields = (ct \ "sequence" \ "element").map { el =>
         val fname = (el \ "@name").text
         val ftype = (el \ "@type").text
@@ -101,7 +99,7 @@ object XSD2X3MLGenerator {
             </target_node>
           </domain>
 
-        val link =
+        val mainLink =
           <link>
             <path>
               <source_relation>
@@ -125,7 +123,32 @@ object XSD2X3MLGenerator {
             </range>
           </link>
 
-        Seq(<mapping namedgraph="custom">{domain ++ link}</mapping>)
+        val edgePropertyLinks = ct.fields.collect {
+          case (fname, _) if fname != "source" && fname != "target" =>
+            <link>
+              <path>
+                <source_relation>
+                  <relation>../../{fname}</relation>
+                </source_relation>
+                <target_relation>
+                  <relationship>custom:{ct.name}_{fname}</relationship>
+                </target_relation>
+              </path>
+              <range>
+                <source_node>../../{fname}</source_node>
+                <target_node>
+                  <entity>
+                    <type>rdfs:Literal</type>
+                    <instance_generator name="Literal">
+                      <arg name="text" type="xpath">text()</arg>
+                    </instance_generator>
+                  </entity>
+                </target_node>
+              </range>
+            </link>
+        }
+
+        Seq(<mapping namedgraph="custom">{domain ++ mainLink ++ edgePropertyLinks}</mapping>)
 
       case _ => Nil
     }

@@ -30,7 +30,7 @@ object XSDToXMLExporter {
     allNodesDF: DataFrame,
     allEdgesDF: DataFrame,
     splitPerItems: Boolean = false,
-    itemsPerFile: Int = 10000
+    itemsPerFile: Int = 100
   ): Unit = {
 
     val complexTypes = parseXSD(xsdPath)

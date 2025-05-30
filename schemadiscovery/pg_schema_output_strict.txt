@@ -4,7 +4,7 @@ CREATE NODE TYPE PlaceType : Place {type STRING, name STRING, id DOUBLE, url STR
 CREATE NODE TYPE EmailType : Email {address STRING};
 
 -- EDGE TYPES --
-CREATE EDGE TYPE has_emailType : HAS_EMAIL;
+CREATE EDGE TYPE has_emailType : HAS_EMAIL {since INTEGER};
 CREATE EDGE TYPE is_located_inType : IS_LOCATED_IN;
 CREATE EDGE TYPE is_part_ofType : IS_PART_OF;
 
