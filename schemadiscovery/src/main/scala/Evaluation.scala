@@ -4,16 +4,18 @@ import org.apache.spark.sql.expressions.Window
 
 object Evaluation {
 
-def computeMetricsForNodes(
-    spark: SparkSession,
-    originalNodesDF: DataFrame,
-    predictedNodesDF: DataFrame
-  ): Unit = {
+  case class Metrics(f1Score: Double, precision: Double, recall: Double)
+
+  def computeMetricsForNodes(
+      spark: SparkSession,
+      originalNodesDF: DataFrame,
+      predictedNodesDF: DataFrame
+  ): Metrics = {
     import spark.implicits._
 
     if (!originalNodesDF.columns.contains("original_label")) {
       println("[ERROR] Column 'original_label' is missing from the originalNodesDF. Please include it before running evaluation.")
-      return
+      return Metrics(0.0, 0.0, 0.0)
     }
 
     val explodedPredictedDF = predictedNodesDF
@@ -68,12 +70,9 @@ def computeMetricsForNodes(
           .otherwise(0)
       )
 
-
     val totalActualPositivesDF = explodedOriginalDF
       .groupBy(col("actualLabels"))
       .agg(count("*").as("totalActual"))
-
-
 
     val TPMajority = evaluationWithMajorityDF.filter($"correctAssignmentMajority" === 1).count()
     val FPMajority = evaluationWithMajorityDF.filter($"correctAssignmentMajority" === 0).count()
@@ -98,7 +97,6 @@ def computeMetricsForNodes(
     val recallMajority = if (TPMajority + FNMajority > 0) TPMajority.toDouble / (TPMajority + FNMajority) else 0.0
     val f1ScoreMajority = if (precisionMajority + recallMajority > 0) 2 * (precisionMajority * recallMajority) / (precisionMajority + recallMajority) else 0.0
 
-
     println(s"\nMajority Label Node Evaluation Metrics:")
     println(s"  True Positives (TP): $TPMajority")
     println(s"  False Positives (FP): $FPMajority")
@@ -120,21 +118,22 @@ def computeMetricsForNodes(
         col("correctAssignmentMajority")
       )
       .show(10, false)
+
+    Metrics(f1ScoreMajority, precisionMajority, recallMajority)
   }
 
   def computeMetricsForEdges(
-    spark: SparkSession,
-    originalEdgesDF: DataFrame,
-    predictedEdgesDF: DataFrame
-  ): Unit = {
+      spark: SparkSession,
+      originalEdgesDF: DataFrame,
+      predictedEdgesDF: DataFrame
+  ): Metrics = {
     import spark.implicits._
 
     val requiredEdgeCols = Seq("relationshipType", "srcType", "dstType")
     val missingCols = requiredEdgeCols.filterNot(originalEdgesDF.columns.contains)
-
     if (missingCols.nonEmpty) {
       println(s"[ERROR] Missing required columns in originalEdgesDF: ${missingCols.mkString(", ")}. Please include them before running evaluation.")
-      return
+      return Metrics(0.0, 0.0, 0.0)
     }
 
     val explodedPredictedDF = predictedEdgesDF
@@ -229,8 +228,6 @@ def computeMetricsForNodes(
       .groupBy(col("actualRelationshipTypes"), col("actualSrcLabels"), col("actualDstLabels"))
       .agg(count("*").as("totalActual"))
 
-
-    // Majority metrics
     val TPMajority = evaluationWithMajorityDF.filter($"correctAssignmentMajority" === 1).count()
     val FPMajority = evaluationWithMajorityDF.filter($"correctAssignmentMajority" === 0).count()
 
@@ -257,7 +254,6 @@ def computeMetricsForNodes(
     val recallMajority = if (TPMajority + FNMajority > 0) TPMajority.toDouble / (TPMajority + FNMajority) else 0.0
     val f1ScoreMajority = if (precisionMajority + recallMajority > 0) 2 * (precisionMajority * recallMajority) / (precisionMajority + recallMajority) else 0.0
 
-
     println(s"\nMajority Label Edge Evaluation Metrics:")
     println(s"  True Positives (TP): $TPMajority")
     println(s"  False Positives (FP): $FPMajority")
@@ -266,6 +262,6 @@ def computeMetricsForNodes(
     println(f"  Recall:    $recallMajority%.4f")
     println(f"  F1-Score:  $f1ScoreMajority%.4f")
 
-   
+    Metrics(f1ScoreMajority, precisionMajority, recallMajority)
   }
 }

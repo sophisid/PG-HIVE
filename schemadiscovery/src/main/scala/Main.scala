@@ -2,8 +2,66 @@ import org.apache.spark.sql.{DataFrame, SparkSession, Row}
 import org.apache.spark.sql.types.{ArrayType, StructType}
 import org.apache.spark.sql.functions._
 import scala.collection.mutable
+import ujson._
+import requests._
 
-object Main { 
+
+object Main {
+    var nodeMetrics: Evaluation.Metrics = _
+    var edgeMetrics: Evaluation.Metrics = _ 
+
+    def sendMetricsToFrontend(nodeF1: Double, nodePrecision: Double, nodeRecall: Double,
+                            edgeF1: Double, edgePrecision: Double, edgeRecall: Double): Unit = {
+    val json = ujson.Obj(
+      "nodes" -> ujson.Obj(
+        "f1Score" -> nodeF1,
+        "precision" -> nodePrecision,
+        "recall" -> nodeRecall
+      ),
+      "edges" -> ujson.Obj(
+        "f1Score" -> edgeF1,
+        "precision" -> edgePrecision,
+        "recall" -> edgeRecall
+      )
+    )
+
+    try {
+      val response = requests.post(
+        url = "http://localhost:8080/metrics-receive",
+        data = json.render(),
+        headers = Map("Content-Type" -> "application/json")
+      )
+      println(s"✅ Metrics sent to frontend. Status code: ${response.statusCode}")
+    } catch {
+      case e: Exception =>
+        println(s"❌ Failed to send metrics to frontend: ${e.getMessage}")
+    }
+  }
+
+
+
+
+  def notifyClusteringCompletion(): Unit = {
+  val json = ujson.Obj(
+    "status" -> "completed",
+    "message" -> "Clustering process has finished successfully"
+  )
+
+  try {
+    val response = requests.post(
+      url = "http://localhost:8080/clustering-finished",
+      data = json.render(),
+      headers = Map("Content-Type" -> "application/json")
+    )
+    println(s"✅ Clustering completion notified. Status code: ${response.statusCode}")
+  } catch {
+    case e: Exception =>
+      println(s"❌ Failed to notify clustering completion: ${e.getMessage}")
+  }
+}
+
+
+
   def safeFlattenProps(df: DataFrame): DataFrame = {
     if (df.columns.contains("propsInCluster")) {
       val propsField = df.schema("propsInCluster").dataType
@@ -291,6 +349,7 @@ def alignSchemas(df1: DataFrame, df2: DataFrame): (DataFrame, DataFrame) = {
         println("[INFO] Column 'original_label' is missing from the originalNodesDF. Please include it before running evaluation.")
       }
       else{
+        println("EDOOO1")
         Evaluation.computeMetricsForNodes(spark, allNodesAccum, mergedBatchedPatterns)
         Evaluation.computeMetricsForEdges(spark, allEdgesAccum, mergedBatchedEdges)
       }
@@ -346,10 +405,11 @@ def alignSchemas(df1: DataFrame, df2: DataFrame): (DataFrame, DataFrame) = {
         }
         else{
           // Evaluation for LSH
+          println("EDOOO2")
           println("\n=== Evaluation for LSH Nodes ===")
-          Evaluation.computeMetricsForNodes(spark, nodesDF, mergedPatterns)
+          nodeMetrics = Evaluation.computeMetricsForNodes(spark, nodesDF, mergedPatterns)
           println("\n=== Evaluation for LSH Edges (LABEL MERGED)===")
-          Evaluation.computeMetricsForEdges(spark, edgesDF, mergedEdgesLabelOnly)
+          edgeMetrics = Evaluation.computeMetricsForEdges(spark, edgesDF, mergedEdgesLabelOnly)
 
           println("\n=== Evaluation for LSH Edges (FULLY MERGED)===")
           Evaluation.computeMetricsForEdges(spark, edgesDF, mergedEdges)
@@ -405,6 +465,7 @@ def alignSchemas(df1: DataFrame, df2: DataFrame): (DataFrame, DataFrame) = {
           println("[INFO] Column 'original_label' is missing from the originalNodesDF. Please include it before running evaluation.")
         }
         else{
+          println("EDOOO3")
           println("\n=== Evaluation for KMeans Nodes ===")
           Evaluation.computeMetricsForNodes(spark, nodesDF, mergedKMeansNodes)
           println("\n=== Evaluation for KMeans Edges ===")
@@ -433,6 +494,21 @@ def alignSchemas(df1: DataFrame, df2: DataFrame): (DataFrame, DataFrame) = {
     val elapsedTimeInSeconds = elapsedTime / 1000.0
     println(s"Elapsed time for proccesing : $elapsedTimeInSeconds seconds")
     println(s"Elapsed time for proccesing: $elapsedTime milliseconds")
+
+    //edo afoy exei teleiosei to clustering ,stelnoyme ta metrics
+    sendMetricsToFrontend(
+      nodeMetrics.f1Score, nodeMetrics.precision, nodeMetrics.recall,
+      edgeMetrics.f1Score, edgeMetrics.precision, edgeMetrics.recall
+    )
+
+
+
+
+
+
+
+
+    notifyClusteringCompletion()//edo leei oti teleivse to clustering ston server
     spark.stop()
   }
 }
