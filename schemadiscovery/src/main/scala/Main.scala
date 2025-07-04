@@ -9,7 +9,7 @@ import requests._
 object Main {
     var nodeMetrics: Evaluation.Metrics = _
     var edgeMetrics: Evaluation.Metrics = _ 
-
+    /*---------------------------------------APIS BEGIN--------------------------------------------------------------------*/
     def sendMetricsToFrontend(nodeF1: Double, nodePrecision: Double, nodeRecall: Double,
                             edgeF1: Double, edgePrecision: Double, edgeRecall: Double): Unit = {
     val json = ujson.Obj(
@@ -38,28 +38,94 @@ object Main {
     }
   }
 
+  def sendClusterInfoToFrontend(df: DataFrame): Unit = {
+      try {
+        // Παίρνουμε τα πεδία sortedLabels και propertiesInCluster
+        val data = df.select("sortedLabels", "propertiesInCluster")
+          .collect()
+          .map { row =>
+            val labels = row.getAs[Seq[String]]("sortedLabels")
+            val props = row.getAs[Seq[String]]("propertiesInCluster")
+
+            ujson.Obj(
+              "labels" -> labels,
+              "properties" -> props,
+              "category" -> "Loose" // μπορείς να το κάνεις "Strict" ανάλογα με το context
+            )
+          }
+
+        // Τυλίγουμε τα data σωστά ως ujson.Arr για να μην υπάρχει compile error
+        val json = ujson.Obj("clusters" -> ujson.Arr(data: _*))
+
+        val response = requests.post(
+          url = "http://localhost:8080/node-info", // Endpoint που έχουμε ορίσει στον Server.scala
+          data = json.render(),
+          headers = Map("Content-Type" -> "application/json")
+        )
+
+        println(s"✅ Cluster info sent to frontend. Status code: ${response.statusCode}")
+      } catch {
+        case e: Exception =>
+          println(s"❌ Failed to send cluster info to frontend: ${e.getMessage}")
+      }
+  }
+
+  def sendEdgeClusterInfoToFrontend(df: DataFrame): Unit = {
+    try {
+      val data = df.select("relationshipTypes", "srcLabels", "dstLabels", "propsInCluster")
+        .collect()
+        .map { row =>
+          val relTypes = row.getAs[Seq[String]]("relationshipTypes")
+          val srcLabels = row.getAs[Seq[String]]("srcLabels")
+          val dstLabels = row.getAs[Seq[String]]("dstLabels")
+
+          // propsInCluster is nested array: Seq[Seq[String]] => flatten to Seq[String]
+          val rawProps = row.getAs[Seq[Seq[String]]]("propsInCluster")
+          val props = rawProps.flatten
+
+          ujson.Obj(
+            "relationship" -> relTypes.mkString("|"),
+            "srcLabels" -> ujson.Arr(srcLabels.map(ujson.Str(_)): _*),
+            "dstLabels" -> ujson.Arr(dstLabels.map(ujson.Str(_)): _*),
+            "properties" -> ujson.Arr(props.map(ujson.Str(_)): _*),
+            "category" -> "Loose"
+          )
+        }
+
+      val json = ujson.Obj("edges" -> ujson.Arr(data: _*))
+
+      val response = requests.post(
+        url = "http://localhost:8080/edge-info",
+        data = json.render(),
+        headers = Map("Content-Type" -> "application/json")
+      )
+
+      println(s"✅ Edge cluster info sent to frontend. Status code: ${response.statusCode}")
+    } catch {
+      case e: Exception =>
+        println(s"❌ Failed to send edge cluster info to frontend: ${e.getMessage}")
+    }
+  }
 
 
 
-  def notifyClusteringCompletion(): Unit = {
-  val json = ujson.Obj(
-    "status" -> "completed",
-    "message" -> "Clustering process has finished successfully"
-  )
+  
 
+  
+  def notifySetClusteringComplete(): Unit = {
   try {
     val response = requests.post(
-      url = "http://localhost:8080/clustering-finished",
-      data = json.render(),
+      url = "http://localhost:8080/set-clustering-complete",
       headers = Map("Content-Type" -> "application/json")
     )
-    println(s"✅ Clustering completion notified. Status code: ${response.statusCode}")
+    println(s"✅ Set clustering complete notified. Status code: ${response.statusCode}")
   } catch {
     case e: Exception =>
-      println(s"❌ Failed to notify clustering completion: ${e.getMessage}")
+      println(s"❌ Failed to set clustering complete: ${e.getMessage}")
   }
 }
 
+/*---------------------------------------APIS END--------------------------------------------------------------------*/
 
 
   def safeFlattenProps(df: DataFrame): DataFrame = {
@@ -414,10 +480,17 @@ def alignSchemas(df1: DataFrame, df2: DataFrame): (DataFrame, DataFrame) = {
           println("\n=== Evaluation for LSH Edges (FULLY MERGED)===")
           Evaluation.computeMetricsForEdges(spark, edgesDF, mergedEdges)
         }
+        println("\n--------------------------------------------------------------------------------------------------------------------------------")
+
 
         val updatedMergedPatterns = InferSchema.inferPropertyTypesFromMerged(nodesDF, mergedPatterns, "LSH Merged Nodes", Seq("mandatoryProperties", "optionalProperties"), "_nodeId")
         val updatedMergedEdges = InferSchema.inferPropertyTypesFromMerged(edgesDF, mergedEdgesLabelOnly, "LSH Merged Edges", Seq("mandatoryProperties", "optionalProperties"), "edgeIdsInCluster")
+        sendClusterInfoToFrontend(updatedMergedPatterns)
+        sendEdgeClusterInfoToFrontend(updatedMergedEdges)
 
+
+
+        println("\n--------------------------------------------------------------------------------------------------------------------------------")
         println("Updated Merged Patterns LSH with Types:")
         // updatedMergedPatterns.printSchema()
         updatedMergedPatterns.show(100)
@@ -431,7 +504,7 @@ def alignSchemas(df1: DataFrame, df2: DataFrame): (DataFrame, DataFrame) = {
         // updatedMergedEdgesWCardinalities.printSchema()
         updatedMergedEdgesWCardinalities.show(5)
 
-
+        
         PGSchemaExporterLoose.exportPGSchema(
         updatedMergedPatterns,
         updatedMergedEdgesWCardinalities,
@@ -495,7 +568,7 @@ def alignSchemas(df1: DataFrame, df2: DataFrame): (DataFrame, DataFrame) = {
     println(s"Elapsed time for proccesing : $elapsedTimeInSeconds seconds")
     println(s"Elapsed time for proccesing: $elapsedTime milliseconds")
 
-    //edo afoy exei teleiosei to clustering ,stelnoyme ta metrics
+    //edo afoy exei teleiosei to clustering ,stelnoyme ta metrics,kai to schema
     sendMetricsToFrontend(
       nodeMetrics.f1Score, nodeMetrics.precision, nodeMetrics.recall,
       edgeMetrics.f1Score, edgeMetrics.precision, edgeMetrics.recall
@@ -504,11 +577,7 @@ def alignSchemas(df1: DataFrame, df2: DataFrame): (DataFrame, DataFrame) = {
 
 
 
-
-
-
-
-    notifyClusteringCompletion()//edo leei oti teleivse to clustering ston server
+    notifySetClusteringComplete()//edo leei oti teleivse to clustering ston server
     spark.stop()
   }
 }

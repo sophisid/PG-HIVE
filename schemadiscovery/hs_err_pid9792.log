@@ -1,0 +1,793 @@
+#
+# There is insufficient memory for the Java Runtime Environment to continue.
+# Native memory allocation (mmap) failed to map 1308622848 bytes for Failed to commit area from 0x0000024ea6000000 to 0x0000024ef4000000 of length 1308622848.
+# Possible reasons:
+#   The system is out of physical RAM or swap space
+# Possible solutions:
+#   Reduce memory load on the system
+#   Increase physical memory or swap space
+#   Check if swap backing store is full
+#   Decrease Java heap size (-Xmx/-Xms)
+#   Decrease number of Java threads
+#   Decrease Java thread stack sizes (-Xss)
+#   Set larger code cache with -XX:ReservedCodeCacheSize=
+# This output file may be truncated or incomplete.
+#
+#  Out of Memory Error (./open/src/hotspot/os/windows/os_windows.cpp:3275), pid=9792, tid=2212
+#
+# JRE version: Java(TM) SE Runtime Environment 18.9 (11.0.9+7) (build 11.0.9+7-LTS)
+# Java VM: Java HotSpot(TM) 64-Bit Server VM 18.9 (11.0.9+7-LTS, mixed mode, tiered, g1 gc, windows-amd64)
+# No core dump will be written. Minidumps are not enabled by default on client versions of Windows
+#
+
+---------------  S U M M A R Y ------------
+
+Command Line: -Xmx128G -Dspark.executor.memory=32G -Dspark.driver.memory=32G -Dspark.driver.total.executor.cores=96 -Dspark.executor.cores=8 -Dspark.driver.cores=3 -Dspark.executor.instances=10 -Dspark.yarn.executor.memoryOverhead=8G -Dspark.driver.maxResultSize=16G Main
+
+Host: Intel(R) Core(TM) i3-7020U CPU @ 2.30GHz, 4 cores, 3G,  Windows 10 , 64 bit Build 22621 (10.0.22621.3958)
+Time: Sun Jun 29 15:49:36 2025 Θερινή ώρα GTB elapsed time: 71.610816 seconds (0d 0h 1m 11s)
+
+---------------  T H R E A D  ---------------
+
+Current thread (0x0000024dfdcc9800):  VMThread "VM Thread" [stack: 0x000000ae92a00000,0x000000ae92b00000] [id=2212]
+
+Stack: [0x000000ae92a00000,0x000000ae92b00000]
+[error occurred during error reporting (printing stack bounds), id 0xc0000005, EXCEPTION_ACCESS_VIOLATION (0xc0000005) at pc=0x0000024d883a0da0]
+
+Native frames: (J=compiled Java code, j=interpreted, Vv=VM code, C=native code)
+V  [jvm.dll+0x611a3a]
+V  [jvm.dll+0x748aaf]
+V  [jvm.dll+0x74a135]
+V  [jvm.dll+0x74a715]
+V  [jvm.dll+0x74a6cb]
+V  [jvm.dll+0x611323]
+V  [jvm.dll+0x6116e8]
+C  [ntdll.dll+0xa517f]
+C  [ntdll.dll+0x1e856]
+C  [ntdll.dll+0xa416e]
+C  0x0000024d883a0da0
+
+VM_Operation (0x000000ae924fb470): G1CollectForAllocation, mode: safepoint, requested by thread 0x0000024dfcba3800
+
+
+---------------  P R O C E S S  ---------------
+
+Threads class SMR info:
+_java_thread_list=0x0000024dcc08ab50, length=281, elements={
+0x0000024dfcba3800, 0x0000024dfdcce800, 0x0000024dfdcd7800, 0x0000024dfdd2d000,
+0x0000024dfdd2f000, 0x0000024dfdd30000, 0x0000024dfdd3f000, 0x0000024dfdd43800,
+0x0000024dc76a1800, 0x0000024dc74c5000, 0x0000024dc73d7800, 0x0000024dc9eb1000,
+0x0000024dc9a93800, 0x0000024dca052800, 0x0000024dca053000, 0x0000024dc9bd1800,
+0x0000024dc9bd2800, 0x0000024dc8726800, 0x0000024dc88bb000, 0x0000024dc9fd6800,
+0x0000024dc9fd7800, 0x0000024dc9fd3800, 0x0000024dc9fd1800, 0x0000024dc9fd4000,
+0x0000024dc9fd8800, 0x0000024dc9fd5000, 0x0000024dc9fd2800, 0x0000024dc9fd6000,
+0x0000024dcb973800, 0x0000024dcb972800, 0x0000024dcb971000, 0x0000024dcb974800,
+0x0000024dcb975000, 0x0000024dcb972000, 0x0000024dcb976000, 0x0000024dcb970000,
+0x0000024dcb97c800, 0x0000024dcb978800, 0x0000024dcb979000, 0x0000024dcb97a000,
+0x0000024dcb976800, 0x0000024dcb977800, 0x0000024dcb97d000, 0x0000024dcb97b000,
+0x0000024dcb97f000, 0x0000024dcb97e000, 0x0000024dcb97b800, 0x0000024dcbb9d000,
+0x0000024dcbb9a800, 0x0000024dcbb9b000, 0x0000024dcbb99800, 0x0000024dcbba1000,
+0x0000024dcbb9c000, 0x0000024dcbba4000, 0x0000024dcbb9e800, 0x0000024dcbba6800,
+0x0000024dcbba2800, 0x0000024dcbba1800, 0x0000024dcbba3800, 0x0000024dcbba6000,
+0x0000024dcec2b800, 0x0000024dcec2f000, 0x0000024dcec2a000, 0x0000024dcec2e000,
+0x0000024dcec29000, 0x0000024dcec35800, 0x0000024dcec2f800, 0x0000024dcec36000,
+0x0000024dcec32000, 0x0000024dcec33000, 0x0000024dcec2c800, 0x0000024dcec2a800,
+0x0000024dcec30800, 0x0000024dcec2d000, 0x0000024dcec37000, 0x0000024dcec37800,
+0x0000024dcec31000, 0x0000024dcec33800, 0x0000024dcec34800, 0x0000024dcbba0000,
+0x0000024dce4b2000, 0x0000024dce4b3000, 0x0000024dce4b3800, 0x0000024dce4ae000,
+0x0000024dce4ae800, 0x0000024dce4b4800, 0x0000024dce4af800, 0x0000024dce4b0800,
+0x0000024dce4b1000, 0x0000024dce4bb000, 0x0000024dce4b6000, 0x0000024dce4b7000,
+0x0000024dce4b9800, 0x0000024dce4b5000, 0x0000024dce4b7800, 0x0000024dce4b8800,
+0x0000024dce4bc000, 0x0000024dce4bc800, 0x0000024dce4ba000, 0x0000024dcec45000,
+0x0000024dcec4a000, 0x0000024dcec49000, 0x0000024dcec46800, 0x0000024dcec46000,
+0x0000024dcec4a800, 0x0000024dcec4d000, 0x0000024dcec47800, 0x0000024dcec4c800,
+0x0000024dcec4e000, 0x0000024dcec4b800, 0x0000024dcec48000, 0x0000024dcec4e800,
+0x0000024dcec4f800, 0x0000024dcec50800, 0x0000024dcec51000, 0x0000024dcec52000,
+0x0000024dcec53800, 0x0000024dcec53000, 0x0000024dcbcc5000, 0x0000024dcbcc3800,
+0x0000024dcbcbf800, 0x0000024dcbcc0800, 0x0000024dcbcc4800, 0x0000024dcbcc6000,
+0x0000024dcbcc2000, 0x0000024dcbcc7000, 0x0000024dcbcc3000, 0x0000024dcbcc1000,
+0x0000024dcbcc9800, 0x0000024dcbccb000, 0x0000024dcbccd800, 0x0000024dcbccc000,
+0x0000024dcbcc8800, 0x0000024dcbccc800, 0x0000024dcbcc7800, 0x0000024dcbcca000,
+0x0000024dcbcce000, 0x0000024dce565800, 0x0000024dce56a800, 0x0000024dce56c800,
+0x0000024dce56b800, 0x0000024dce56a000, 0x0000024dce566800, 0x0000024dce56d000,
+0x0000024dce568000, 0x0000024dce567800, 0x0000024dce56e000, 0x0000024dce56e800,
+0x0000024dce569000, 0x0000024dce56f800, 0x0000024dce570800, 0x0000024dce573800,
+0x0000024dce571000, 0x0000024dce572000, 0x0000024dce573000, 0x0000024dce574800,
+0x0000024dd08c7800, 0x0000024dd08c9000, 0x0000024dd08cc800, 0x0000024dd08c6800,
+0x0000024dd08cd000, 0x0000024dd08ce000, 0x0000024dd08c8000, 0x0000024dd08ce800,
+0x0000024dd08cf800, 0x0000024dd08ca000, 0x0000024dd08d0800, 0x0000024dd08ca800,
+0x0000024dd08d1000, 0x0000024dd08cb800, 0x0000024dd08d2000, 0x0000024dd08d4800,
+0x0000024dd08d3000, 0x0000024dd08d5000, 0x0000024dd08d3800, 0x0000024dc85e7000,
+0x0000024dc85e5800, 0x0000024dc85e6000, 0x0000024dc85e1000, 0x0000024dc85e8000,
+0x0000024dc85e4800, 0x0000024dc85e2000, 0x0000024dc85e8800, 0x0000024dc85e3000,
+0x0000024dc85e9800, 0x0000024dc85e3800, 0x0000024dc85eb000, 0x0000024dc85ec800,
+0x0000024dc85ed800, 0x0000024dc85ec000, 0x0000024dc85ef000, 0x0000024dc85f0000,
+0x0000024dc85ee800, 0x0000024dc85ea000, 0x0000024dc85f4000, 0x0000024dc85f5000,
+0x0000024dc85f3000, 0x0000024dc85f5800, 0x0000024dc85f6800, 0x0000024dc85f1000,
+0x0000024dc85f2800, 0x0000024dc85f7800, 0x0000024dc85f1800, 0x0000024dc85f8000,
+0x0000024dc85fd000, 0x0000024dc85fe000, 0x0000024dc85fc000, 0x0000024dc85fe800,
+0x0000024dc85f9000, 0x0000024dc85fa800, 0x0000024dc85fb800, 0x0000024dc85ff800,
+0x0000024dc85f9800, 0x0000024dc8600800, 0x0000024dd0982000, 0x0000024dd0984000,
+0x0000024dd0980000, 0x0000024dd0983800, 0x0000024dd097e800, 0x0000024dd0985000,
+0x0000024dd097f800, 0x0000024dd0986000, 0x0000024dd0986800, 0x0000024dd0981000,
+0x0000024dd0988800, 0x0000024dd0987800, 0x0000024dd0982800, 0x0000024dd098a000,
+0x0000024dd0989000, 0x0000024dd0990800, 0x0000024dd098b000, 0x0000024dd0991800,
+0x0000024dd098b800, 0x0000024dd098c800, 0x0000024dd098d000, 0x0000024dd0992000,
+0x0000024dd0993000, 0x0000024dd0993800, 0x0000024dd098e000, 0x0000024dd0994800,
+0x0000024dd098f000, 0x0000024dd0995800, 0x0000024dd098f800, 0x0000024dd0999800,
+0x0000024dd0996000, 0x0000024dd099b000, 0x0000024dd099c000, 0x0000024dd099c800,
+0x0000024dd0998800, 0x0000024dd099a800, 0x0000024dd0997000, 0x0000024dd099d800,
+0x0000024dd0998000, 0x0000024dcc0b0800, 0x0000024dcc0af000, 0x0000024dcc0ad800,
+0x0000024dcc0b1800, 0x0000024dcc0b0000, 0x0000024dcc0b2800, 0x0000024dcc0ac800,
+0x0000024dcc0b4000, 0x0000024dcc0ae000, 0x0000024dcc0b7000, 0x0000024dcc0b4800,
+0x0000024dcc0b6800, 0x0000024dcc0b8000, 0x0000024dcc0b9000, 0x0000024dcc0b3000,
+0x0000024dcc0b9800, 0x0000024dcc0bb000, 0x0000024dcc0c2000, 0x0000024dcc0bd000,
+0x0000024dcc0be800, 0x0000024dcc0c1000, 0x0000024dcc0bd800, 0x0000024dcc0bf800,
+0x0000024dcc0bc000, 0x0000024dcc0c7800, 0x0000024dcc0c5000, 0x0000024dcc0c3800,
+0x0000024dcc0c6000
+}
+
+Java Threads: ( => current thread )
+  0x0000024dfcba3800 JavaThread "main" [_thread_blocked, id=6584, stack(0x000000ae92400000,0x000000ae92500000)]
+  0x0000024dfdcce800 JavaThread "Reference Handler" daemon [_thread_blocked, id=9308, stack(0x000000ae92b00000,0x000000ae92c00000)]
+  0x0000024dfdcd7800 JavaThread "Finalizer" daemon [_thread_blocked, id=13192, stack(0x000000ae92c00000,0x000000ae92d00000)]
+  0x0000024dfdd2d000 JavaThread "Signal Dispatcher" daemon [_thread_blocked, id=2388, stack(0x000000ae92d00000,0x000000ae92e00000)]
+  0x0000024dfdd2f000 JavaThread "Attach Listener" daemon [_thread_blocked, id=13036, stack(0x000000ae92e00000,0x000000ae92f00000)]
+  0x0000024dfdd30000 JavaThread "C2 CompilerThread0" daemon [_thread_blocked, id=2916, stack(0x000000ae92f00000,0x000000ae93000000)]
+  0x0000024dfdd3f000 JavaThread "C1 CompilerThread0" daemon [_thread_blocked, id=11420, stack(0x000000ae93000000,0x000000ae93100000)]
+  0x0000024dfdd43800 JavaThread "Sweeper thread" daemon [_thread_blocked, id=8300, stack(0x000000ae93100000,0x000000ae93200000)]
+  0x0000024dc76a1800 JavaThread "Service Thread" daemon [_thread_blocked, id=12008, stack(0x000000ae93200000,0x000000ae93300000)]
+  0x0000024dc74c5000 JavaThread "Common-Cleaner" daemon [_thread_blocked, id=6152, stack(0x000000ae93400000,0x000000ae93500000)]
+  0x0000024dc73d7800 JavaThread "rpc-boss-3-1" daemon [_thread_in_native, id=13172, stack(0x000000ae93700000,0x000000ae93800000)]
+  0x0000024dc9eb1000 JavaThread "dispatcher-event-loop-0" daemon [_thread_blocked, id=6412, stack(0x000000ae93800000,0x000000ae93900000)]
+  0x0000024dc9a93800 JavaThread "dispatcher-event-loop-1" daemon [_thread_blocked, id=12172, stack(0x000000ae93900000,0x000000ae93a00000)]
+  0x0000024dca052800 JavaThread "dispatcher-event-loop-2" daemon [_thread_blocked, id=14128, stack(0x000000ae93a00000,0x000000ae93b00000)]
+  0x0000024dca053000 JavaThread "dispatcher-event-loop-3" daemon [_thread_blocked, id=12076, stack(0x000000ae93b00000,0x000000ae93c00000)]
+  0x0000024dc9bd1800 JavaThread "map-output-dispatcher-0" daemon [_thread_blocked, id=8656, stack(0x000000ae93c00000,0x000000ae93d00000)]
+  0x0000024dc9bd2800 JavaThread "map-output-dispatcher-1" daemon [_thread_blocked, id=12004, stack(0x000000ae93d00000,0x000000ae93e00000)]
+  0x0000024dc8726800 JavaThread "map-output-dispatcher-2" daemon [_thread_blocked, id=12492, stack(0x000000ae93e00000,0x000000ae93f00000)]
+  0x0000024dc88bb000 JavaThread "map-output-dispatcher-3" daemon [_thread_blocked, id=14456, stack(0x000000ae93f00000,0x000000ae94000000)]
+  0x0000024dc9fd6800 JavaThread "map-output-dispatcher-4" daemon [_thread_blocked, id=5628, stack(0x000000ae94000000,0x000000ae94100000)]
+  0x0000024dc9fd7800 JavaThread "map-output-dispatcher-5" daemon [_thread_blocked, id=14508, stack(0x000000ae94100000,0x000000ae94200000)]
+  0x0000024dc9fd3800 JavaThread "map-output-dispatcher-6" daemon [_thread_blocked, id=7844, stack(0x000000ae94200000,0x000000ae94300000)]
+  0x0000024dc9fd1800 JavaThread "map-output-dispatcher-7" daemon [_thread_blocked, id=8516, stack(0x000000ae94300000,0x000000ae94400000)]
+  0x0000024dc9fd4000 JavaThread "dispatcher-BlockManagerMaster" daemon [_thread_blocked, id=15024, stack(0x000000ae94400000,0x000000ae94500000)]
+  0x0000024dc9fd8800 JavaThread "dispatcher-BlockManagerEndpoint1" daemon [_thread_blocked, id=14844, stack(0x000000ae94500000,0x000000ae94600000)]
+  0x0000024dc9fd5000 JavaThread "RemoteBlock-temp-file-clean-thread" daemon [_thread_blocked, id=10384, stack(0x000000ae94600000,0x000000ae94700000)]
+  0x0000024dc9fd2800 JavaThread "SparkUI-31" daemon [_thread_in_native, id=12132, stack(0x000000ae94800000,0x000000ae94900000)]
+  0x0000024dc9fd6000 JavaThread "SparkUI-32" daemon [_thread_in_native, id=13948, stack(0x000000ae94900000,0x000000ae94a00000)]
+  0x0000024dcb973800 JavaThread "SparkUI-33-acceptor-0@4a3b3868-ServerConnector@44fccf5f{HTTP/1.1, (http/1.1)}{0.0.0.0:4040}" daemon [_thread_in_native, id=14912, stack(0x000000ae94a00000,0x000000ae94b00000)]
+  0x0000024dcb972800 JavaThread "SparkUI-34" daemon [_thread_blocked, id=14920, stack(0x000000ae94b00000,0x000000ae94c00000)]
+  0x0000024dcb971000 JavaThread "SparkUI-35" daemon [_thread_blocked, id=8460, stack(0x000000ae94c00000,0x000000ae94d00000)]
+  0x0000024dcb974800 JavaThread "SparkUI-36" daemon [_thread_blocked, id=7636, stack(0x000000ae94d00000,0x000000ae94e00000)]
+  0x0000024dcb975000 JavaThread "SparkUI-37" daemon [_thread_blocked, id=12348, stack(0x000000ae94e00000,0x000000ae94f00000)]
+  0x0000024dcb972000 JavaThread "SparkUI-38" daemon [_thread_blocked, id=2336, stack(0x000000ae94f00000,0x000000ae95000000)]
+  0x0000024dcb976000 JavaThread "dispatcher-HeartbeatReceiver" daemon [_thread_blocked, id=6228, stack(0x000000ae95000000,0x000000ae95100000)]
+  0x0000024dcb970000 JavaThread "heartbeat-receiver-event-loop-thread" daemon [_thread_blocked, id=12152, stack(0x000000ae95100000,0x000000ae95200000)]
+  0x0000024dcb97c800 JavaThread "netty-rpc-env-timeout" daemon [_thread_blocked, id=10628, stack(0x000000ae95200000,0x000000ae95300000)]
+  0x0000024dcb978800 JavaThread "task-starvation-timer" daemon [_thread_blocked, id=8880, stack(0x000000ae95300000,0x000000ae95400000)]
+  0x0000024dcb979000 JavaThread "task-abort-timer" daemon [_thread_blocked, id=10484, stack(0x000000ae95400000,0x000000ae95500000)]
+  0x0000024dcb97a000 JavaThread "dag-scheduler-event-loop" daemon [_thread_blocked, id=14344, stack(0x000000ae95500000,0x000000ae95600000)]
+  0x0000024dcb976800 JavaThread "driver-heartbeater" daemon [_thread_blocked, id=14708, stack(0x000000ae95600000,0x000000ae95700000)]
+  0x0000024dcb977800 JavaThread "executor-kill-mark-cleanup" daemon [_thread_blocked, id=5764, stack(0x000000ae95700000,0x000000ae95800000)]
+  0x0000024dcb97d000 JavaThread "executor-heartbeater" daemon [_thread_blocked, id=3796, stack(0x000000ae95800000,0x000000ae95900000)]
+  0x0000024dcb97b000 JavaThread "shuffle-boss-6-1" daemon [_thread_in_native, id=944, stack(0x000000ae95900000,0x000000ae95a00000)]
+  0x0000024dcb97f000 JavaThread "Spark Context Cleaner" daemon [_thread_blocked, id=12920, stack(0x000000ae94700000,0x000000ae94800000)]
+  0x0000024dcb97e000 JavaThread "context-cleaner-periodic-gc" daemon [_thread_blocked, id=7368, stack(0x000000ae95a00000,0x000000ae95b00000)]
+  0x0000024dcb97b800 JavaThread "spark-listener-group-appStatus" daemon [_thread_blocked, id=12384, stack(0x000000ae95b00000,0x000000ae95c00000)]
+  0x0000024dcbb9d000 JavaThread "spark-listener-group-executorManagement" daemon [_thread_blocked, id=9780, stack(0x000000ae95c00000,0x000000ae95d00000)]
+  0x0000024dcbb9a800 JavaThread "element-tracking-store-worker" daemon [_thread_blocked, id=10516, stack(0x000000ae95e00000,0x000000ae95f00000)]
+  0x0000024dcbb9b000 JavaThread "spark-listener-group-shared" daemon [_thread_blocked, id=14784, stack(0x000000ae95f00000,0x000000ae96000000)]
+  0x0000024dcbb99800 JavaThread "org.apache.hadoop.fs.FileSystem$Statistics$StatisticsDataReferenceCleaner" daemon [_thread_blocked, id=11168, stack(0x000000ae96200000,0x000000ae96300000)]
+  0x0000024dcbba1000 JavaThread "Executor task launch worker for task 178.0 in stage 89.0 (TID 329)" daemon [_thread_blocked, id=8148, stack(0x000000ae96500000,0x000000ae96600000)]
+  0x0000024dcbb9c000 JavaThread "Executor task launch worker for task 197.0 in stage 89.0 (TID 347)" daemon [_thread_blocked, id=7388, stack(0x000000ae96600000,0x000000ae96700000)]
+  0x0000024dcbba4000 JavaThread "Executor task launch worker for task 199.0 in stage 89.0 (TID 349)" daemon [_thread_blocked, id=11212, stack(0x000000ae96700000,0x000000ae96800000)]
+  0x0000024dcbb9e800 JavaThread "Executor task launch worker for task 0.0 in stage 90.0 (TID 350)" daemon [_thread_blocked, id=4268, stack(0x000000ae96800000,0x000000ae96900000)]
+  0x0000024dcbba6800 JavaThread "task-result-getter-0" daemon [_thread_blocked, id=15272, stack(0x000000ae96900000,0x000000ae96a00000)]
+  0x0000024dcbba2800 JavaThread "task-result-getter-1" daemon [_thread_blocked, id=4048, stack(0x000000ae96a00000,0x000000ae96b00000)]
+  0x0000024dcbba1800 JavaThread "task-result-getter-2" daemon [_thread_blocked, id=9668, stack(0x000000ae96b00000,0x000000ae96c00000)]
+  0x0000024dcbba3800 JavaThread "task-result-getter-3" daemon [_thread_blocked, id=404, stack(0x000000ae96c00000,0x000000ae96d00000)]
+  0x0000024dcbba6000 JavaThread "QueryStageCreator-0" daemon [_thread_blocked, id=12180, stack(0x000000ae96d00000,0x000000ae96e00000)]
+  0x0000024dcec2b800 JavaThread "block-manager-storage-async-thread-pool-0" daemon [_thread_blocked, id=6056, stack(0x000000ae97000000,0x000000ae97100000)]
+  0x0000024dcec2f000 JavaThread "block-manager-storage-async-thread-pool-1" daemon [_thread_blocked, id=13712, stack(0x000000ae97100000,0x000000ae97200000)]
+  0x0000024dcec2a000 JavaThread "block-manager-storage-async-thread-pool-2" daemon [_thread_blocked, id=14540, stack(0x000000ae97200000,0x000000ae97300000)]
+  0x0000024dcec2e000 JavaThread "block-manager-ask-thread-pool-0" daemon [_thread_blocked, id=5204, stack(0x000000ae97400000,0x000000ae97500000)]
+  0x0000024dcec29000 JavaThread "block-manager-ask-thread-pool-1" daemon [_thread_blocked, id=6568, stack(0x000000ae97500000,0x000000ae97600000)]
+  0x0000024dcec35800 JavaThread "block-manager-storage-async-thread-pool-3" daemon [_thread_blocked, id=3472, stack(0x000000ae97600000,0x000000ae97700000)]
+  0x0000024dcec2f800 JavaThread "block-manager-storage-async-thread-pool-4" daemon [_thread_blocked, id=10892, stack(0x000000ae97700000,0x000000ae97800000)]
+  0x0000024dcec36000 JavaThread "block-manager-storage-async-thread-pool-5" daemon [_thread_blocked, id=11364, stack(0x000000ae97800000,0x000000ae97900000)]
+  0x0000024dcec32000 JavaThread "block-manager-ask-thread-pool-2" daemon [_thread_blocked, id=13040, stack(0x000000ae97900000,0x000000ae97a00000)]
+  0x0000024dcec33000 JavaThread "block-manager-ask-thread-pool-3" daemon [_thread_blocked, id=3372, stack(0x000000ae97a00000,0x000000ae97b00000)]
+  0x0000024dcec2c800 JavaThread "block-manager-storage-async-thread-pool-6" daemon [_thread_blocked, id=1668, stack(0x000000ae96400000,0x000000ae96500000)]
+  0x0000024dcec2a800 JavaThread "block-manager-storage-async-thread-pool-7" daemon [_thread_blocked, id=3760, stack(0x000000ae96e00000,0x000000ae96f00000)]
+  0x0000024dcec30800 JavaThread "block-manager-storage-async-thread-pool-8" daemon [_thread_blocked, id=12160, stack(0x000000ae96f00000,0x000000ae97000000)]
+  0x0000024dcec2d000 JavaThread "block-manager-ask-thread-pool-4" daemon [_thread_blocked, id=14492, stack(0x000000ae97300000,0x000000ae97400000)]
+  0x0000024dcec37000 JavaThread "block-manager-ask-thread-pool-5" daemon [_thread_blocked, id=11888, stack(0x000000ae97b00000,0x000000ae97c00000)]
+  0x0000024dcec37800 JavaThread "QueryStageCreator-1" daemon [_thread_blocked, id=11612, stack(0x000000ae97c00000,0x000000ae97d00000)]
+  0x0000024dcec31000 JavaThread "block-manager-storage-async-thread-pool-9" daemon [_thread_blocked, id=7584, stack(0x000000ae97d00000,0x000000ae97e00000)]
+  0x0000024dcec33800 JavaThread "block-manager-storage-async-thread-pool-10" daemon [_thread_blocked, id=13684, stack(0x000000ae97e00000,0x000000ae97f00000)]
+  0x0000024dcec34800 JavaThread "block-manager-storage-async-thread-pool-11" daemon [_thread_blocked, id=15036, stack(0x000000ae97f00000,0x000000ae98000000)]
+  0x0000024dcbba0000 JavaThread "block-manager-ask-thread-pool-6" daemon [_thread_blocked, id=5556, stack(0x000000ae98000000,0x000000ae98100000)]
+  0x0000024dce4b2000 JavaThread "block-manager-ask-thread-pool-7" daemon [_thread_blocked, id=11708, stack(0x000000ae98100000,0x000000ae98200000)]
+  0x0000024dce4b3000 JavaThread "block-manager-storage-async-thread-pool-12" daemon [_thread_blocked, id=10164, stack(0x000000ae98200000,0x000000ae98300000)]
+  0x0000024dce4b3800 JavaThread "block-manager-storage-async-thread-pool-13" daemon [_thread_blocked, id=3732, stack(0x000000ae98300000,0x000000ae98400000)]
+  0x0000024dce4ae000 JavaThread "block-manager-storage-async-thread-pool-14" daemon [_thread_blocked, id=12084, stack(0x000000ae98400000,0x000000ae98500000)]
+  0x0000024dce4ae800 JavaThread "block-manager-ask-thread-pool-8" daemon [_thread_blocked, id=4600, stack(0x000000ae98500000,0x000000ae98600000)]
+  0x0000024dce4b4800 JavaThread "block-manager-ask-thread-pool-9" daemon [_thread_blocked, id=14412, stack(0x000000ae98600000,0x000000ae98700000)]
+  0x0000024dce4af800 JavaThread "block-manager-storage-async-thread-pool-15" daemon [_thread_blocked, id=3712, stack(0x000000ae98700000,0x000000ae98800000)]
+  0x0000024dce4b0800 JavaThread "block-manager-storage-async-thread-pool-16" daemon [_thread_blocked, id=6280, stack(0x000000ae98800000,0x000000ae98900000)]
+  0x0000024dce4b1000 JavaThread "block-manager-storage-async-thread-pool-17" daemon [_thread_blocked, id=4836, stack(0x000000ae98900000,0x000000ae98a00000)]
+  0x0000024dce4bb000 JavaThread "block-manager-ask-thread-pool-10" daemon [_thread_blocked, id=13060, stack(0x000000ae98a00000,0x000000ae98b00000)]
+  0x0000024dce4b6000 JavaThread "block-manager-ask-thread-pool-11" daemon [_thread_blocked, id=3244, stack(0x000000ae98b00000,0x000000ae98c00000)]
+  0x0000024dce4b7000 JavaThread "block-manager-storage-async-thread-pool-18" daemon [_thread_blocked, id=11852, stack(0x000000ae98c00000,0x000000ae98d00000)]
+  0x0000024dce4b9800 JavaThread "block-manager-storage-async-thread-pool-19" daemon [_thread_blocked, id=10316, stack(0x000000ae98d00000,0x000000ae98e00000)]
+  0x0000024dce4b5000 JavaThread "block-manager-storage-async-thread-pool-20" daemon [_thread_blocked, id=4916, stack(0x000000ae98e00000,0x000000ae98f00000)]
+  0x0000024dce4b7800 JavaThread "block-manager-ask-thread-pool-12" daemon [_thread_blocked, id=2476, stack(0x000000ae98f00000,0x000000ae99000000)]
+  0x0000024dce4b8800 JavaThread "block-manager-ask-thread-pool-13" daemon [_thread_blocked, id=7240, stack(0x000000ae99000000,0x000000ae99100000)]
+  0x0000024dce4bc000 JavaThread "block-manager-storage-async-thread-pool-21" daemon [_thread_blocked, id=9188, stack(0x000000ae99100000,0x000000ae99200000)]
+  0x0000024dce4bc800 JavaThread "block-manager-storage-async-thread-pool-22" daemon [_thread_blocked, id=7648, stack(0x000000ae99200000,0x000000ae99300000)]
+  0x0000024dce4ba000 JavaThread "block-manager-storage-async-thread-pool-23" daemon [_thread_blocked, id=15128, stack(0x000000ae99300000,0x000000ae99400000)]
+  0x0000024dcec45000 JavaThread "block-manager-ask-thread-pool-14" daemon [_thread_blocked, id=11812, stack(0x000000ae99400000,0x000000ae99500000)]
+  0x0000024dcec4a000 JavaThread "block-manager-ask-thread-pool-15" daemon [_thread_blocked, id=6320, stack(0x000000ae99500000,0x000000ae99600000)]
+  0x0000024dcec49000 JavaThread "block-manager-storage-async-thread-pool-24" daemon [_thread_blocked, id=11396, stack(0x000000ae99600000,0x000000ae99700000)]
+  0x0000024dcec46800 JavaThread "block-manager-storage-async-thread-pool-25" daemon [_thread_blocked, id=2784, stack(0x000000ae99700000,0x000000ae99800000)]
+  0x0000024dcec46000 JavaThread "block-manager-storage-async-thread-pool-26" daemon [_thread_blocked, id=7480, stack(0x000000ae99800000,0x000000ae99900000)]
+  0x0000024dcec4a800 JavaThread "block-manager-ask-thread-pool-16" daemon [_thread_blocked, id=9624, stack(0x000000ae99900000,0x000000ae99a00000)]
+  0x0000024dcec4d000 JavaThread "block-manager-ask-thread-pool-17" daemon [_thread_blocked, id=13532, stack(0x000000ae99a00000,0x000000ae99b00000)]
+  0x0000024dcec47800 JavaThread "block-manager-storage-async-thread-pool-27" daemon [_thread_blocked, id=13068, stack(0x000000ae99b00000,0x000000ae99c00000)]
+  0x0000024dcec4c800 JavaThread "block-manager-storage-async-thread-pool-28" daemon [_thread_blocked, id=10592, stack(0x000000ae99c00000,0x000000ae99d00000)]
+  0x0000024dcec4e000 JavaThread "block-manager-storage-async-thread-pool-29" daemon [_thread_blocked, id=11960, stack(0x000000ae99d00000,0x000000ae99e00000)]
+  0x0000024dcec4b800 JavaThread "block-manager-storage-async-thread-pool-30" daemon [_thread_blocked, id=15088, stack(0x000000ae99e00000,0x000000ae99f00000)]
+  0x0000024dcec48000 JavaThread "block-manager-storage-async-thread-pool-31" daemon [_thread_blocked, id=5588, stack(0x000000ae99f00000,0x000000ae9a000000)]
+  0x0000024dcec4e800 JavaThread "block-manager-storage-async-thread-pool-32" daemon [_thread_blocked, id=2976, stack(0x000000ae9a000000,0x000000ae9a100000)]
+  0x0000024dcec4f800 JavaThread "block-manager-storage-async-thread-pool-33" daemon [_thread_blocked, id=14956, stack(0x000000ae9a100000,0x000000ae9a200000)]
+  0x0000024dcec50800 JavaThread "block-manager-storage-async-thread-pool-34" daemon [_thread_blocked, id=15040, stack(0x000000ae9a200000,0x000000ae9a300000)]
+  0x0000024dcec51000 JavaThread "block-manager-storage-async-thread-pool-35" daemon [_thread_blocked, id=8316, stack(0x000000ae9a300000,0x000000ae9a400000)]
+  0x0000024dcec52000 JavaThread "block-manager-ask-thread-pool-18" daemon [_thread_blocked, id=5092, stack(0x000000ae9a400000,0x000000ae9a500000)]
+  0x0000024dcec53800 JavaThread "block-manager-ask-thread-pool-19" daemon [_thread_blocked, id=12484, stack(0x000000ae9a500000,0x000000ae9a600000)]
+  0x0000024dcec53000 JavaThread "block-manager-ask-thread-pool-20" daemon [_thread_blocked, id=10464, stack(0x000000ae9a600000,0x000000ae9a700000)]
+  0x0000024dcbcc5000 JavaThread "block-manager-storage-async-thread-pool-36" daemon [_thread_blocked, id=6684, stack(0x000000ae9a700000,0x000000ae9a800000)]
+  0x0000024dcbcc3800 JavaThread "block-manager-storage-async-thread-pool-37" daemon [_thread_blocked, id=10780, stack(0x000000ae9a800000,0x000000ae9a900000)]
+  0x0000024dcbcbf800 JavaThread "block-manager-storage-async-thread-pool-38" daemon [_thread_blocked, id=12048, stack(0x000000ae9a900000,0x000000ae9aa00000)]
+  0x0000024dcbcc0800 JavaThread "block-manager-ask-thread-pool-21" daemon [_thread_blocked, id=12704, stack(0x000000ae9aa00000,0x000000ae9ab00000)]
+  0x0000024dcbcc4800 JavaThread "block-manager-ask-thread-pool-22" daemon [_thread_blocked, id=9884, stack(0x000000ae9ab00000,0x000000ae9ac00000)]
+  0x0000024dcbcc6000 JavaThread "block-manager-ask-thread-pool-23" daemon [_thread_blocked, id=7840, stack(0x000000ae9ac00000,0x000000ae9ad00000)]
+  0x0000024dcbcc2000 JavaThread "block-manager-storage-async-thread-pool-39" daemon [_thread_blocked, id=5312, stack(0x000000ae9ad00000,0x000000ae9ae00000)]
+  0x0000024dcbcc7000 JavaThread "block-manager-storage-async-thread-pool-40" daemon [_thread_blocked, id=5296, stack(0x000000ae9ae00000,0x000000ae9af00000)]
+  0x0000024dcbcc3000 JavaThread "block-manager-ask-thread-pool-24" daemon [_thread_blocked, id=12872, stack(0x000000ae9af00000,0x000000ae9b000000)]
+  0x0000024dcbcc1000 JavaThread "block-manager-storage-async-thread-pool-41" daemon [_thread_blocked, id=13300, stack(0x000000ae9b000000,0x000000ae9b100000)]
+  0x0000024dcbcc9800 JavaThread "block-manager-storage-async-thread-pool-42" daemon [_thread_blocked, id=9728, stack(0x000000ae9b100000,0x000000ae9b200000)]
+  0x0000024dcbccb000 JavaThread "block-manager-storage-async-thread-pool-43" daemon [_thread_blocked, id=10840, stack(0x000000ae9b200000,0x000000ae9b300000)]
+  0x0000024dcbccd800 JavaThread "block-manager-storage-async-thread-pool-44" daemon [_thread_blocked, id=5816, stack(0x000000ae9b300000,0x000000ae9b400000)]
+  0x0000024dcbccc000 JavaThread "block-manager-ask-thread-pool-25" daemon [_thread_blocked, id=6264, stack(0x000000ae9b400000,0x000000ae9b500000)]
+  0x0000024dcbcc8800 JavaThread "block-manager-ask-thread-pool-26" daemon [_thread_blocked, id=7936, stack(0x000000ae9b500000,0x000000ae9b600000)]
+  0x0000024dcbccc800 JavaThread "block-manager-ask-thread-pool-27" daemon [_thread_blocked, id=2136, stack(0x000000ae9b600000,0x000000ae9b700000)]
+  0x0000024dcbcc7800 JavaThread "block-manager-ask-thread-pool-28" daemon [_thread_blocked, id=14360, stack(0x000000ae9b700000,0x000000ae9b800000)]
+  0x0000024dcbcca000 JavaThread "block-manager-ask-thread-pool-29" daemon [_thread_blocked, id=7492, stack(0x000000ae9b800000,0x000000ae9b900000)]
+  0x0000024dcbcce000 JavaThread "block-manager-storage-async-thread-pool-45" daemon [_thread_blocked, id=5228, stack(0x000000ae9b900000,0x000000ae9ba00000)]
+  0x0000024dce565800 JavaThread "block-manager-storage-async-thread-pool-46" daemon [_thread_blocked, id=248, stack(0x000000ae9ba00000,0x000000ae9bb00000)]
+  0x0000024dce56a800 JavaThread "block-manager-storage-async-thread-pool-47" daemon [_thread_blocked, id=14888, stack(0x000000ae9bb00000,0x000000ae9bc00000)]
+  0x0000024dce56c800 JavaThread "block-manager-storage-async-thread-pool-48" daemon [_thread_blocked, id=7628, stack(0x000000ae9bc00000,0x000000ae9bd00000)]
+  0x0000024dce56b800 JavaThread "block-manager-storage-async-thread-pool-49" daemon [_thread_blocked, id=14088, stack(0x000000ae9bd00000,0x000000ae9be00000)]
+  0x0000024dce56a000 JavaThread "block-manager-storage-async-thread-pool-50" daemon [_thread_blocked, id=14064, stack(0x000000ae9be00000,0x000000ae9bf00000)]
+  0x0000024dce566800 JavaThread "block-manager-ask-thread-pool-30" daemon [_thread_blocked, id=14616, stack(0x000000ae9bf00000,0x000000ae9c000000)]
+  0x0000024dce56d000 JavaThread "block-manager-ask-thread-pool-31" daemon [_thread_blocked, id=11464, stack(0x000000ae9c000000,0x000000ae9c100000)]
+  0x0000024dce568000 JavaThread "block-manager-ask-thread-pool-32" daemon [_thread_blocked, id=6868, stack(0x000000ae9c100000,0x000000ae9c200000)]
+  0x0000024dce567800 JavaThread "block-manager-ask-thread-pool-33" daemon [_thread_blocked, id=5912, stack(0x000000ae9c200000,0x000000ae9c300000)]
+  0x0000024dce56e000 JavaThread "block-manager-storage-async-thread-pool-51" daemon [_thread_blocked, id=13236, stack(0x000000ae9c300000,0x000000ae9c400000)]
+  0x0000024dce56e800 JavaThread "block-manager-storage-async-thread-pool-52" daemon [_thread_blocked, id=9844, stack(0x000000ae9c400000,0x000000ae9c500000)]
+  0x0000024dce569000 JavaThread "block-manager-storage-async-thread-pool-53" daemon [_thread_blocked, id=13488, stack(0x000000ae9c500000,0x000000ae9c600000)]
+  0x0000024dce56f800 JavaThread "block-manager-ask-thread-pool-34" daemon [_thread_blocked, id=4108, stack(0x000000ae9c600000,0x000000ae9c700000)]
+  0x0000024dce570800 JavaThread "block-manager-ask-thread-pool-35" daemon [_thread_blocked, id=13148, stack(0x000000ae9c700000,0x000000ae9c800000)]
+  0x0000024dce573800 JavaThread "block-manager-storage-async-thread-pool-54" daemon [_thread_blocked, id=10748, stack(0x000000ae9c800000,0x000000ae9c900000)]
+  0x0000024dce571000 JavaThread "block-manager-storage-async-thread-pool-55" daemon [_thread_blocked, id=2412, stack(0x000000ae9c900000,0x000000ae9ca00000)]
+  0x0000024dce572000 JavaThread "block-manager-storage-async-thread-pool-56" daemon [_thread_blocked, id=2960, stack(0x000000ae9ca00000,0x000000ae9cb00000)]
+  0x0000024dce573000 JavaThread "block-manager-ask-thread-pool-36" daemon [_thread_blocked, id=12596, stack(0x000000ae9cb00000,0x000000ae9cc00000)]
+  0x0000024dce574800 JavaThread "block-manager-ask-thread-pool-37" daemon [_thread_blocked, id=7244, stack(0x000000ae9cc00000,0x000000ae9cd00000)]
+  0x0000024dd08c7800 JavaThread "block-manager-storage-async-thread-pool-57" daemon [_thread_blocked, id=14816, stack(0x000000ae9cd00000,0x000000ae9ce00000)]
+  0x0000024dd08c9000 JavaThread "block-manager-storage-async-thread-pool-58" daemon [_thread_blocked, id=11620, stack(0x000000ae9ce00000,0x000000ae9cf00000)]
+  0x0000024dd08cc800 JavaThread "block-manager-storage-async-thread-pool-59" daemon [_thread_blocked, id=12516, stack(0x000000ae9cf00000,0x000000ae9d000000)]
+  0x0000024dd08c6800 JavaThread "block-manager-ask-thread-pool-38" daemon [_thread_blocked, id=14496, stack(0x000000ae9d000000,0x000000ae9d100000)]
+  0x0000024dd08cd000 JavaThread "block-manager-ask-thread-pool-39" daemon [_thread_blocked, id=10984, stack(0x000000ae9d100000,0x000000ae9d200000)]
+  0x0000024dd08ce000 JavaThread "block-manager-storage-async-thread-pool-60" daemon [_thread_blocked, id=8156, stack(0x000000ae9d200000,0x000000ae9d300000)]
+  0x0000024dd08c8000 JavaThread "block-manager-storage-async-thread-pool-61" daemon [_thread_blocked, id=2128, stack(0x000000ae9d300000,0x000000ae9d400000)]
+  0x0000024dd08ce800 JavaThread "block-manager-storage-async-thread-pool-62" daemon [_thread_blocked, id=10140, stack(0x000000ae9d400000,0x000000ae9d500000)]
+  0x0000024dd08cf800 JavaThread "block-manager-ask-thread-pool-40" daemon [_thread_blocked, id=5304, stack(0x000000ae9d500000,0x000000ae9d600000)]
+  0x0000024dd08ca000 JavaThread "block-manager-ask-thread-pool-41" daemon [_thread_blocked, id=11208, stack(0x000000ae9d600000,0x000000ae9d700000)]
+  0x0000024dd08d0800 JavaThread "block-manager-storage-async-thread-pool-63" daemon [_thread_blocked, id=8056, stack(0x000000ae9d700000,0x000000ae9d800000)]
+  0x0000024dd08ca800 JavaThread "block-manager-storage-async-thread-pool-64" daemon [_thread_blocked, id=6756, stack(0x000000ae9d800000,0x000000ae9d900000)]
+  0x0000024dd08d1000 JavaThread "block-manager-storage-async-thread-pool-65" daemon [_thread_blocked, id=7776, stack(0x000000ae9d900000,0x000000ae9da00000)]
+  0x0000024dd08cb800 JavaThread "block-manager-ask-thread-pool-42" daemon [_thread_blocked, id=9380, stack(0x000000ae9da00000,0x000000ae9db00000)]
+  0x0000024dd08d2000 JavaThread "block-manager-ask-thread-pool-43" daemon [_thread_blocked, id=14384, stack(0x000000ae9db00000,0x000000ae9dc00000)]
+  0x0000024dd08d4800 JavaThread "block-manager-storage-async-thread-pool-66" daemon [_thread_blocked, id=10360, stack(0x000000ae9dc00000,0x000000ae9dd00000)]
+  0x0000024dd08d3000 JavaThread "block-manager-storage-async-thread-pool-67" daemon [_thread_blocked, id=10844, stack(0x000000ae9dd00000,0x000000ae9de00000)]
+  0x0000024dd08d5000 JavaThread "block-manager-storage-async-thread-pool-68" daemon [_thread_blocked, id=13968, stack(0x000000ae9de00000,0x000000ae9df00000)]
+  0x0000024dd08d3800 JavaThread "block-manager-ask-thread-pool-44" daemon [_thread_blocked, id=9784, stack(0x000000ae9df00000,0x000000ae9e000000)]
+  0x0000024dc85e7000 JavaThread "block-manager-ask-thread-pool-45" daemon [_thread_blocked, id=9592, stack(0x000000ae9e000000,0x000000ae9e100000)]
+  0x0000024dc85e5800 JavaThread "block-manager-storage-async-thread-pool-69" daemon [_thread_blocked, id=5148, stack(0x000000ae9e100000,0x000000ae9e200000)]
+  0x0000024dc85e6000 JavaThread "block-manager-storage-async-thread-pool-70" daemon [_thread_blocked, id=7640, stack(0x000000ae9e200000,0x000000ae9e300000)]
+  0x0000024dc85e1000 JavaThread "block-manager-storage-async-thread-pool-71" daemon [_thread_blocked, id=10024, stack(0x000000ae9e300000,0x000000ae9e400000)]
+  0x0000024dc85e8000 JavaThread "block-manager-ask-thread-pool-46" daemon [_thread_blocked, id=3368, stack(0x000000ae9e400000,0x000000ae9e500000)]
+  0x0000024dc85e4800 JavaThread "block-manager-ask-thread-pool-47" daemon [_thread_blocked, id=14828, stack(0x000000ae9e500000,0x000000ae9e600000)]
+  0x0000024dc85e2000 JavaThread "block-manager-storage-async-thread-pool-72" daemon [_thread_blocked, id=3532, stack(0x000000ae9e600000,0x000000ae9e700000)]
+  0x0000024dc85e8800 JavaThread "block-manager-storage-async-thread-pool-73" daemon [_thread_blocked, id=8840, stack(0x000000ae9e700000,0x000000ae9e800000)]
+  0x0000024dc85e3000 JavaThread "block-manager-storage-async-thread-pool-74" daemon [_thread_blocked, id=14756, stack(0x000000ae9e800000,0x000000ae9e900000)]
+  0x0000024dc85e9800 JavaThread "block-manager-storage-async-thread-pool-75" daemon [_thread_blocked, id=14240, stack(0x000000ae9e900000,0x000000ae9ea00000)]
+  0x0000024dc85e3800 JavaThread "block-manager-storage-async-thread-pool-76" daemon [_thread_blocked, id=1940, stack(0x000000ae9ea00000,0x000000ae9eb00000)]
+  0x0000024dc85eb000 JavaThread "block-manager-storage-async-thread-pool-77" daemon [_thread_blocked, id=2108, stack(0x000000ae9eb00000,0x000000ae9ec00000)]
+  0x0000024dc85ec800 JavaThread "block-manager-ask-thread-pool-48" daemon [_thread_blocked, id=11316, stack(0x000000ae9ec00000,0x000000ae9ed00000)]
+  0x0000024dc85ed800 JavaThread "block-manager-ask-thread-pool-49" daemon [_thread_blocked, id=10068, stack(0x000000ae9ed00000,0x000000ae9ee00000)]
+  0x0000024dc85ec000 JavaThread "block-manager-ask-thread-pool-50" daemon [_thread_blocked, id=11832, stack(0x000000ae9ee00000,0x000000ae9ef00000)]
+  0x0000024dc85ef000 JavaThread "block-manager-ask-thread-pool-51" daemon [_thread_blocked, id=5728, stack(0x000000ae9ef00000,0x000000ae9f000000)]
+  0x0000024dc85f0000 JavaThread "block-manager-storage-async-thread-pool-78" daemon [_thread_blocked, id=10820, stack(0x000000ae9f000000,0x000000ae9f100000)]
+  0x0000024dc85ee800 JavaThread "block-manager-storage-async-thread-pool-79" daemon [_thread_blocked, id=6564, stack(0x000000ae9f100000,0x000000ae9f200000)]
+  0x0000024dc85ea000 JavaThread "block-manager-storage-async-thread-pool-80" daemon [_thread_blocked, id=3444, stack(0x000000ae9f200000,0x000000ae9f300000)]
+  0x0000024dc85f4000 JavaThread "block-manager-storage-async-thread-pool-81" daemon [_thread_blocked, id=8648, stack(0x000000ae9f300000,0x000000ae9f400000)]
+  0x0000024dc85f5000 JavaThread "block-manager-storage-async-thread-pool-82" daemon [_thread_blocked, id=9088, stack(0x000000ae9f400000,0x000000ae9f500000)]
+  0x0000024dc85f3000 JavaThread "block-manager-storage-async-thread-pool-83" daemon [_thread_blocked, id=1820, stack(0x000000ae9f500000,0x000000ae9f600000)]
+  0x0000024dc85f5800 JavaThread "block-manager-storage-async-thread-pool-84" daemon [_thread_blocked, id=12708, stack(0x000000ae9f600000,0x000000ae9f700000)]
+  0x0000024dc85f6800 JavaThread "block-manager-storage-async-thread-pool-85" daemon [_thread_blocked, id=15352, stack(0x000000ae9f700000,0x000000ae9f800000)]
+  0x0000024dc85f1000 JavaThread "block-manager-storage-async-thread-pool-86" daemon [_thread_blocked, id=14928, stack(0x000000ae9f800000,0x000000ae9f900000)]
+  0x0000024dc85f2800 JavaThread "block-manager-storage-async-thread-pool-87" daemon [_thread_blocked, id=4040, stack(0x000000ae9f900000,0x000000ae9fa00000)]
+  0x0000024dc85f7800 JavaThread "block-manager-ask-thread-pool-52" daemon [_thread_blocked, id=9732, stack(0x000000ae9fa00000,0x000000ae9fb00000)]
+  0x0000024dc85f1800 JavaThread "block-manager-storage-async-thread-pool-88" daemon [_thread_blocked, id=10480, stack(0x000000ae9fb00000,0x000000ae9fc00000)]
+  0x0000024dc85f8000 JavaThread "block-manager-storage-async-thread-pool-89" daemon [_thread_blocked, id=11036, stack(0x000000ae9fc00000,0x000000ae9fd00000)]
+  0x0000024dc85fd000 JavaThread "block-manager-ask-thread-pool-53" daemon [_thread_blocked, id=1468, stack(0x000000ae9fd00000,0x000000ae9fe00000)]
+  0x0000024dc85fe000 JavaThread "block-manager-ask-thread-pool-54" daemon [_thread_blocked, id=12268, stack(0x000000ae9fe00000,0x000000ae9ff00000)]
+  0x0000024dc85fc000 JavaThread "block-manager-ask-thread-pool-55" daemon [_thread_blocked, id=1572, stack(0x000000ae9ff00000,0x000000aea0000000)]
+  0x0000024dc85fe800 JavaThread "block-manager-ask-thread-pool-56" daemon [_thread_blocked, id=11644, stack(0x000000aea0000000,0x000000aea0100000)]
+  0x0000024dc85f9000 JavaThread "block-manager-storage-async-thread-pool-90" daemon [_thread_blocked, id=13296, stack(0x000000aea0100000,0x000000aea0200000)]
+  0x0000024dc85fa800 JavaThread "block-manager-storage-async-thread-pool-91" daemon [_thread_blocked, id=4376, stack(0x000000aea0200000,0x000000aea0300000)]
+  0x0000024dc85fb800 JavaThread "block-manager-storage-async-thread-pool-92" daemon [_thread_blocked, id=12764, stack(0x000000aea0300000,0x000000aea0400000)]
+  0x0000024dc85ff800 JavaThread "block-manager-ask-thread-pool-57" daemon [_thread_blocked, id=6216, stack(0x000000aea0400000,0x000000aea0500000)]
+  0x0000024dc85f9800 JavaThread "block-manager-storage-async-thread-pool-95" daemon [_thread_blocked, id=9692, stack(0x000000aea0500000,0x000000aea0600000)]
+  0x0000024dc8600800 JavaThread "block-manager-storage-async-thread-pool-94" daemon [_thread_blocked, id=3184, stack(0x000000aea0600000,0x000000aea0700000)]
+  0x0000024dd0982000 JavaThread "block-manager-storage-async-thread-pool-96" daemon [_thread_blocked, id=6012, stack(0x000000aea0700000,0x000000aea0800000)]
+  0x0000024dd0984000 JavaThread "block-manager-storage-async-thread-pool-93" daemon [_thread_blocked, id=10028, stack(0x000000aea0800000,0x000000aea0900000)]
+  0x0000024dd0980000 JavaThread "block-manager-ask-thread-pool-58" daemon [_thread_blocked, id=11788, stack(0x000000aea0900000,0x000000aea0a00000)]
+  0x0000024dd0983800 JavaThread "block-manager-ask-thread-pool-59" daemon [_thread_blocked, id=1912, stack(0x000000aea0a00000,0x000000aea0b00000)]
+  0x0000024dd097e800 JavaThread "block-manager-ask-thread-pool-60" daemon [_thread_blocked, id=12940, stack(0x000000aea0b00000,0x000000aea0c00000)]
+  0x0000024dd0985000 JavaThread "block-manager-ask-thread-pool-61" daemon [_thread_blocked, id=15112, stack(0x000000aea0c00000,0x000000aea0d00000)]
+  0x0000024dd097f800 JavaThread "block-manager-ask-thread-pool-62" daemon [_thread_blocked, id=12228, stack(0x000000aea0d00000,0x000000aea0e00000)]
+  0x0000024dd0986000 JavaThread "block-manager-storage-async-thread-pool-97" daemon [_thread_blocked, id=9796, stack(0x000000aea0e00000,0x000000aea0f00000)]
+  0x0000024dd0986800 JavaThread "block-manager-storage-async-thread-pool-98" daemon [_thread_blocked, id=10684, stack(0x000000aea0f00000,0x000000aea1000000)]
+  0x0000024dd0981000 JavaThread "block-manager-ask-thread-pool-63" daemon [_thread_blocked, id=14896, stack(0x000000aea1000000,0x000000aea1100000)]
+  0x0000024dd0988800 JavaThread "block-manager-ask-thread-pool-64" daemon [_thread_blocked, id=9032, stack(0x000000aea1100000,0x000000aea1200000)]
+  0x0000024dd0987800 JavaThread "block-manager-ask-thread-pool-65" daemon [_thread_blocked, id=6460, stack(0x000000aea1200000,0x000000aea1300000)]
+  0x0000024dd0982800 JavaThread "block-manager-storage-async-thread-pool-99" daemon [_thread_blocked, id=3424, stack(0x000000aea1300000,0x000000aea1400000)]
+  0x0000024dd098a000 JavaThread "block-manager-ask-thread-pool-66" daemon [_thread_blocked, id=8852, stack(0x000000aea1400000,0x000000aea1500000)]
+  0x0000024dd0989000 JavaThread "block-manager-ask-thread-pool-67" daemon [_thread_blocked, id=11928, stack(0x000000aea1500000,0x000000aea1600000)]
+  0x0000024dd0990800 JavaThread "block-manager-ask-thread-pool-68" daemon [_thread_blocked, id=8372, stack(0x000000aea1600000,0x000000aea1700000)]
+  0x0000024dd098b000 JavaThread "block-manager-ask-thread-pool-69" daemon [_thread_blocked, id=13496, stack(0x000000aea1700000,0x000000aea1800000)]
+  0x0000024dd0991800 JavaThread "block-manager-ask-thread-pool-70" daemon [_thread_blocked, id=5436, stack(0x000000aea1800000,0x000000aea1900000)]
+  0x0000024dd098b800 JavaThread "block-manager-ask-thread-pool-71" daemon [_thread_blocked, id=7452, stack(0x000000aea1900000,0x000000aea1a00000)]
+  0x0000024dd098c800 JavaThread "block-manager-ask-thread-pool-72" daemon [_thread_blocked, id=12212, stack(0x000000aea1a00000,0x000000aea1b00000)]
+  0x0000024dd098d000 JavaThread "block-manager-ask-thread-pool-73" daemon [_thread_blocked, id=1900, stack(0x000000aea1b00000,0x000000aea1c00000)]
+  0x0000024dd0992000 JavaThread "block-manager-ask-thread-pool-74" daemon [_thread_blocked, id=10404, stack(0x000000aea1c00000,0x000000aea1d00000)]
+  0x0000024dd0993000 JavaThread "block-manager-ask-thread-pool-75" daemon [_thread_blocked, id=13616, stack(0x000000aea1d00000,0x000000aea1e00000)]
+  0x0000024dd0993800 JavaThread "block-manager-ask-thread-pool-76" daemon [_thread_blocked, id=7644, stack(0x000000aea1e00000,0x000000aea1f00000)]
+  0x0000024dd098e000 JavaThread "block-manager-ask-thread-pool-77" daemon [_thread_blocked, id=15008, stack(0x000000aea1f00000,0x000000aea2000000)]
+  0x0000024dd0994800 JavaThread "block-manager-ask-thread-pool-78" daemon [_thread_blocked, id=3828, stack(0x000000aea2200000,0x000000aea2300000)]
+  0x0000024dd098f000 JavaThread "block-manager-ask-thread-pool-79" daemon [_thread_blocked, id=11940, stack(0x000000aea2300000,0x000000aea2400000)]
+  0x0000024dd0995800 JavaThread "block-manager-ask-thread-pool-80" daemon [_thread_blocked, id=11372, stack(0x000000aea2400000,0x000000aea2500000)]
+  0x0000024dd098f800 JavaThread "block-manager-ask-thread-pool-81" daemon [_thread_blocked, id=15124, stack(0x000000aea2500000,0x000000aea2600000)]
+  0x0000024dd0999800 JavaThread "block-manager-ask-thread-pool-82" daemon [_thread_blocked, id=5784, stack(0x000000aea2600000,0x000000aea2700000)]
+  0x0000024dd0996000 JavaThread "block-manager-ask-thread-pool-83" daemon [_thread_blocked, id=11696, stack(0x000000aea2700000,0x000000aea2800000)]
+  0x0000024dd099b000 JavaThread "block-manager-ask-thread-pool-84" daemon [_thread_blocked, id=5528, stack(0x000000aea2800000,0x000000aea2900000)]
+  0x0000024dd099c000 JavaThread "block-manager-ask-thread-pool-85" daemon [_thread_blocked, id=9452, stack(0x000000aea2900000,0x000000aea2a00000)]
+  0x0000024dd099c800 JavaThread "block-manager-ask-thread-pool-86" daemon [_thread_blocked, id=14524, stack(0x000000aea2a00000,0x000000aea2b00000)]
+  0x0000024dd0998800 JavaThread "block-manager-ask-thread-pool-87" daemon [_thread_blocked, id=4956, stack(0x000000aea2b00000,0x000000aea2c00000)]
+  0x0000024dd099a800 JavaThread "block-manager-ask-thread-pool-88" daemon [_thread_blocked, id=6512, stack(0x000000aea2c00000,0x000000aea2d00000)]
+  0x0000024dd0997000 JavaThread "block-manager-ask-thread-pool-89" daemon [_thread_blocked, id=1272, stack(0x000000aea2d00000,0x000000aea2e00000)]
+  0x0000024dd099d800 JavaThread "block-manager-ask-thread-pool-90" daemon [_thread_blocked, id=11664, stack(0x000000aea2e00000,0x000000aea2f00000)]
+  0x0000024dd0998000 JavaThread "block-manager-ask-thread-pool-91" daemon [_thread_blocked, id=7280, stack(0x000000aea2f00000,0x000000aea3000000)]
+  0x0000024dcc0b0800 JavaThread "block-manager-ask-thread-pool-92" daemon [_thread_blocked, id=13592, stack(0x000000aea3000000,0x000000aea3100000)]
+  0x0000024dcc0af000 JavaThread "block-manager-ask-thread-pool-93" daemon [_thread_blocked, id=5992, stack(0x000000aea3100000,0x000000aea3200000)]
+  0x0000024dcc0ad800 JavaThread "block-manager-ask-thread-pool-94" daemon [_thread_blocked, id=8020, stack(0x000000aea3200000,0x000000aea3300000)]
+  0x0000024dcc0b1800 JavaThread "block-manager-ask-thread-pool-95" daemon [_thread_blocked, id=11880, stack(0x000000aea3300000,0x000000aea3400000)]
+  0x0000024dcc0b0000 JavaThread "block-manager-ask-thread-pool-96" daemon [_thread_blocked, id=7700, stack(0x000000aea3400000,0x000000aea3500000)]
+  0x0000024dcc0b2800 JavaThread "block-manager-ask-thread-pool-97" daemon [_thread_blocked, id=11792, stack(0x000000aea3500000,0x000000aea3600000)]
+  0x0000024dcc0ac800 JavaThread "block-manager-ask-thread-pool-98" daemon [_thread_blocked, id=14500, stack(0x000000aea3600000,0x000000aea3700000)]
+  0x0000024dcc0b4000 JavaThread "block-manager-ask-thread-pool-99" daemon [_thread_blocked, id=12612, stack(0x000000aea3700000,0x000000aea3800000)]
+  0x0000024dcc0ae000 JavaThread "QueryStageCreator-2" daemon [_thread_blocked, id=1052, stack(0x000000aea3800000,0x000000aea3900000)]
+  0x0000024dcc0b7000 JavaThread "QueryStageCreator-3" daemon [_thread_blocked, id=14908, stack(0x000000aea3900000,0x000000aea3a00000)]
+  0x0000024dcc0b4800 JavaThread "QueryStageCreator-4" daemon [_thread_blocked, id=12680, stack(0x000000aea3a00000,0x000000aea3b00000)]
+  0x0000024dcc0b6800 JavaThread "QueryStageCreator-5" daemon [_thread_blocked, id=11808, stack(0x000000aea3b00000,0x000000aea3c00000)]
+  0x0000024dcc0b8000 JavaThread "broadcast-exchange-0" daemon [_thread_blocked, id=7508, stack(0x000000aea3c00000,0x000000aea3d00000)]
+  0x0000024dcc0b9000 JavaThread "QueryStageCreator-6" daemon [_thread_blocked, id=15192, stack(0x000000aea3d00000,0x000000aea3e00000)]
+  0x0000024dcc0b3000 JavaThread "QueryStageCreator-7" daemon [_thread_blocked, id=13732, stack(0x000000aea3e00000,0x000000aea3f00000)]
+  0x0000024dcc0b9800 JavaThread "QueryStageCreator-8" daemon [_thread_blocked, id=8748, stack(0x000000aea3f00000,0x000000aea4000000)]
+  0x0000024dcc0bb000 JavaThread "QueryStageCreator-9" daemon [_thread_blocked, id=4996, stack(0x000000aea4000000,0x000000aea4100000)]
+  0x0000024dcc0c2000 JavaThread "QueryStageCreator-10" daemon [_thread_blocked, id=15004, stack(0x000000aea4100000,0x000000aea4200000)]
+  0x0000024dcc0bd000 JavaThread "broadcast-exchange-1" daemon [_thread_blocked, id=6900, stack(0x000000aea4200000,0x000000aea4300000)]
+  0x0000024dcc0be800 JavaThread "QueryStageCreator-11" daemon [_thread_blocked, id=10148, stack(0x000000aea4300000,0x000000aea4400000)]
+  0x0000024dcc0c1000 JavaThread "QueryStageCreator-12" daemon [_thread_blocked, id=8816, stack(0x000000aea4400000,0x000000aea4500000)]
+  0x0000024dcc0bd800 JavaThread "QueryStageCreator-13" daemon [_thread_blocked, id=11784, stack(0x000000ae92100000,0x000000ae92200000)]
+  0x0000024dcc0bf800 JavaThread "QueryStageCreator-14" daemon [_thread_blocked, id=10388, stack(0x000000ae92200000,0x000000ae92300000)]
+  0x0000024dcc0bc000 JavaThread "QueryStageCreator-15" daemon [_thread_blocked, id=14404, stack(0x000000ae92300000,0x000000ae92400000)]
+  0x0000024dcc0c7800 JavaThread "broadcast-exchange-2" daemon [_thread_blocked, id=2580, stack(0x000000aea4500000,0x000000aea4600000)]
+  0x0000024dcc0c5000 JavaThread "Executor task launch worker for task 177.0 in stage 89.0 (TID 328)" daemon [_thread_blocked, id=11976, stack(0x000000aea4600000,0x000000aea4700000)]
+  0x0000024dcc0c3800 JavaThread "Executor task launch worker for task 196.0 in stage 89.0 (TID 346)" daemon [_thread_blocked, id=12532, stack(0x000000aea4700000,0x000000aea4800000)]
+  0x0000024dcc0c6000 JavaThread "Executor task launch worker for task 188.0 in stage 89.0 (TID 339)" daemon [_thread_blocked, id=1444, stack(0x000000aea4800000,0x000000aea4900000)]
+
+Other Threads:
+=>0x0000024dfdcc9800 VMThread "VM Thread" [stack: 0x000000ae92a00000,0x000000ae92b00000] [id=2212]
+  0x0000024dc76af800 WatcherThread [stack: 0x000000ae93300000,0x000000ae93400000] [id=13332]
+  0x0000024dfcbb9000 GCTaskThread "GC Thread#0" [stack: 0x000000ae92500000,0x000000ae92600000] [id=6208]
+  0x0000024dc91c4000 GCTaskThread "GC Thread#1" [stack: 0x000000ae93500000,0x000000ae93600000] [id=11516]
+  0x0000024dc8489800 GCTaskThread "GC Thread#2" [stack: 0x000000ae93600000,0x000000ae93700000] [id=11628]
+  0x0000024dc8ccf800 GCTaskThread "GC Thread#3" [stack: 0x000000ae96000000,0x000000ae96100000] [id=9852]
+  0x0000024dfcbf7000 ConcurrentGCThread "G1 Main Marker" [stack: 0x000000ae92600000,0x000000ae92700000] [id=13128]
+  0x0000024dfcbf8000 ConcurrentGCThread "G1 Conc#0" [stack: 0x000000ae92700000,0x000000ae92800000] [id=5548]
+  0x0000024dfcc13800 ConcurrentGCThread "G1 Refine#0" [stack: 0x000000ae92800000,0x000000ae92900000] [id=14700]
+  0x0000024dfcc14800 ConcurrentGCThread "G1 Young RemSet Sampling" [stack: 0x000000ae92900000,0x000000ae92a00000] [id=8412]
+
+Threads with active compile tasks:
+C2 CompilerThread0  71730 21696       4       scala.collection.mutable.HashTable::removeEntry (193 bytes)
+C1 CompilerThread0  71730 21687       3       org.apache.spark.sql.catalyst.trees.BinaryLike::mapChildren (178 bytes)
+
+VM state:at safepoint (normal execution)
+
+VM Mutex/Monitor currently owned by a thread:  ([mutex/lock_event])
+[0x0000024dfcb9eb60] Threads_lock - owner thread: 0x0000024dfdcc9800
+[0x0000024dfcb9cf40] Heap_lock - owner thread: 0x0000024dfcba3800
+
+Heap:
+ garbage-first heap   total 4030464K, used 349532K [0x0000024dfe000000, 0x0000026dfe000000)
+  region size 32768K, 1 young (32768K), 1 survivors (32768K)
+ Metaspace       used 148476K, capacity 159219K, committed 159396K, reserved 159744K
+Heap Regions: E=young(eden), S=young(survivor), O=old, HS=humongous(starts), HC=humongous(continues), CS=collection set, F=free, A=archive, TAMS=top-at-mark-start (previous, next)
+|   0|0x0000024dfe000000, 0x0000024e00000000, 0x0000024e00000000|100%| O|  |TAMS 0x0000024e00000000, 0x0000024dfe000000| Untracked 
+|   1|0x0000024e00000000, 0x0000024e02000000, 0x0000024e02000000|100%| O|  |TAMS 0x0000024e018c4a00, 0x0000024e00000000| Untracked 
+|   2|0x0000024e02000000, 0x0000024e04000000, 0x0000024e04000000|100%|HS|  |TAMS 0x0000024e04000000, 0x0000024e02000000| Complete 
+|   3|0x0000024e04000000, 0x0000024e06000000, 0x0000024e06000000|100%|HC|  |TAMS 0x0000024e06000000, 0x0000024e04000000| Complete 
+|   4|0x0000024e06000000, 0x0000024e08000000, 0x0000024e08000000|100%|HS|  |TAMS 0x0000024e08000000, 0x0000024e06000000| Complete 
+|   5|0x0000024e08000000, 0x0000024e0a000000, 0x0000024e0a000000|100%|HC|  |TAMS 0x0000024e0a000000, 0x0000024e08000000| Complete 
+|   6|0x0000024e0a000000, 0x0000024e0c000000, 0x0000024e0c000000|100%|HS|  |TAMS 0x0000024e0c000000, 0x0000024e0a000000| Complete 
+|   7|0x0000024e0c000000, 0x0000024e0e000000, 0x0000024e0e000000|100%|HC|  |TAMS 0x0000024e0e000000, 0x0000024e0c000000| Complete 
+|   8|0x0000024e0e000000, 0x0000024e10000000, 0x0000024e10000000|100%|HS|  |TAMS 0x0000024e10000000, 0x0000024e0e000000| Complete 
+|   9|0x0000024e10000000, 0x0000024e12000000, 0x0000024e12000000|100%|HC|  |TAMS 0x0000024e12000000, 0x0000024e10000000| Complete 
+|  10|0x0000024e12000000, 0x0000024e124a7c00, 0x0000024e14000000| 14%| O|  |TAMS 0x0000024e12000000, 0x0000024e12000000| Untracked 
+|  11|0x0000024e14000000, 0x0000024e14000000, 0x0000024e16000000|  0%| F|  |TAMS 0x0000024e14000000, 0x0000024e14000000| Untracked 
+|  12|0x0000024e16000000, 0x0000024e16000000, 0x0000024e18000000|  0%| F|  |TAMS 0x0000024e16000000, 0x0000024e16000000| Untracked 
+|  13|0x0000024e18000000, 0x0000024e18000000, 0x0000024e1a000000|  0%| F|  |TAMS 0x0000024e18000000, 0x0000024e18000000| Untracked 
+|  14|0x0000024e1a000000, 0x0000024e1a000000, 0x0000024e1c000000|  0%| F|  |TAMS 0x0000024e1a000000, 0x0000024e1a000000| Untracked 
+|  15|0x0000024e1c000000, 0x0000024e1c000000, 0x0000024e1e000000|  0%| F|  |TAMS 0x0000024e1c000000, 0x0000024e1c000000| Untracked 
+|  16|0x0000024e1e000000, 0x0000024e1e000000, 0x0000024e20000000|  0%| F|  |TAMS 0x0000024e1e000000, 0x0000024e1e000000| Untracked 
+|  17|0x0000024e20000000, 0x0000024e20000000, 0x0000024e22000000|  0%| F|  |TAMS 0x0000024e20000000, 0x0000024e20000000| Untracked 
+|  18|0x0000024e22000000, 0x0000024e22000000, 0x0000024e24000000|  0%| F|  |TAMS 0x0000024e22000000, 0x0000024e22000000| Untracked 
+|  19|0x0000024e24000000, 0x0000024e24000000, 0x0000024e26000000|  0%| F|  |TAMS 0x0000024e24000000, 0x0000024e24000000| Untracked 
+|  20|0x0000024e26000000, 0x0000024e26000000, 0x0000024e28000000|  0%| F|  |TAMS 0x0000024e26000000, 0x0000024e26000000| Untracked 
+|  21|0x0000024e28000000, 0x0000024e28000000, 0x0000024e2a000000|  0%| F|  |TAMS 0x0000024e28000000, 0x0000024e28000000| Untracked 
+|  22|0x0000024e2a000000, 0x0000024e2a000000, 0x0000024e2c000000|  0%| F|  |TAMS 0x0000024e2a000000, 0x0000024e2a000000| Untracked 
+|  23|0x0000024e2c000000, 0x0000024e2c000000, 0x0000024e2e000000|  0%| F|  |TAMS 0x0000024e2c000000, 0x0000024e2c000000| Untracked 
+|  24|0x0000024e2e000000, 0x0000024e2e000000, 0x0000024e30000000|  0%| F|  |TAMS 0x0000024e2e000000, 0x0000024e2e000000| Untracked 
+|  25|0x0000024e30000000, 0x0000024e30000000, 0x0000024e32000000|  0%| F|  |TAMS 0x0000024e30000000, 0x0000024e30000000| Untracked 
+|  26|0x0000024e32000000, 0x0000024e32000000, 0x0000024e34000000|  0%| F|  |TAMS 0x0000024e32000000, 0x0000024e32000000| Untracked 
+|  27|0x0000024e34000000, 0x0000024e34000000, 0x0000024e36000000|  0%| F|  |TAMS 0x0000024e34000000, 0x0000024e34000000| Untracked 
+|  28|0x0000024e36000000, 0x0000024e36000000, 0x0000024e38000000|  0%| F|  |TAMS 0x0000024e36000000, 0x0000024e36000000| Untracked 
+|  29|0x0000024e38000000, 0x0000024e38000000, 0x0000024e3a000000|  0%| F|  |TAMS 0x0000024e38000000, 0x0000024e38000000| Untracked 
+|  30|0x0000024e3a000000, 0x0000024e3a000000, 0x0000024e3c000000|  0%| F|  |TAMS 0x0000024e3a000000, 0x0000024e3a000000| Untracked 
+|  31|0x0000024e3c000000, 0x0000024e3c000000, 0x0000024e3e000000|  0%| F|  |TAMS 0x0000024e3c000000, 0x0000024e3c000000| Untracked 
+|  32|0x0000024e3e000000, 0x0000024e3e000000, 0x0000024e40000000|  0%| F|  |TAMS 0x0000024e3e000000, 0x0000024e3e000000| Untracked 
+|  33|0x0000024e40000000, 0x0000024e40000000, 0x0000024e42000000|  0%| F|  |TAMS 0x0000024e40000000, 0x0000024e40000000| Untracked 
+|  34|0x0000024e42000000, 0x0000024e42000000, 0x0000024e44000000|  0%| F|  |TAMS 0x0000024e42000000, 0x0000024e42000000| Untracked 
+|  35|0x0000024e44000000, 0x0000024e44000000, 0x0000024e46000000|  0%| F|  |TAMS 0x0000024e44000000, 0x0000024e44000000| Untracked 
+|  36|0x0000024e46000000, 0x0000024e46000000, 0x0000024e48000000|  0%| F|  |TAMS 0x0000024e46000000, 0x0000024e46000000| Untracked 
+|  37|0x0000024e48000000, 0x0000024e48000000, 0x0000024e4a000000|  0%| F|  |TAMS 0x0000024e48000000, 0x0000024e48000000| Untracked 
+|  38|0x0000024e4a000000, 0x0000024e4a000000, 0x0000024e4c000000|  0%| F|  |TAMS 0x0000024e4a000000, 0x0000024e4a000000| Untracked 
+|  39|0x0000024e4c000000, 0x0000024e4c000000, 0x0000024e4e000000|  0%| F|  |TAMS 0x0000024e4c000000, 0x0000024e4c000000| Untracked 
+|  40|0x0000024e4e000000, 0x0000024e4e000000, 0x0000024e50000000|  0%| F|  |TAMS 0x0000024e4e000000, 0x0000024e4e000000| Untracked 
+|  41|0x0000024e50000000, 0x0000024e50000000, 0x0000024e52000000|  0%| F|  |TAMS 0x0000024e50000000, 0x0000024e50000000| Untracked 
+|  42|0x0000024e52000000, 0x0000024e52000000, 0x0000024e54000000|  0%| F|  |TAMS 0x0000024e52000000, 0x0000024e52000000| Untracked 
+|  43|0x0000024e54000000, 0x0000024e54000000, 0x0000024e56000000|  0%| F|  |TAMS 0x0000024e54000000, 0x0000024e54000000| Untracked 
+|  44|0x0000024e56000000, 0x0000024e56000000, 0x0000024e58000000|  0%| F|  |TAMS 0x0000024e56000000, 0x0000024e56000000| Untracked 
+|  45|0x0000024e58000000, 0x0000024e58000000, 0x0000024e5a000000|  0%| F|  |TAMS 0x0000024e58000000, 0x0000024e58000000| Untracked 
+|  46|0x0000024e5a000000, 0x0000024e5a000000, 0x0000024e5c000000|  0%| F|  |TAMS 0x0000024e5a000000, 0x0000024e5a000000| Untracked 
+|  47|0x0000024e5c000000, 0x0000024e5c000000, 0x0000024e5e000000|  0%| F|  |TAMS 0x0000024e5c000000, 0x0000024e5c000000| Untracked 
+|  48|0x0000024e5e000000, 0x0000024e5e000000, 0x0000024e60000000|  0%| F|  |TAMS 0x0000024e5e000000, 0x0000024e5e000000| Untracked 
+|  49|0x0000024e60000000, 0x0000024e60000000, 0x0000024e62000000|  0%| F|  |TAMS 0x0000024e60000000, 0x0000024e60000000| Untracked 
+|  50|0x0000024e62000000, 0x0000024e62000000, 0x0000024e64000000|  0%| F|  |TAMS 0x0000024e62000000, 0x0000024e62000000| Untracked 
+|  51|0x0000024e64000000, 0x0000024e64000000, 0x0000024e66000000|  0%| F|  |TAMS 0x0000024e64000000, 0x0000024e64000000| Untracked 
+|  52|0x0000024e66000000, 0x0000024e66000000, 0x0000024e68000000|  0%| F|  |TAMS 0x0000024e66000000, 0x0000024e66000000| Untracked 
+|  53|0x0000024e68000000, 0x0000024e68000000, 0x0000024e6a000000|  0%| F|  |TAMS 0x0000024e68000000, 0x0000024e68000000| Untracked 
+|  54|0x0000024e6a000000, 0x0000024e6a000000, 0x0000024e6c000000|  0%| F|  |TAMS 0x0000024e6a000000, 0x0000024e6a000000| Untracked 
+|  55|0x0000024e6c000000, 0x0000024e6c000000, 0x0000024e6e000000|  0%| F|  |TAMS 0x0000024e6c000000, 0x0000024e6c000000| Untracked 
+|  56|0x0000024e6e000000, 0x0000024e6e000000, 0x0000024e70000000|  0%| F|  |TAMS 0x0000024e6e000000, 0x0000024e6e000000| Untracked 
+|  57|0x0000024e70000000, 0x0000024e70000000, 0x0000024e72000000|  0%| F|  |TAMS 0x0000024e70000000, 0x0000024e70000000| Untracked 
+|  58|0x0000024e72000000, 0x0000024e72000000, 0x0000024e74000000|  0%| F|  |TAMS 0x0000024e72000000, 0x0000024e72000000| Untracked 
+|  59|0x0000024e74000000, 0x0000024e74000000, 0x0000024e76000000|  0%| F|  |TAMS 0x0000024e74000000, 0x0000024e74000000| Untracked 
+|  60|0x0000024e76000000, 0x0000024e76000000, 0x0000024e78000000|  0%| F|  |TAMS 0x0000024e76000000, 0x0000024e76000000| Untracked 
+|  61|0x0000024e78000000, 0x0000024e78000000, 0x0000024e7a000000|  0%| F|  |TAMS 0x0000024e78000000, 0x0000024e78000000| Untracked 
+|  62|0x0000024e7a000000, 0x0000024e7a000000, 0x0000024e7c000000|  0%| F|  |TAMS 0x0000024e7a000000, 0x0000024e7a000000| Untracked 
+|  63|0x0000024e7c000000, 0x0000024e7c000000, 0x0000024e7e000000|  0%| F|  |TAMS 0x0000024e7c000000, 0x0000024e7c000000| Untracked 
+|  64|0x0000024e7e000000, 0x0000024e7e000000, 0x0000024e80000000|  0%| F|  |TAMS 0x0000024e7e000000, 0x0000024e7e000000| Untracked 
+|  65|0x0000024e80000000, 0x0000024e80000000, 0x0000024e82000000|  0%| F|  |TAMS 0x0000024e80000000, 0x0000024e80000000| Untracked 
+|  66|0x0000024e82000000, 0x0000024e82000000, 0x0000024e84000000|  0%| F|  |TAMS 0x0000024e82000000, 0x0000024e82000000| Untracked 
+|  67|0x0000024e84000000, 0x0000024e84000000, 0x0000024e86000000|  0%| F|  |TAMS 0x0000024e84000000, 0x0000024e84000000| Untracked 
+|  68|0x0000024e86000000, 0x0000024e86000000, 0x0000024e88000000|  0%| F|  |TAMS 0x0000024e86000000, 0x0000024e86000000| Untracked 
+|  69|0x0000024e88000000, 0x0000024e88000000, 0x0000024e8a000000|  0%| F|  |TAMS 0x0000024e88000000, 0x0000024e88000000| Untracked 
+|  70|0x0000024e8a000000, 0x0000024e8a000000, 0x0000024e8c000000|  0%| F|  |TAMS 0x0000024e8a000000, 0x0000024e8a000000| Untracked 
+|  71|0x0000024e8c000000, 0x0000024e8c000000, 0x0000024e8e000000|  0%| F|  |TAMS 0x0000024e8c000000, 0x0000024e8c000000| Untracked 
+|  72|0x0000024e8e000000, 0x0000024e8f0af730, 0x0000024e90000000| 52%| S|CS|TAMS 0x0000024e8e000000, 0x0000024e8e000000| Complete 
+|  73|0x0000024e90000000, 0x0000024e90000000, 0x0000024e92000000|  0%| F|  |TAMS 0x0000024e90000000, 0x0000024e90000000| Untracked 
+|  74|0x0000024e92000000, 0x0000024e92000000, 0x0000024e94000000|  0%| F|  |TAMS 0x0000024e92000000, 0x0000024e92000000| Untracked 
+|  75|0x0000024e94000000, 0x0000024e94000000, 0x0000024e96000000|  0%| F|  |TAMS 0x0000024e94000000, 0x0000024e94000000| Untracked 
+|  76|0x0000024e96000000, 0x0000024e96000000, 0x0000024e98000000|  0%| F|  |TAMS 0x0000024e96000000, 0x0000024e96000000| Untracked 
+|  77|0x0000024e98000000, 0x0000024e98000000, 0x0000024e9a000000|  0%| F|  |TAMS 0x0000024e98000000, 0x0000024e98000000| Untracked 
+|  78|0x0000024e9a000000, 0x0000024e9a000000, 0x0000024e9c000000|  0%| F|  |TAMS 0x0000024e9a000000, 0x0000024e9a000000| Untracked 
+|  79|0x0000024e9c000000, 0x0000024e9c000000, 0x0000024e9e000000|  0%| F|  |TAMS 0x0000024e9c000000, 0x0000024e9c000000| Untracked 
+|  80|0x0000024e9e000000, 0x0000024e9e000000, 0x0000024ea0000000|  0%| F|  |TAMS 0x0000024e9e000000, 0x0000024e9e000000| Untracked 
+|  81|0x0000024ea0000000, 0x0000024ea0000000, 0x0000024ea2000000|  0%| F|  |TAMS 0x0000024ea0000000, 0x0000024ea0000000| Untracked 
+|  82|0x0000024ea2000000, 0x0000024ea2000000, 0x0000024ea4000000|  0%| F|  |TAMS 0x0000024ea2000000, 0x0000024ea2000000| Untracked 
+|  83|0x0000024ea4000000, 0x0000024ea4000000, 0x0000024ea6000000|  0%| F|  |TAMS 0x0000024ea4000000, 0x0000024ea4000000| Untracked 
+
+Card table byte_map: [0x0000024da73a0000,0x0000024db73a0000] _byte_map_base: 0x0000024c803b0000
+
+Marking Bits (Prev, Next): (CMBitMap*) 0x0000024dfcbe6020, (CMBitMap*) 0x0000024dfcbe5fe8
+ Prev Bits: [0x0000026e7e000000, 0x0000026efe000000)
+ Next Bits: [0x0000026dfe000000, 0x0000026e7e000000)
+
+Polling page: 0x0000024dfaa00000
+
+Metaspace:
+
+Usage:
+  155.49 MB capacity,   145.00 MB ( 93%) used,     9.20 MB (  6%) free+waste,     1.29 MB ( <1%) overhead. 
+
+Virtual space:
+    156.00 MB reserved,     155.66 MB (>99%) committed 
+
+Chunk freelists:
+128 bytes
+
+CodeHeap 'non-profiled nmethods': size=120064Kb used=8045Kb max_used=8045Kb free=112018Kb
+ bounds [0x0000024d8fe60000, 0x0000024d90640000, 0x0000024d973a0000]
+CodeHeap 'profiled nmethods': size=120000Kb used=31482Kb max_used=31482Kb free=88517Kb
+ bounds [0x0000024d88930000, 0x0000024d8a820000, 0x0000024d8fe60000]
+CodeHeap 'non-nmethods': size=5696Kb used=1602Kb max_used=1658Kb free=4093Kb
+ bounds [0x0000024d883a0000, 0x0000024d88610000, 0x0000024d88930000]
+ total_blobs=19993 nmethods=18869 adapters=1031
+ compilation: enabled
+              stopped_count=0, restarted_count=0
+ full_count=0
+
+Compilation events (10 events):
+Event: 71.555 Thread 0x0000024dfdd3f000 nmethod 21676 0x0000024d8a810890 code [0x0000024d8a810a60, 0x0000024d8a810e00]
+Event: 71.555 Thread 0x0000024dfdd3f000 21669       3       org.apache.spark.sql.catalyst.expressions.Cast::child (5 bytes)
+Event: 71.555 Thread 0x0000024dfdd3f000 nmethod 21669 0x0000024d8a810f10 code [0x0000024d8a8110c0, 0x0000024d8a811238]
+Event: 71.555 Thread 0x0000024dfdd3f000 21689       3       org.apache.spark.sql.catalyst.plans.logical.Union$$Lambda$4513/0x0000024dd9df9040::apply (8 bytes)
+Event: 71.556 Thread 0x0000024dfdd3f000 nmethod 21689 0x0000024d8a811310 code [0x0000024d8a811500, 0x0000024d8a8119d0]
+Event: 71.556 Thread 0x0000024dfdd3f000 21679       3       scala.collection.AbstractIterator::toSeq (5 bytes)
+Event: 71.556 Thread 0x0000024dfdd3f000 nmethod 21679 0x0000024d8a811b90 code [0x0000024d8a811d40, 0x0000024d8a812010]
+Event: 71.556 Thread 0x0000024dfdd3f000 21684       3       scala.PartialFunction$OrElse::applyOrElse (41 bytes)
+Event: 71.557 Thread 0x0000024dfdd3f000 nmethod 21684 0x0000024d8a812110 code [0x0000024d8a8122e0, 0x0000024d8a812720]
+Event: 71.557 Thread 0x0000024dfdd3f000 21687       3       org.apache.spark.sql.catalyst.trees.BinaryLike::mapChildren (178 bytes)
+
+GC Heap History (10 events):
+Event: 62.162 GC heap after
+{Heap after GC invocations=52 (full 0):
+ garbage-first heap   total 1933312K, used 344327K [0x0000024dfe000000, 0x0000026dfe000000)
+  region size 32768K, 1 young (32768K), 1 survivors (32768K)
+ Metaspace       used 144601K, capacity 154712K, committed 154788K, reserved 155648K
+}
+Event: 63.763 GC heap before
+{Heap before GC invocations=52 (full 0):
+ garbage-first heap   total 1933312K, used 573703K [0x0000024dfe000000, 0x0000026dfe000000)
+  region size 32768K, 9 young (294912K), 1 survivors (32768K)
+ Metaspace       used 145175K, capacity 155392K, committed 155556K, reserved 155648K
+}
+Event: 63.891 GC heap after
+{Heap after GC invocations=53 (full 0):
+ garbage-first heap   total 2752512K, used 345627K [0x0000024dfe000000, 0x0000026dfe000000)
+  region size 32768K, 1 young (32768K), 1 survivors (32768K)
+ Metaspace       used 145175K, capacity 155392K, committed 155556K, reserved 155648K
+}
+Event: 66.051 GC heap before
+{Heap before GC invocations=53 (full 0):
+ garbage-first heap   total 2752512K, used 607771K [0x0000024dfe000000, 0x0000026dfe000000)
+  region size 32768K, 9 young (294912K), 1 survivors (32768K)
+ Metaspace       used 146383K, capacity 156894K, committed 157092K, reserved 157696K
+}
+Event: 66.090 GC heap after
+{Heap after GC invocations=54 (full 0):
+ garbage-first heap   total 2752512K, used 348815K [0x0000024dfe000000, 0x0000026dfe000000)
+  region size 32768K, 1 young (32768K), 1 survivors (32768K)
+ Metaspace       used 146383K, capacity 156894K, committed 157092K, reserved 157696K
+}
+Event: 68.335 GC heap before
+{Heap before GC invocations=54 (full 0):
+ garbage-first heap   total 2752512K, used 643727K [0x0000024dfe000000, 0x0000026dfe000000)
+  region size 32768K, 11 young (360448K), 1 survivors (32768K)
+ Metaspace       used 147755K, capacity 158468K, committed 158628K, reserved 159744K
+}
+Event: 68.369 GC heap after
+{Heap after GC invocations=55 (full 0):
+ garbage-first heap   total 2752512K, used 351052K [0x0000024dfe000000, 0x0000026dfe000000)
+  region size 32768K, 1 young (32768K), 1 survivors (32768K)
+ Metaspace       used 147755K, capacity 158468K, committed 158628K, reserved 159744K
+}
+Event: 69.695 GC heap before
+{Heap before GC invocations=55 (full 0):
+ garbage-first heap   total 2752512K, used 678732K [0x0000024dfe000000, 0x0000026dfe000000)
+  region size 32768K, 12 young (393216K), 1 survivors (32768K)
+ Metaspace       used 148073K, capacity 158804K, committed 158884K, reserved 159744K
+}
+Event: 69.759 GC heap after
+{Heap after GC invocations=56 (full 0):
+ garbage-first heap   total 2752512K, used 350533K [0x0000024dfe000000, 0x0000026dfe000000)
+  region size 32768K, 1 young (32768K), 1 survivors (32768K)
+ Metaspace       used 148073K, capacity 158804K, committed 158884K, reserved 159744K
+}
+Event: 71.561 GC heap before
+{Heap before GC invocations=56 (full 0):
+ garbage-first heap   total 2752512K, used 678213K [0x0000024dfe000000, 0x0000026dfe000000)
+  region size 32768K, 12 young (393216K), 1 survivors (32768K)
+ Metaspace       used 148476K, capacity 159219K, committed 159396K, reserved 159744K
+}
+
+Deoptimization events (10 events):
+Event: 67.503 Thread 0x0000024dfcba3800 Uncommon trap: reason=profile_predicate action=maybe_recompile pc=0x0000024d9028753c method=org.apache.xbean.asm9.ClassReader.readCode(Lorg/apache/xbean/asm9/MethodVisitor;Lorg/apache/xbean/asm9/Context;I)V @ 4680 c2
+Event: 67.505 Thread 0x0000024dfcba3800 Uncommon trap: reason=profile_predicate action=maybe_recompile pc=0x0000024d90225344 method=org.apache.xbean.asm9.ClassReader.readCode(Lorg/apache/xbean/asm9/MethodVisitor;Lorg/apache/xbean/asm9/Context;I)V @ 4680 c2
+Event: 67.806 Thread 0x0000024dcbba4000 Uncommon trap: reason=class_check action=maybe_recompile pc=0x0000024d903532dc method=org.apache.spark.memory.TaskMemoryManager.cleanUpAllAllocatedMemory()J @ 27 c2
+Event: 68.001 Thread 0x0000024dfcba3800 Uncommon trap: reason=unstable_if action=reinterpret pc=0x0000024d903a44c0 method=org.apache.spark.sql.catalyst.plans.QueryPlan.recursiveTransform$1(Ljava/lang/Object;Lscala/Function1;Lscala/runtime/BooleanRef;)Ljava/lang/Object; @ 116 c2
+Event: 68.553 Thread 0x0000024dcb97a000 Uncommon trap: reason=class_check action=maybe_recompile pc=0x0000024d90598198 method=scala.collection.generic.Shrinkable.$anonfun$$minus$minus$eq$1(Lscala/collection/generic/Shrinkable;Ljava/lang/Object;)Lscala/collection/generic/Shrinkable; @ 2 c2
+Event: 68.554 Thread 0x0000024dcb97a000 Uncommon trap: reason=unstable_if action=reinterpret pc=0x0000024d9036d160 method=scala.collection.immutable.VectorPointer.getElem(II)Ljava/lang/Object; @ 3 c2
+Event: 68.554 Thread 0x0000024dcb97a000 Uncommon trap: reason=unstable_if action=reinterpret pc=0x0000024d903dc438 method=scala.collection.immutable.VectorPointer.getElem(II)Ljava/lang/Object; @ 3 c2
+Event: 70.573 Thread 0x0000024dcbb9c000 Uncommon trap: reason=unstable_if action=reinterpret pc=0x0000024d9047dd24 method=java.util.concurrent.atomic.LongAdder.add(J)V @ 24 c2
+Event: 70.838 Thread 0x0000024dcb97a000 Uncommon trap: reason=class_check action=maybe_recompile pc=0x0000024d90598198 method=scala.collection.generic.Shrinkable.$anonfun$$minus$minus$eq$1(Lscala/collection/generic/Shrinkable;Ljava/lang/Object;)Lscala/collection/generic/Shrinkable; @ 2 c2
+Event: 70.935 Thread 0x0000024dcbb9e800 Uncommon trap: reason=class_check action=maybe_recompile pc=0x0000024d903532dc method=org.apache.spark.memory.TaskMemoryManager.cleanUpAllAllocatedMemory()J @ 27 c2
+
+Classes redefined (0 events):
+No events
+
+Internal exceptions (10 events):
+Event: 66.772 Thread 0x0000024dcb97a000 Exception <a 'java/lang/NoSuchMethodError'{0x0000024ea1fa8e70}: static Lorg/apache/spark/sql/catalyst/expressions/ArrayAggregate;.<clinit>()V> (0x0000024ea1fa8e70) thrown at [./open/src/hotspot/share/prims/jni.cpp, line 1362]
+Event: 66.778 Thread 0x0000024dcb97a000 Exception <a 'java/lang/NoSuchMethodError'{0x0000024ea1fdc9d8}: static Lorg/apache/spark/sql/catalyst/expressions/ArrayIntersect;.<clinit>()V> (0x0000024ea1fdc9d8) thrown at [./open/src/hotspot/share/prims/jni.cpp, line 1362]
+Event: 66.781 Thread 0x0000024dcb97a000 Exception <a 'java/lang/NoSuchMethodError'{0x0000024e9e012cd0}: static Lorg/apache/spark/sql/catalyst/util/GenericArrayData;.<clinit>()V> (0x0000024e9e012cd0) thrown at [./open/src/hotspot/share/prims/jni.cpp, line 1362]
+Event: 66.794 Thread 0x0000024dcb97a000 Exception <a 'java/lang/NoSuchMethodError'{0x0000024e9e01a2d0}: static Lorg/apache/spark/sql/catalyst/util/ArrayData;.<clinit>()V> (0x0000024e9e01a2d0) thrown at [./open/src/hotspot/share/prims/jni.cpp, line 1362]
+Event: 67.377 Thread 0x0000024dfcba3800 Implicit null exception at 0x0000024d905efd87 to 0x0000024d905f3cb6
+Event: 67.516 Thread 0x0000024dcb97a000 Exception <a 'java/lang/NoSuchMethodError'{0x0000024e9b55a2b0}: static Lorg/apache/spark/rdd/UnionRDD;.<clinit>()V> (0x0000024e9b55a2b0) thrown at [./open/src/hotspot/share/prims/jni.cpp, line 1362]
+Event: 67.518 Thread 0x0000024dcb97a000 Exception <a 'java/lang/NoSuchMethodError'{0x0000024e9b56c180}: static Lorg/apache/spark/RangeDependency;.<clinit>()V> (0x0000024e9b56c180) thrown at [./open/src/hotspot/share/prims/jni.cpp, line 1362]
+Event: 67.521 Thread 0x0000024dcb97a000 Exception <a 'java/lang/NoSuchMethodError'{0x0000024e9b604d50}: static Lorg/apache/spark/sql/catalyst/expressions/aggregate/First;.<clinit>()V> (0x0000024e9b604d50) thrown at [./open/src/hotspot/share/prims/jni.cpp, line 1362]
+Event: 67.567 Thread 0x0000024dcb97a000 Exception <a 'java/lang/NoSuchMethodError'{0x0000024e9b6b3b18}: static Lorg/apache/spark/sql/catalyst/expressions/MonotonicallyIncreasingID;.<clinit>()V> (0x0000024e9b6b3b18) thrown at [./open/src/hotspot/share/prims/jni.cpp, line 1362]
+Event: 67.598 Thread 0x0000024dca053000 Exception <a 'java/lang/NoSuchMethodError'{0x0000024e9bbd9b88}: static Lorg/apache/spark/rdd/UnionPartition;.<clinit>()V> (0x0000024e9bbd9b88) thrown at [./open/src/hotspot/share/prims/jni.cpp, line 1362]
+
+Events (10 events):
+Event: 71.482 loading class org/apache/spark/sql/catalyst/expressions/Expression done
+Event: 71.483 loading class scala/collection/Seq
+Event: 71.483 loading class scala/collection/Seq done
+Event: 71.483 loading class scala/collection/Seq
+Event: 71.483 loading class scala/collection/Seq done
+Event: 71.483 loading class org/apache/spark/sql/catalyst/expressions/Expression
+Event: 71.483 loading class org/apache/spark/sql/catalyst/expressions/Expression done
+Event: 71.484 loading class org/apache/spark/sql/catalyst/expressions/Expression
+Event: 71.484 loading class org/apache/spark/sql/catalyst/expressions/Expression done
+Event: 71.560 Executing VM operation: G1CollectForAllocation
+
+
+Dynamic libraries:
+0x00007ff7cf340000 - 0x00007ff7cf34f000 	C:\Program Files\Java\jdk-11.0.9\bin\java.exe
+0x00007fff5fbf0000 - 0x00007fff5fe07000 	C:\Windows\SYSTEM32\ntdll.dll
+0x00007fff5e430000 - 0x00007fff5e4f4000 	C:\Windows\System32\KERNEL32.DLL
+0x00007fff5d0d0000 - 0x00007fff5d487000 	C:\Windows\System32\KERNELBASE.dll
+0x00007fff5cfb0000 - 0x00007fff5d0c1000 	C:\Windows\System32\ucrtbase.dll
+0x00007fff44c80000 - 0x00007fff44c98000 	C:\Program Files\Java\jdk-11.0.9\bin\jli.dll
+0x00007fff45df0000 - 0x00007fff45e05000 	C:\Program Files\Java\jdk-11.0.9\bin\VCRUNTIME140.dll
+0x00007fff5ed30000 - 0x00007fff5ede2000 	C:\Windows\System32\ADVAPI32.dll
+0x00007fff5d9b0000 - 0x00007fff5da57000 	C:\Windows\System32\msvcrt.dll
+0x00007fff5ec80000 - 0x00007fff5ed28000 	C:\Windows\System32\sechost.dll
+0x00007fff5d880000 - 0x00007fff5d8a8000 	C:\Windows\System32\bcrypt.dll
+0x00007fff5f080000 - 0x00007fff5f194000 	C:\Windows\System32\RPCRT4.dll
+0x00007fff5e500000 - 0x00007fff5e6af000 	C:\Windows\System32\USER32.dll
+0x00007fff5cf80000 - 0x00007fff5cfa6000 	C:\Windows\System32\win32u.dll
+0x00007fff5d920000 - 0x00007fff5d949000 	C:\Windows\System32\GDI32.dll
+0x00007fff5d760000 - 0x00007fff5d878000 	C:\Windows\System32\gdi32full.dll
+0x00007fff5d490000 - 0x00007fff5d52a000 	C:\Windows\System32\msvcp_win.dll
+0x00007fff49ed0000 - 0x00007fff4a163000 	C:\Windows\WinSxS\amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.22621.3672_none_2713b9d173822955\COMCTL32.dll
+0x00007fff55610000 - 0x00007fff5561a000 	C:\Windows\SYSTEM32\VERSION.dll
+0x00007fff5e3f0000 - 0x00007fff5e421000 	C:\Windows\System32\IMM32.DLL
+0x00007fff3b7a0000 - 0x00007fff3b83b000 	C:\Program Files\Java\jdk-11.0.9\bin\msvcp140.dll
+0x00007ffef2a50000 - 0x00007ffef3547000 	C:\Program Files\Java\jdk-11.0.9\bin\server\jvm.dll
+0x00007fff5e0c0000 - 0x00007fff5e0c8000 	C:\Windows\System32\PSAPI.DLL
+0x00007fff48da0000 - 0x00007fff48da9000 	C:\Windows\SYSTEM32\WSOCK32.dll
+0x00007fff4b160000 - 0x00007fff4b194000 	C:\Windows\SYSTEM32\WINMM.dll
+0x00007fff5fb30000 - 0x00007fff5fba1000 	C:\Windows\System32\WS2_32.dll
+0x00007fff5bf50000 - 0x00007fff5bf68000 	C:\Windows\SYSTEM32\kernel.appcore.dll
+0x00007fff589e0000 - 0x00007fff589f0000 	C:\Program Files\Java\jdk-11.0.9\bin\verify.dll
+0x00007fff48450000 - 0x00007fff48682000 	C:\Windows\SYSTEM32\DBGHELP.DLL
+0x00007fff5e720000 - 0x00007fff5eaae000 	C:\Windows\System32\combase.dll
+0x00007fff5edf0000 - 0x00007fff5eec7000 	C:\Windows\System32\OLEAUT32.dll
+0x00007fff42b40000 - 0x00007fff42b72000 	C:\Windows\SYSTEM32\dbgcore.DLL
+0x00007fff5cf00000 - 0x00007fff5cf7b000 	C:\Windows\System32\bcryptPrimitives.dll
+0x00007fff41040000 - 0x00007fff41068000 	C:\Program Files\Java\jdk-11.0.9\bin\java.dll
+0x00007fff52c80000 - 0x00007fff52c8a000 	C:\Program Files\Java\jdk-11.0.9\bin\jimage.dll
+0x00007fff44c20000 - 0x00007fff44c36000 	C:\Program Files\Java\jdk-11.0.9\bin\zip.dll
+0x00007fff5f1a0000 - 0x00007fff5fa09000 	C:\Windows\System32\SHELL32.dll
+0x00007fff5ae70000 - 0x00007fff5b76f000 	C:\Windows\SYSTEM32\windows.storage.dll
+0x00007fff5ad30000 - 0x00007fff5ae6f000 	C:\Windows\SYSTEM32\wintypes.dll
+0x00007fff5fa10000 - 0x00007fff5fb09000 	C:\Windows\System32\SHCORE.dll
+0x00007fff5d950000 - 0x00007fff5d9ae000 	C:\Windows\System32\shlwapi.dll
+0x00007fff5ce30000 - 0x00007fff5ce57000 	C:\Windows\SYSTEM32\profapi.dll
+0x00007fff3d370000 - 0x00007fff3d389000 	C:\Program Files\Java\jdk-11.0.9\bin\net.dll
+0x00007fff58890000 - 0x00007fff589c6000 	C:\Windows\SYSTEM32\WINHTTP.dll
+0x00007fff5c3c0000 - 0x00007fff5c429000 	C:\Windows\system32\mswsock.dll
+0x00007fff3ce60000 - 0x00007fff3ce72000 	C:\Program Files\Java\jdk-11.0.9\bin\nio.dll
+0x00007fff49ad0000 - 0x00007fff49ad9000 	C:\Program Files\Java\jdk-11.0.9\bin\management.dll
+0x00007fff48c80000 - 0x00007fff48c8b000 	C:\Program Files\Java\jdk-11.0.9\bin\management_ext.dll
+0x00007fff59ba0000 - 0x00007fff59bb7000 	C:\Windows\system32\napinsp.dll
+0x00007fff1aea0000 - 0x00007fff1aebb000 	C:\Windows\system32\pnrpnsp.dll
+0x00007fff5ba40000 - 0x00007fff5bb42000 	C:\Windows\SYSTEM32\DNSAPI.dll
+0x00007fff5b9d0000 - 0x00007fff5b9fd000 	C:\Windows\SYSTEM32\IPHLPAPI.DLL
+0x00007fff5e710000 - 0x00007fff5e719000 	C:\Windows\System32\NSI.dll
+0x00007fff1ae80000 - 0x00007fff1ae91000 	C:\Windows\System32\winrnr.dll
+0x00007fff58590000 - 0x00007fff585a5000 	C:\Windows\system32\wshbth.dll
+0x00007fff1b040000 - 0x00007fff1b067000 	C:\Windows\system32\nlansp_c.dll
+0x00007fff4ae30000 - 0x00007fff4ae3a000 	C:\Windows\System32\rasadhlp.dll
+0x00007fff55f40000 - 0x00007fff55fc3000 	C:\Windows\System32\fwpuclnt.dll
+0x00007fff45de0000 - 0x00007fff45de9000 	C:\Program Files\Java\jdk-11.0.9\bin\jaas.dll
+0x00007fff5c610000 - 0x00007fff5c62b000 	C:\Windows\SYSTEM32\CRYPTSP.dll
+0x00007fff5beb0000 - 0x00007fff5bee5000 	C:\Windows\system32\rsaenh.dll
+0x00007fff5c4b0000 - 0x00007fff5c4d8000 	C:\Windows\SYSTEM32\USERENV.dll
+0x00007fff5c630000 - 0x00007fff5c63c000 	C:\Windows\SYSTEM32\CRYPTBASE.dll
+0x00007fff58d40000 - 0x00007fff58d59000 	C:\Windows\SYSTEM32\dhcpcsvc6.DLL
+0x00007fff58d20000 - 0x00007fff58d3f000 	C:\Windows\SYSTEM32\dhcpcsvc.DLL
+0x0000000066f40000 - 0x0000000066fc4000 	C:\Users\30694\AppData\Local\Temp\liblz4-java-11496843771761959451.so
+
+dbghelp: loaded successfully - version: 4.0.5 - missing functions: none
+symbol engine: initialized successfully - sym options: 0x614 - pdb path: .;C:\Program Files\Java\jdk-11.0.9\bin;C:\Windows\SYSTEM32;C:\Windows\WinSxS\amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.22621.3672_none_2713b9d173822955;C:\Program Files\Java\jdk-11.0.9\bin\server;C:\Users\30694\AppData\Local\Temp
+
+VM Arguments:
+jvm_args: -Xmx128G -Dspark.executor.memory=32G -Dspark.driver.memory=32G -Dspark.driver.total.executor.cores=96 -Dspark.executor.cores=8 -Dspark.driver.cores=3 -Dspark.executor.instances=10 -Dspark.yarn.executor.memoryOverhead=8G -Dspark.driver.maxResultSize=16G 
+java_command: Main
+java_class_path (initial): C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\job-1\target\11f2dd71\bf19bdb4\schemadiscovery_2.12-0.1.0-SNAPSHOT.jar;C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\target\e1043186\5a707d77\scala-library-2.12.17.jar;C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\target\b4c69391\dfb0ef96\spark-core_2.12-3.4.1.jar;C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\target\ea04ac25\2d196a77\spark-sql_2.12-3.4.1.jar;C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\target\97a96a61\b41caa23\spark-mllib_2.12-3.4.1.jar;C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\target\a78f5491\0ae58ff9\spark-hive_2.12-3.4.1.jar;C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\target\65f007c8\d39ff7b6\neo4j-java-driver-4.4.10.jar;C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\target\86334f8f\fb8b2971\neo4j-connector-apache-spark_2.12-4.1.4.jar;C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\target\e55a15f1\2ae93f8b\ujson_2.12-3.1.3.jar;C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\target\53a06970\c24622f8\requests_2.12-0.8.0.jar;C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\target\312a107d\52bc2a55\avro-1.11.1.jar;C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\target\6592e806\42d47e84\avro-mapred-1.11.1.jar;C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\target\d7a64018\9035d1e8\chill_2.12-0.10.0.jar;C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\tar
+Launcher Type: SUN_STANDARD
+
+[Global flags]
+     intx CICompilerCount                          = 3                                         {product} {ergonomic}
+     uint ConcGCThreads                            = 1                                         {product} {ergonomic}
+     uint G1ConcRefinementThreads                  = 4                                         {product} {ergonomic}
+   size_t G1HeapRegionSize                         = 33554432                                  {product} {ergonomic}
+    uintx GCDrainStackTargetSize                   = 64                                        {product} {ergonomic}
+   size_t InitialHeapSize                          = 67108864                                  {product} {ergonomic}
+   size_t MarkStackSize                            = 4194304                                   {product} {ergonomic}
+   size_t MaxHeapSize                              = 137438953472                              {product} {command line}
+   size_t MaxNewSize                               = 82443239424                               {product} {ergonomic}
+   size_t MinHeapDeltaBytes                        = 33554432                                  {product} {ergonomic}
+    uintx NonNMethodCodeHeapSize                   = 5830732                                {pd product} {ergonomic}
+    uintx NonProfiledCodeHeapSize                  = 122913754                              {pd product} {ergonomic}
+    uintx ProfiledCodeHeapSize                     = 122913754                              {pd product} {ergonomic}
+    uintx ReservedCodeCacheSize                    = 251658240                              {pd product} {ergonomic}
+     bool SegmentedCodeCache                       = true                                      {product} {ergonomic}
+     bool UseG1GC                                  = true                                      {product} {ergonomic}
+     bool UseLargePagesIndividualAllocation        = false                                  {pd product} {ergonomic}
+
+Logging:
+Log output configuration:
+ #0: stdout all=warning uptime,level,tags
+ #1: stderr all=off uptime,level,tags
+
+Environment Variables:
+JAVA_HOME=C:\Program Files\Java\jdk-11.0.9
+CLASSPATH=C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\job-1\target\11f2dd71\bf19bdb4\schemadiscovery_2.12-0.1.0-SNAPSHOT.jar;C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\target\e1043186\5a707d77\scala-library-2.12.17.jar;C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\target\b4c69391\dfb0ef96\spark-core_2.12-3.4.1.jar;C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\target\ea04ac25\2d196a77\spark-sql_2.12-3.4.1.jar;C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\target\97a96a61\b41caa23\spark-mllib_2.12-3.4.1.jar;C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\target\a78f5491\0ae58ff9\spark-hive_2.12-3.4.1.jar;C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\target\65f007c8\d39ff7b6\neo4j-java-driver-4.4.10.jar;C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\target\86334f8f\fb8b2971\neo4j-connector-apache-spark_2.12-4.1.4.jar;C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\target\e55a15f1\2ae93f8b\ujson_2.12-3.1.3.jar;C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\target\53a06970\c24622f8\requests_2.12-0.8.0.jar;C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\target\312a107d\52bc2a55\avro-1.11.1.jar;C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\target\6592e806\42d47e84\avro-mapred-1.11.1.jar;C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\target\d7a64018\9035d1e8\chill_2.12-0.10.0.jar;C:\Users\30694\Desktop\HybridLSHSchemaDiscovery\schemadiscovery\target\bg-jobs\sbt_ae664fa3\target\aa843c4a\5ea1e05e\chill
+PATH=C:\Program Files\Java\jdk-11.0.9\bin;C:\Program Files\Java\jdk-11.0.9\bin;C:\Python313\Scripts\;C:\Python313\;C:\Program Files\Java\jdk-11.0.9\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Windows\SysWOW64;C:\Windows\SysWOW64\Wbem;C:\Windows\SysWOW64\WindowsPowerShell\v1.0\;C:\Program Files\nodejs\;C:\Program Files\Java\jdk-11.0.9\bin;C:\Users\30694\AppData\Local\Programs\Python\Python312\Scripts\;C:\Users\30694\AppData\Local\Programs\Python\Python312\;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files\PuTTY\;C:\ProgramData\chocolatey\bin;C:\Program Files\nodejs\;C:\Program Files\Git\cmd;C:\Program Files (x86)\sbt\bin;C:\Program Files (x86)\scala\bin;C:\Users\30694\AppData\Local\Microsoft\WindowsApps;C:\Users\30694\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\30694\AppData\Local\Coursier\data\bin;C:\tools\;C:\hadoop\bin;C:\Users\30694\AppData\Roaming\npm
+USERNAME=30694
+OS=Windows_NT
+PROCESSOR_IDENTIFIER=Intel64 Family 6 Model 142 Stepping 10, GenuineIntel
+
+
+
+---------------  S Y S T E M  ---------------
+
+OS: Windows 10 , 64 bit Build 22621 (10.0.22621.3958)
+
+CPU:total 4 (initial active 4) (2 cores per cpu, 2 threads per core) family 6 model 142 stepping 10, cmov, cx8, fxsr, mmx, sse, sse2, sse3, ssse3, sse4.1, sse4.2, popcnt, avx, avx2, aes, clmul, erms, 3dnowpref, lzcnt, ht, tsc, tscinvbit, bmi1, bmi2, adx, fma
+
+Memory: 4k page, system-wide physical 4005M (269M free)
+TotalPageFile size 16269M (AvailPageFile size 267M)
+current process WorkingSet (physical memory assigned to process): 1010M, peak: 1157M
+current process commit charge ("private bytes"): 3158M, peak: 4406M
+
+vm_info: Java HotSpot(TM) 64-Bit Server VM (11.0.9+7-LTS) for windows-amd64 JRE (11.0.9+7-LTS), built on Sep 15 2020 16:47:03 by "mach5one" with MS VC++ 15.9 (VS2017)
+
+END.

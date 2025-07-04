@@ -4,18 +4,17 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
-
+import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.collection.mutable.ListBuffer
 import java.io.File
-
+import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
+import ch.megard.akka.http.cors.scaladsl.model.HttpOriginMatcher
 // JSON Support
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 
-// CORS Support
-import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 
 object Server extends App {
   implicit val system: ActorSystem = ActorSystem("my-system")
@@ -27,8 +26,15 @@ object Server extends App {
   var clusteringCompleted: Boolean = false //  Νέα μεταβλητή για παρακολούθηση κατάστασης
 
   val receivedMetrics = ListBuffer.empty[String]
+  val receivedNodeInfo = ListBuffer.empty[String]
+  val receivedEdgeInfo = ListBuffer.empty[String]
 
-  val route = cors() {
+
+
+  val corsSettings = CorsSettings.defaultSettings.withAllowedOrigins(HttpOriginMatcher.*)
+
+
+  val route = cors(corsSettings) {
     path("start") {
       post {
         complete {
@@ -66,7 +72,7 @@ object Server extends App {
         entity(as[String]) { body =>
           println(s" Received metrics from clustering program:\n$body")
           receivedMetrics += body
-          clusteringCompleted = true //  Εδώ σηματοδοτείται η ολοκλήρωση του clustering
+          //clusteringCompleted = true //  Εδώ σηματοδοτείται η ολοκλήρωση του clustering
           complete(StatusCodes.OK, "Metrics received successfully.")
         }
       }
@@ -86,8 +92,49 @@ object Server extends App {
           complete(StatusCodes.Accepted, "Clustering not completed yet.")
         }
       }
+    } ~
+    path("set-clustering-complete") {
+      post {
+        clusteringCompleted = true
+        complete(StatusCodes.OK, "Clustering marked as complete.")
+      }
+    } ~
+    path("node-info") {
+      post {
+        entity(as[String]) { body =>
+          println(s"📦 Received node info:\n$body")
+          receivedNodeInfo.clear()
+          receivedNodeInfo += body
+          complete(StatusCodes.OK, "Node info received successfully.")
+        }
+      }
+    } ~
+    path("node-info") {
+      get {
+        complete(HttpEntity(ContentTypes.`application/json`, receivedNodeInfo.toList.toJson.compactPrint))
+      }
+    } ~
+    path("edge-info") {
+      post {
+        entity(as[String]) { body =>
+          println(s"📦 Received edge info:\n$body")
+          receivedEdgeInfo.clear()
+          receivedEdgeInfo += body
+          complete(StatusCodes.OK, "Edge info received successfully.")
+        }
+      }
+    } ~
+    path("edge-info") {
+      get {
+        complete(HttpEntity(ContentTypes.`application/json`, receivedEdgeInfo.toList.toJson.compactPrint))
+      }
     }
+
   }
+  
+
+  
+
 
   val bindingFuture = Http().newServerAt("localhost", 8080).bind(route)
   println(" Server is online at http://localhost:8080/")

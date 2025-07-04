@@ -1,27 +1,32 @@
 -- NODE TYPES --
-CREATE NODE TYPE PersonType : Person {browserUsed STRING, lastName STRING, firstName STRING, gender STRING, id DOUBLE, locationIP STRING, creationDate DATE, birthday DATE};
 CREATE NODE TYPE Organisation_PlaceType : Organisation | Place {type STRING, name STRING, id DOUBLE, url STRING};
+CREATE NODE TYPE PersonType : Person {browserUsed STRING, lastName STRING, firstName STRING, gender STRING, id DOUBLE, locationIP STRING, creationDate DATE, birthday DATE};
 CREATE NODE TYPE EmailType : Email {address STRING};
 
 -- EDGE TYPES --
-CREATE EDGE TYPE has_email_is_part_ofType : HAS_EMAIL | IS_PART_OF;
+CREATE EDGE TYPE has_emailType : HAS_EMAIL;
 CREATE EDGE TYPE is_located_inType : IS_LOCATED_IN;
+CREATE EDGE TYPE is_part_ofType : IS_PART_OF;
 CREATE EDGE TYPE speaksType : SPEAKS {language STRING};
 CREATE EDGE TYPE study_atType : STUDY_AT {classYear INTEGER};
 CREATE EDGE TYPE works_atType : WORKS_AT {workFrom INTEGER};
 
 CREATE GRAPH TYPE NewGraphSchema STRICT {
-  (PersonType),
   (Organisation_PlaceType),
+  (PersonType),
   (EmailType),
-  (:PlaceType|PersonType)-[has_email_is_part_ofType]->(:EmailType|PlaceType),
+  (:PersonType)-[has_emailType]->(:EmailType),
   (:PersonType|OrganisationType)-[is_located_inType]->(:PlaceType),
+  (:PlaceType)-[is_part_ofType]->(:PlaceType),
   (:PersonType)-[speaksType]->(:PersonType),
   (:PersonType)-[study_atType]->(:OrganisationType),
   (:PersonType)-[works_atType]->(:OrganisationType),
 
   // Constraints
-  FOR (x:PersonType|OrganisationType) SINGLETON y WITHIN (x)-[y: is_located_inType]->(:PlaceType)
+  FOR (x:PersonType) SINGLETON x,y WITHIN (x)-[y: has_emailType]->(:EmailType)
+  FOR (x:PersonType|OrganisationType) SINGLETON x,y WITHIN (x)-[y: is_located_inType]->(:PlaceType)
+  FOR (x:PlaceType) SINGLETON x,y WITHIN (x)-[y: is_part_ofType]->(:PlaceType)
   FOR (x:PersonType) SINGLETON x,y WITHIN (x)-[y: speaksType]->(:PersonType)
-  FOR (x:PersonType) SINGLETON y WITHIN (x)-[y: study_atType]->(:OrganisationType)
+  FOR (x:PersonType) SINGLETON x,y WITHIN (x)-[y: study_atType]->(:OrganisationType)
+  FOR (x:PersonType) SINGLETON x,y WITHIN (x)-[y: works_atType]->(:OrganisationType)
 }

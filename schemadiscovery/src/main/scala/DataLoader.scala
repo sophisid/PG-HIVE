@@ -124,9 +124,9 @@ object DataLoader {
     val session = driver.session()
 
     println("Loading all nodes from Neo4j")
-    //BALAME LIMIT 1000 DONT FORGET TO TAKE IT OFF
+    //BALAME LIMIT 100 DONT FORGET TO TAKE IT OFF
     // The query to return property labels
-    val result = session.run("MATCH (n) WITH n, rand() AS random RETURN n, labels(n) AS labels ORDER BY random LIMIT 1000")
+    val result = session.run("MATCH (n) WITH n, rand() AS random RETURN n, labels(n) AS labels ORDER BY random LIMIT 100")
     val nodes = result.list().asScala.map { record =>
       val node = record.get("n").asNode()
       val labels = record.get("labels").asList().asScala.map(_.toString)
@@ -170,7 +170,7 @@ object DataLoader {
     val uri = "bolt://localhost:7687"
     val user = "neo4j"
     val password = "password"
-    //BALAME LIMIT 1000 DONT FORGET TO TAKE IT OFF
+    //BALAME LIMIT 100 DONT FORGET TO TAKE IT OFF
     val driver = GraphDatabase.driver(uri, AuthTokens.basic(user, password))
     val session = driver.session()
     println("Loading all relationships from Neo4j")
@@ -181,7 +181,7 @@ object DataLoader {
         |       id(m) AS dstId, labels(m) AS dstType,
         |       type(r) AS relationshipType, properties(r) AS properties
         | ORDER BY random
-        |LIMIT 1000""".stripMargin
+        |LIMIT 100""".stripMargin
     )
 
     val relationships = result.list().asScala.map { record =>
