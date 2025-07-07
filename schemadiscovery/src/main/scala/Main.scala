@@ -39,36 +39,40 @@ object Main {
   }
 
   def sendClusterInfoToFrontend(df: DataFrame): Unit = {
-      try {
-        // Παίρνουμε τα πεδία sortedLabels και propertiesInCluster
-        val data = df.select("sortedLabels", "propertiesInCluster")
-          .collect()
-          .map { row =>
-            val labels = row.getAs[Seq[String]]("sortedLabels")
-            val props = row.getAs[Seq[String]]("propertiesInCluster")
+  try {
+    // Ελέγχουμε αν υπάρχει η στήλη "category"
+    val hasCategory = df.columns.contains("category")
+    val dfWithCategory = if (hasCategory) df else df.withColumn("category", lit("Loose"))
 
-            ujson.Obj(
-              "labels" -> labels,
-              "properties" -> props,
-              "category" -> "Loose" // μπορείς να το κάνεις "Strict" ανάλογα με το context
-            )
-          }
+    val data = dfWithCategory.select("sortedLabels", "propertiesInCluster", "category")
+      .collect()
+      .map { row =>
+        val labels = row.getAs[Seq[String]]("sortedLabels")
+        val props = row.getAs[Seq[String]]("propertiesInCluster")
+        val category = row.getAs[String]("category")
 
-        // Τυλίγουμε τα data σωστά ως ujson.Arr για να μην υπάρχει compile error
-        val json = ujson.Obj("clusters" -> ujson.Arr(data: _*))
-
-        val response = requests.post(
-          url = "http://localhost:8080/node-info", // Endpoint που έχουμε ορίσει στον Server.scala
-          data = json.render(),
-          headers = Map("Content-Type" -> "application/json")
+        ujson.Obj(
+          "labels" -> labels,
+          "properties" -> props,
+          "category" -> category
         )
-
-        println(s"✅ Cluster info sent to frontend. Status code: ${response.statusCode}")
-      } catch {
-        case e: Exception =>
-          println(s"❌ Failed to send cluster info to frontend: ${e.getMessage}")
       }
+
+    val json = ujson.Obj("clusters" -> ujson.Arr(data: _*))
+
+    val response = requests.post(
+      url = "http://localhost:8080/node-info",
+      data = json.render(),
+      headers = Map("Content-Type" -> "application/json")
+    )
+
+    println(s"✅ Cluster info sent to frontend. Status code: ${response.statusCode}")
+  } catch {
+    case e: Exception =>
+      println(s"❌ Failed to send cluster info to frontend: ${e.getMessage}")
   }
+}
+
 
   def sendEdgeClusterInfoToFrontend(df: DataFrame): Unit = {
     try {
@@ -286,13 +290,43 @@ def alignSchemas(df1: DataFrame, df2: DataFrame): (DataFrame, DataFrame) = {
 
 
   def main(args: Array[String]): Unit = {
-    val clusteringMethod = if (args.length < 1) "LSH" else args(0).toUpperCase()
+    /*val clusteringMethod = if (args.length < 1) "LSH" else args(0).toUpperCase()
     //check if clustering incremental
     val incremental = args.length > 1 && args(1).toLowerCase == "incremental"
     if (!Set("LSH", "KMEANS", "BOTH").contains(clusteringMethod)) {
       println(s"Invalid clustering method: $clusteringMethod. Use LSH, KMEANS, or BOTH.")
       System.exit(1)
+    }*/
+
+
+  if (args.length < 1) {
+      println("Usage: run <dataset> [INCREMENTAL <batchSize>]")
+      sys.exit(1)
     }
+
+    val datasetName = args(0).toUpperCase()
+    DataLoader.initializeConnectionParameters(datasetName)
+
+    val (incremental, batchSize) = if (args.length >= 3 && args(1).toUpperCase() == "INCREMENTAL") {
+      val size = try {
+        args(2).toInt
+      } catch {
+        case _: NumberFormatException =>
+          println("Batch size must be an integer.")
+          sys.exit(1)
+      }
+      (true, size)
+    } else {
+      (false, 0)
+    }
+
+    println(s"Dataset: $datasetName")
+    println(s"Incremental mode: $incremental")
+    if (incremental) println(s"Batch size: $batchSize")
+
+    val clusteringMethod = "LSH"//<---------Na ylopoihuei mono LSH
+
+
 
     val spark = SparkSession.builder()
       .appName("HybridLSHDemo")

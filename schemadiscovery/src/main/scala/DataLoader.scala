@@ -5,13 +5,29 @@ import org.neo4j.driver.{AuthTokens, GraphDatabase}
 import scala.collection.JavaConverters._
 
 object DataLoader {
+  var uri: String = _
+  var user: String = _
+  var password: String = _
+
+  def initializeConnectionParameters(datasetName: String): Unit = {
+    datasetName match {
+      case "LDBC" => uri = "bolt://localhost:7687"
+      case "MB6"  => uri = "bolt://localhost:7688"
+      case "FIB25" => uri = "bolt://localhost:7689"
+      case _ => throw new IllegalArgumentException(s"Unknown dataset: $datasetName")
+    }
+    user = "neo4j"
+    password = "password"
+  }
+
+
+
+
+
   def loadNodesBatch(spark: SparkSession, batchSize: Int, offset: Long): DataFrame = {
     import spark.implicits._
-    val uri = "bolt://localhost:7687"
-    val user = "neo4j"
-    val password = "password"
+    val driver = GraphDatabase.driver(DataLoader.uri, AuthTokens.basic(DataLoader.user, DataLoader.password))
 
-    val driver = GraphDatabase.driver(uri, AuthTokens.basic(user, password))
     val session = driver.session()
 
     println(s"Loading batch of nodes (offset: $offset, batchSize: $batchSize) from Neo4j")
@@ -60,11 +76,10 @@ object DataLoader {
 
   def loadRelationshipsBatch(spark: SparkSession, batchSize: Int, offset: Long): DataFrame = {
     import spark.implicits._
-    val uri = "bolt://localhost:7687"
-    val user = "neo4j"
-    val password = "password"
+    val driver = GraphDatabase.driver(DataLoader.uri, AuthTokens.basic(DataLoader.user, DataLoader.password))
 
-    val driver = GraphDatabase.driver(uri, AuthTokens.basic(user, password))
+
+    
     val session = driver.session()
 
     println(s"Loading batch of relationships (offset: $offset, batchSize: $batchSize) from Neo4j")
@@ -116,11 +131,8 @@ object DataLoader {
 
   def loadAllNodes(spark: SparkSession): DataFrame = {
     import spark.implicits._
-    val uri = "bolt://localhost:7687"
-    val user = "neo4j"
-    val password = "password"
+    val driver = GraphDatabase.driver(DataLoader.uri, AuthTokens.basic(DataLoader.user, DataLoader.password))
 
-    val driver = GraphDatabase.driver(uri, AuthTokens.basic(user, password))
     val session = driver.session()
 
     println("Loading all nodes from Neo4j")
@@ -167,11 +179,8 @@ object DataLoader {
 
   def loadAllRelationships(spark: SparkSession): DataFrame = {
     import spark.implicits._
-    val uri = "bolt://localhost:7687"
-    val user = "neo4j"
-    val password = "password"
+    val driver = GraphDatabase.driver(DataLoader.uri, AuthTokens.basic(DataLoader.user, DataLoader.password))
     //BALAME LIMIT 100 DONT FORGET TO TAKE IT OFF
-    val driver = GraphDatabase.driver(uri, AuthTokens.basic(user, password))
     val session = driver.session()
     println("Loading all relationships from Neo4j")
     val result = session.run(

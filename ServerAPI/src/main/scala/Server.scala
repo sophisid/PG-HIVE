@@ -21,7 +21,8 @@ object Server extends App {
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
-  val projectDir = "C:\\Users\\30694\\Desktop\\HybridLSHSchemaDiscovery\\schemadiscovery"
+  //val projectDir = "C:\\Users\\30694\\Desktop\\HybridLSHSchemaDiscovery\\schemadiscovery"   <-----σταθερο Directory
+  val projectDir = new File("../schemadiscovery").getCanonicalPath       //<-----μεταβλητο Directory
   var runningProcess: Option[Process] = None
   var clusteringCompleted: Boolean = false //  Νέα μεταβλητή για παρακολούθηση κατάστασης
 
@@ -37,18 +38,41 @@ object Server extends App {
   val route = cors(corsSettings) {
     path("start") {
       post {
-        complete {
-          if (runningProcess.isEmpty || !runningProcess.exists(_.isAlive())) {
-            clusteringCompleted = false //  Reset πριν ξεκινήσει
-            val command = Seq("cmd", "/c", "sbt", "run")
-            val pb = new java.lang.ProcessBuilder(command: _*)
-            pb.directory(new File(projectDir))
-            pb.inheritIO()
-            val process = pb.start()
-            runningProcess = Some(process)
-            "sbt run has started!"
-          } else {
-            "sbt run is already running!"
+        entity(as[String]) { body =>
+          complete {
+            if (runningProcess.isEmpty || !runningProcess.exists(_.isAlive())) {
+              clusteringCompleted = false
+
+              val args = body.trim.split("\\s+").toList
+
+              if (args.isEmpty) {
+                " Missing dataset name. Usage: <dataset> [INCREMENTAL <batchSize>]"
+              } else {
+                val dataset = args.head
+                val isIncremental = args.lift(1).exists(_.equalsIgnoreCase("INCREMENTAL"))
+                val batchSize = args.lift(2).getOrElse("")
+
+                val joinedArgs = if (isIncremental) {
+                  s"""run $dataset INCREMENTAL $batchSize"""
+                } else {
+                  s"""run $dataset"""
+                }
+
+                val command = Seq("cmd", "/c", "sbt", joinedArgs)
+
+                println(s" Starting: ${command.mkString(" ")}")
+
+                val pb = new java.lang.ProcessBuilder(command: _*)
+                pb.directory(new File(projectDir))
+                pb.inheritIO()
+                val process = pb.start()
+                runningProcess = Some(process)
+
+                s" sbt run started with: $joinedArgs"
+              }
+            } else {
+              " sbt run is already running!"
+            }
           }
         }
       }
@@ -128,6 +152,23 @@ object Server extends App {
       get {
         complete(HttpEntity(ContentTypes.`application/json`, receivedEdgeInfo.toList.toJson.compactPrint))
       }
+    } ~
+    path("download" / Remaining) { filename =>
+      get {
+        val fullPath = s"../schemadiscovery/$filename"
+        println(s"[DOWNLOAD] Trying to fetch file from: ${new File(fullPath).getCanonicalPath}")
+        val file = new File(fullPath)
+        if (file.exists() && file.isFile) {
+          val source = akka.stream.scaladsl.FileIO.fromPath(file.toPath)
+          val contentType = ContentType(MediaTypes.`application/octet-stream`)
+          complete(
+            HttpResponse(entity = HttpEntity(contentType, source))
+              .withHeaders(`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> file.getName)))
+          )
+        } else {
+          complete(StatusCodes.NotFound, s"File not found: $filename")
+        }
+      }
     }
 
   }
@@ -137,6 +178,7 @@ object Server extends App {
 
 
   val bindingFuture = Http().newServerAt("localhost", 8080).bind(route)
+  println(s"Using projectDir: $projectDir")
   println(" Server is online at http://localhost:8080/")
   println(" Waiting for /clustering-finished and metrics")
   println(" Press Enter to stop the server...")
