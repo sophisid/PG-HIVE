@@ -39,60 +39,65 @@ object Main {
   }
 
   def sendClusterInfoToFrontend(df: DataFrame): Unit = {
-  try {
-    // Ελέγχουμε αν υπάρχει η στήλη "category"
-    val hasCategory = df.columns.contains("category")
-    val dfWithCategory = if (hasCategory) df else df.withColumn("category", lit("Loose"))
+    try {
+      val hasCategory = df.columns.contains("category")
+      val dfWithCategory = if (hasCategory) df else df.withColumn("category", lit("Loose"))
 
-    val data = dfWithCategory.select("sortedLabels", "propertiesInCluster", "category")
-      .collect()
-      .map { row =>
-        val labels = row.getAs[Seq[String]]("sortedLabels")
-        val props = row.getAs[Seq[String]]("propertiesInCluster")
-        val category = row.getAs[String]("category")
+      val data = dfWithCategory.select("sortedLabels", "propertiesInCluster", "optionalProperties", "category")
+        .collect()
+        .map { row =>
+          val labels = row.getAs[Seq[String]]("sortedLabels")
+          val props = row.getAs[Seq[String]]("propertiesInCluster")
+          val optionalProps = row.getAs[Seq[String]]("optionalProperties")
+          val category = row.getAs[String]("category")
 
-        ujson.Obj(
-          "labels" -> labels,
-          "properties" -> props,
-          "category" -> category
-        )
-      }
+          ujson.Obj(
+            "labels" -> labels,
+            "properties" -> props,
+            "optionalProperties" -> optionalProps,
+            "category" -> category
+          )
+        }
 
-    val json = ujson.Obj("clusters" -> ujson.Arr(data: _*))
+      val json = ujson.Obj("clusters" -> ujson.Arr(data: _*))
 
-    val response = requests.post(
-      url = "http://localhost:8080/node-info",
-      data = json.render(),
-      headers = Map("Content-Type" -> "application/json")
-    )
+      val response = requests.post(
+        url = "http://localhost:8080/node-info",
+        data = json.render(),
+        headers = Map("Content-Type" -> "application/json")
+      )
 
-    println(s"✅ Cluster info sent to frontend. Status code: ${response.statusCode}")
-  } catch {
-    case e: Exception =>
-      println(s"❌ Failed to send cluster info to frontend: ${e.getMessage}")
+      println(s"✅ Cluster info sent to frontend. Status code: ${response.statusCode}")
+    } catch {
+      case e: Exception =>
+        println(s"❌ Failed to send cluster info to frontend: ${e.getMessage}")
+    }
   }
-}
+
 
 
   def sendEdgeClusterInfoToFrontend(df: DataFrame): Unit = {
     try {
-      val data = df.select("relationshipTypes", "srcLabels", "dstLabels", "propsInCluster")
+      val data = df.select("relationshipTypes", "srcLabels", "dstLabels", "propsInCluster", "optionalProperties")
         .collect()
         .map { row =>
           val relTypes = row.getAs[Seq[String]]("relationshipTypes")
           val srcLabels = row.getAs[Seq[String]]("srcLabels")
           val dstLabels = row.getAs[Seq[String]]("dstLabels")
 
-          // propsInCluster is nested array: Seq[Seq[String]] => flatten to Seq[String]
-          val rawProps = row.getAs[Seq[Seq[String]]]("propsInCluster")
-          val props = rawProps.flatten
+          // 👇 Fix για nested array
+          val nestedProps = row.getAs[Seq[Seq[String]]]("propsInCluster")
+          val rawProps = nestedProps.flatten
+
+          val optionalProps = row.getAs[Seq[String]]("optionalProperties")
 
           ujson.Obj(
             "relationship" -> relTypes.mkString("|"),
             "srcLabels" -> ujson.Arr(srcLabels.map(ujson.Str(_)): _*),
             "dstLabels" -> ujson.Arr(dstLabels.map(ujson.Str(_)): _*),
-            "properties" -> ujson.Arr(props.map(ujson.Str(_)): _*),
-            "category" -> "Loose"
+            "properties" -> ujson.Arr(rawProps.map(ujson.Str(_)): _*),
+            "optionalProperties" -> ujson.Arr(optionalProps.map(ujson.Str(_)): _*),
+            "category" -> ujson.Str("Loose")
           )
         }
 
@@ -110,6 +115,9 @@ object Main {
         println(s"❌ Failed to send edge cluster info to frontend: ${e.getMessage}")
     }
   }
+
+
+
 
 
 
@@ -534,6 +542,7 @@ def alignSchemas(df1: DataFrame, df2: DataFrame): (DataFrame, DataFrame) = {
         updatedMergedEdges.show(100)
 
         val updatedMergedEdgesWCardinalities = InferSchema.inferCardinalities(edgesDF, updatedMergedEdges)
+        
         println("Updated Merged Edges LSH with Types and Cardinalities:")
         // updatedMergedEdgesWCardinalities.printSchema()
         updatedMergedEdgesWCardinalities.show(5)
