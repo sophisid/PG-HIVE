@@ -38,6 +38,8 @@ datasets/FIB25/**
 !datasets/FIB25/*.zip
 datasets/FIB/**
 !datasets/FIB/*.zip
+datasets/ICJI/**
+!datasets/ICJI/*.zip
 datasets/MB6/**
 !datasets/MB6/*.zip
 datasets/LDBC/**
