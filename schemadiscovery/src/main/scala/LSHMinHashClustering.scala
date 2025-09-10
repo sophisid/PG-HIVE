@@ -1,11 +1,10 @@
-import org.apache.spark.ml.feature.BucketedRandomProjectionLSH
+import org.apache.spark.ml.feature.MinHashLSH
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.ml.linalg.{Vector, Vectors}
-import scala.math.sqrt
 
-object LSHClustering {
+object LSHMinHashClustering {
 
   def estimateLSHParams(
     df: DataFrame, 
@@ -13,76 +12,31 @@ object LSHClustering {
     isEdge: Boolean = false, 
     sampleSize: Int = 10000, 
     uniqueLabelCount: Option[Long] = None 
-  ): (Double, Int) = {
-    import df.sparkSession.implicits._
+  ): Int = {
+    val count = df.count()
 
-    val limitVal = math.min(sampleSize, df.count().toInt)
-    val sampledDF = df.sample(false, limitVal.toDouble / df.count(), 42).limit(limitVal).cache()
-    // println(s"Sampled ${sampledDF.count()} rows for LSH parameter estimation")
-
-    val featurePairs = sampledDF.crossJoin(sampledDF.withColumnRenamed(featuresCol, "features2"))
-      .select(col(featuresCol).as("f1"), col("features2").as("f2"))
-      .filter(col("f1") =!= col("f2"))
-      .limit(limitVal)
-
-    val distanceUdf = udf((v1: Vector, v2: Vector) => {
-      val diff = v1.toArray.zip(v2.toArray).map { case (x, y) => (x - y) * (x - y) }
-      sqrt(diff.sum)
-    })
-
-    val distances = featurePairs
-      .withColumn("distance", distanceUdf(col("f1"), col("f2")))
-      .agg(
-        avg("distance").as("avgDistance"),
-        min("distance").as("minDistance"),
-        max("distance").as("maxDistance"),
-        stddev("distance").as("stddevDistance")
-      )
-      .collect()(0)
-
-    val avgDistance = distances.getAs[Double]("avgDistance")
-    val minDistance = distances.getAs[Double]("minDistance")
-    val maxDistance = distances.getAs[Double]("maxDistance")
-    val stddevDistance = distances.getAs[Double]("stddevDistance")
-
-    println(s"Avg Distance: $avgDistance, Min Distance: $minDistance, Max Distance: $maxDistance, StdDev: $stddevDistance")
-
-    val (bucketLength, numHashTables) = if (isEdge) {
-      val edgeBucketLength = avgDistance * 1.2
-      val edgeNumHashTables = math.min(20, math.max(3, (df.count() / 20000).toInt))
-      (edgeBucketLength, edgeNumHashTables)
+    val numHashTables = if (isEdge) {
+      math.min(20, math.max(3, (count / 2000).toInt))
     } else {
-      val baseNodeBucketLength = avgDistance * 1.2
-      val baseNodeNumHashTables = math.min(25, math.max(5, (df.count() / 30000).toInt))
+      val baseNodeNumHashTables = math.min(25, math.max(5, (count / 3000).toInt))
 
       uniqueLabelCount match {
         case Some(labelCount) =>
-          val bucketLengthAdjustment = labelCount match {
-            case n if n <= 3  => 0.8
-            case n if n <= 10 => 1.0
-            case _            => 1.5
-          }
           val numHashTablesAdjustment = labelCount match {
-            case n if n <= 3  => 1.5 
-            case n if n <= 10 => 1.0
-            case _            => 0.8
+            case n if n <= 3  => 2 
+            case n if n <= 10 => 1.5
+            case _            => 1
           }
 
-          val adjustedBucketLength = baseNodeBucketLength * bucketLengthAdjustment
-          val adjustedNumHashTables = math.max(15, (baseNodeNumHashTables * numHashTablesAdjustment).toInt)
-
-          (adjustedBucketLength, adjustedNumHashTables)
+          math.max(25, (baseNodeNumHashTables * numHashTablesAdjustment).toInt)
         case None =>
-          (baseNodeBucketLength, baseNodeNumHashTables)
+          baseNodeNumHashTables
       }
     }
 
-    println(s"Estimated bucketLength: $bucketLength")
     println(s"Estimated numHashTables: $numHashTables")
 
-    sampledDF.unpersist()
-
-    (bucketLength, numHashTables)
+    numHashTables
   }
 
   def applyLSHNodes(spark: SparkSession, patternsDF: DataFrame): DataFrame = {
@@ -97,11 +51,8 @@ object LSHClustering {
       .distinct()
       .count()
     println(s"Number of unique labels: $uniqueLabelCount")
-    val (rawBucketLength, rawNumHashTables) = estimateLSHParams(patternsDF, "features", isEdge = false, uniqueLabelCount = Some(uniqueLabelCount))
-    val bucketLength = if (rawBucketLength == 0.0) 0.2 else rawBucketLength
-    val numHashTables = if (rawNumHashTables == 0) 5 else rawNumHashTables
-    val lsh = new BucketedRandomProjectionLSH()
-      .setBucketLength(bucketLength)
+    val numHashTables = estimateLSHParams(patternsDF, "features", isEdge = false, uniqueLabelCount = Some(uniqueLabelCount))
+    val lsh = new MinHashLSH()
       .setNumHashTables(numHashTables)
       .setInputCol("features")
       .setOutputCol("hashes")
@@ -146,12 +97,9 @@ object LSHClustering {
       return spark.emptyDataFrame
     }
 
-    val (rawBucketLength, rawNumHashTables) = estimateLSHParams(df, "features", isEdge = true)
-    val bucketLength = if (rawBucketLength == 0.0) 0.2 else rawBucketLength
-    val numHashTables = if (rawNumHashTables == 0) 5 else rawNumHashTables
+    val numHashTables = estimateLSHParams(df, "features", isEdge = true)
 
-    val lsh = new BucketedRandomProjectionLSH()
-      .setBucketLength(bucketLength)
+    val lsh = new MinHashLSH()
       .setNumHashTables(numHashTables)
       .setInputCol("features")
       .setOutputCol("hashes")

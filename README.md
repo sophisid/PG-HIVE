@@ -94,7 +94,12 @@ unzip LDBC/ldbc_neo4j_inputs3.zip
 unzip LDBC/ldbc_neo4j_inputs4.zip
 unzip MB6/mb6_neo4j_inputs1.zip
 ```
-if you want to test Cord-19 graph codebase, you can do it from [here](https://github.com/covidgraph/data_cord19)
+if you want to test the rest of the datasets:
+-- [Cord19 graph codebase](https://github.com/covidgraph/data_cord19)
+-- [The panama papers (icji) dataset](https://www.kaggle.com/datasets/zusmani/paradisepanamapapers)
+-- [het.io dataset](https://het.io/)
+-- [The internet yellow pages](https://iyp.iijlab.net/)
+-- [POLE](https://github.com/neo4j-graph-examples/pole)
 
 ### 2. Load Datasets into Neo4j
 
@@ -248,6 +253,8 @@ The scripts handle:
 - Create various test cases, with 0%-50%-100% usage of labels.
 - Running schema discovery (LSH clustering).
 - Stopping Neo4j and cleaning up.
+
+The rest of the datasets where evaluated with the script run_dump_script.sh , given a dump, the datasets labels and properties it handles all the aforementioned.
 
 ### Option 2: Manual Execution
 

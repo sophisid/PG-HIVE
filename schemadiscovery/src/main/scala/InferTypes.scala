@@ -10,7 +10,8 @@ object InferSchema {
     mergedDF: DataFrame,
     name: String,
     propertyCols: Seq[String],
-    idCol: String
+    idCol: String,
+    evaluateErrorRate: Boolean = false
   ): DataFrame = {
     import originalDF.sparkSession.implicits._
 
@@ -44,7 +45,6 @@ object InferSchema {
     println(s"Extracted properties: ${allPropertiesRaw.mkString(", ")}")
     println(s"Adjusted properties for $name: ${allProperties.mkString(", ")}")
 
-
     def isInteger(str: String): Boolean = Try(str.trim.toInt).isSuccess
     def isDouble(str: String): Boolean = Try(str.trim.toDouble).isSuccess
     def isDate(str: String): Boolean = {
@@ -60,44 +60,124 @@ object InferSchema {
       ipPattern.findFirstIn(str.trim).isDefined && str.split("\\.").forall(part => Try(part.toInt).isSuccess && part.toInt >= 0 && part.toInt <= 255)
     }
 
-    val inferredTypes = allProperties.map { prop =>
-      val sampleDF = originalDF
-        .filter(col(prop).isNotNull)
-        .limit(1000)
-        .cache()
+    val inferredTypes = scala.collection.mutable.Map[String, String]()
+    val trueTypes = if (evaluateErrorRate) scala.collection.mutable.Map[String, String]() else null
 
-      val sampleCount = sampleDF.count()
-      println(s"Sampling $prop: $sampleCount rows with non-null values")
+    if (evaluateErrorRate) {
+      val isIntegerUdf = udf(isInteger _)
+      val isDoubleUdf = udf(isDouble _)
+      val isDateUdf = udf(isDate _)
+      val isBooleanUdf = udf(isBoolean _)
+      val isIPUdf = udf(isIP _)
 
-      val values = sampleDF.select(prop)
-        .collect()
-        .map(_.getString(0))
-        .toSeq
-
-      println(s"Values for $prop: ${values.take(5).mkString(", ")} (total: ${values.length})")
-
-      val inferredType = if (values.isEmpty) {
-        "Unknown (empty)"
-      } else {
-        val allIntegers = values.forall(isInteger)
-        val allDoubles = values.forall(isDouble)
-        val allDates = values.forall(isDate)
-        val allBooleans = values.forall(isBoolean)
-
-        if (prop == "locationIP" || values.forall(isIP)) "String"
-        else if (allIntegers) "Integer"
-        else if (allDoubles) "Double"
-        else if (allDates) "Date"
-        else if (allBooleans) "Boolean"
-        else "String"
+      def inferType(df: DataFrame, prop: String): String = {
+        val count = df.count()
+        if (count == 0) {
+          "Unknown (empty)"
+        } else {
+          val allIP = df.agg(min(isIPUdf(col(prop)))).collect()(0).getBoolean(0)
+          if (prop == "locationIP" || allIP) {
+            "String"
+          } else {
+            val allIntegers = df.agg(min(isIntegerUdf(col(prop)))).collect()(0).getBoolean(0)
+            if (allIntegers) {
+              "Integer"
+            } else {
+              val allDoubles = df.agg(min(isDoubleUdf(col(prop)))).collect()(0).getBoolean(0)
+              if (allDoubles) {
+                "Double"
+              } else {
+                val allDates = df.agg(min(isDateUdf(col(prop)))).collect()(0).getBoolean(0)
+                if (allDates) {
+                  "Date"
+                } else {
+                  val allBooleans = df.agg(min(isBooleanUdf(col(prop)))).collect()(0).getBoolean(0)
+                  if (allBooleans) {
+                    "Boolean"
+                  } else {
+                    "String"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
 
-      sampleDF.unpersist()
-      (prop, inferredType)
-    }.toMap
+      allProperties.foreach { prop =>
+        val fullDF = originalDF.filter(col(prop).isNotNull).cache()
+        val sampleDF = fullDF.limit(1000).cache()
 
-    println(s"\nInferred Property Types for $name:")
-    inferredTypes.foreach { case (prop, typ) => println(s"Property: $prop, Inferred Type: $typ") }
+        val sampleCount = sampleDF.count()
+        println(s"Sampling $prop: $sampleCount rows with non-null values")
+
+        val inferredType = inferType(sampleDF, prop)
+        val trueType = inferType(fullDF, prop)
+
+        inferredTypes(prop) = inferredType
+        trueTypes(prop) = trueType
+
+        sampleDF.unpersist()
+        fullDF.unpersist()
+      }
+
+      println(s"\nInferred Property Types for $name (from sample):")
+      inferredTypes.foreach { case (prop, typ) => println(s"Property: $prop, Inferred Type: $typ") }
+
+      println(s"\nTrue Property Types for $name (from full data):")
+      trueTypes.foreach { case (prop, typ) => println(s"Property: $prop, True Type: $typ") }
+
+      val differingProps = allProperties.filter(p => inferredTypes(p) != trueTypes(p))
+      val errorRate = if (allProperties.nonEmpty) differingProps.size.toDouble / allProperties.size else 0.0
+      println(s"\nError rate in type inference: $errorRate (${differingProps.size} out of ${allProperties.size})")
+
+      if (differingProps.nonEmpty) {
+        println("Differing properties:")
+        differingProps.foreach { p =>
+          println(s"$p: sample ${inferredTypes(p)}, full ${trueTypes(p)}")
+        }
+      }
+    } else {
+      // Sampling-only approach (original behavior)
+      allProperties.foreach { prop =>
+        val sampleDF = originalDF
+          .filter(col(prop).isNotNull)
+          .limit(1000)
+          .cache()
+
+        val sampleCount = sampleDF.count()
+        println(s"Sampling $prop: $sampleCount rows with non-null values")
+
+        val values = sampleDF.select(prop)
+          .collect()
+          .map(_.getString(0))
+          .toSeq
+
+        println(s"Values for $prop: ${values.take(5).mkString(", ")} (total: ${values.length})")
+
+        val inferredType = if (values.isEmpty) {
+          "Unknown (empty)"
+        } else {
+          val allIntegers = values.forall(isInteger)
+          val allDoubles = values.forall(isDouble)
+          val allDates = values.forall(isDate)
+          val allBooleans = values.forall(isBoolean)
+
+          if (prop == "locationIP" || values.forall(isIP)) "String"
+          else if (allIntegers) "Integer"
+          else if (allDoubles) "Double"
+          else if (allDates) "Date"
+          else if (allBooleans) "Boolean"
+          else "String"
+        }
+
+        inferredTypes(prop) = inferredType
+        sampleDF.unpersist()
+      }
+
+      println(s"\nInferred Property Types for $name (from sample):")
+      inferredTypes.foreach { case (prop, typ) => println(s"Property: $prop, Inferred Type: $typ") }
+    }
 
     val typeMapUdf = udf((properties: Seq[String]) =>
       if (properties == null || properties.isEmpty)
@@ -128,11 +208,10 @@ object InferSchema {
     updatedDF
   }
 
-
   def inferCardinalities(edgesDF: DataFrame, mergedEdges: DataFrame): DataFrame = {
     import edgesDF.sparkSession.implicits._
 
-    // scr->dst cardinality
+    // src->dst cardinality
     val srcToDst = edgesDF.groupBy("relationshipType", "srcId")
       .agg(countDistinct("dstId").as("dstCount"))
       .groupBy("relationshipType")
