@@ -179,6 +179,9 @@ object Main {
       .config("spark.executor.instances", "10")
       .config("spark.yarn.executor.memoryOverhead", "4g")
       .config("spark.driver.maxResultSize", "4g")
+      .config("spark.sql.shuffle.partitions", "32")
+      .config("spark.sql.adaptive.enabled", "true")
+      .config("spark.sql.adaptive.coalescePartitions.enabled", "true")
       .getOrCreate()
 
     import spark.implicits._
