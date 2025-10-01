@@ -3,6 +3,8 @@ import org.apache.spark.sql.types._
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.neo4j.driver.{AuthTokens, GraphDatabase}
 import scala.collection.JavaConverters._
+import scala.collection.mutable.ArrayBuffer
+
 
 object DataLoader {
   def loadNodesBatch(spark: SparkSession, batchSize: Int, offset: Long): DataFrame = {
@@ -183,7 +185,22 @@ object DataLoader {
         | ORDER BY random""".stripMargin
     )
 
-    val relationships = result.list().asScala.map { record =>
+    // val relationships = result.list().asScala.map { record =>
+    //   val srcId = record.get("srcId").asLong()
+    //   val dstId = record.get("dstId").asLong()
+    //   val srcType = record.get("srcType").asList().asScala.mkString(":")
+    //   val dstType = record.get("dstType").asList().asScala.mkString(":")
+    //   val relationshipType = record.get("relationshipType").asString()
+    //   val properties = record.get("properties").asMap().asScala.toMap.mapValues(_.toString)
+
+    //   properties + ("srcId" -> srcId, "dstId" -> dstId, "relationshipType" -> relationshipType, "srcType" -> srcType, "dstType" -> dstType)
+    // }
+
+    val relationshipsBuf = ArrayBuffer[Map[String, Any]]()
+
+    while (result.hasNext) {
+      val record = result.next()
+
       val srcId = record.get("srcId").asLong()
       val dstId = record.get("dstId").asLong()
       val srcType = record.get("srcType").asList().asScala.mkString(":")
@@ -191,8 +208,15 @@ object DataLoader {
       val relationshipType = record.get("relationshipType").asString()
       val properties = record.get("properties").asMap().asScala.toMap.mapValues(_.toString)
 
-      properties + ("srcId" -> srcId, "dstId" -> dstId, "relationshipType" -> relationshipType, "srcType" -> srcType, "dstType" -> dstType)
+      relationshipsBuf += (
+        properties + ("srcId" -> srcId, "dstId" -> dstId,
+                      "relationshipType" -> relationshipType,
+                      "srcType" -> srcType, "dstType" -> dstType)
+      )
     }
+
+    val relationships = relationshipsBuf.toSeq
+
 
     session.close()
     driver.close()

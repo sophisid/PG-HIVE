@@ -173,13 +173,13 @@ object Main {
     val spark = SparkSession.builder()
       .appName("HybridLSHDemo")
       .master("local[*]")
-      .config("spark.executor.memory", "16g")
-      .config("spark.driver.memory", "16g")
+      .config("spark.executor.memory", "32g")
+      .config("spark.driver.memory", "32g")
       .config("spark.executor.cores", "4")
       .config("spark.executor.instances", "10")
       .config("spark.yarn.executor.memoryOverhead", "4g")
       .config("spark.driver.maxResultSize", "4g")
-      .config("spark.sql.shuffle.partitions", "32")
+      .config("spark.sql.shuffle.partitions", "256")
       .config("spark.sql.adaptive.enabled", "true")
       .config("spark.sql.adaptive.coalescePartitions.enabled", "true")
       .getOrCreate()
@@ -226,6 +226,7 @@ object Main {
           // binaryEdgesDF.select("relationshipTypeArray").distinct().show(false)
 
           // Cluster nodes LSH 
+          val startClusteringTimeInc = System.currentTimeMillis()
           val clusteredNodes = LSHClustering.applyLSHNodes(spark, binaryNodesDF)
           val clusteredEdges = LSHClustering.applyLSHEdges(spark, binaryEdgesDF)
           // clusteredNodes.printSchema()
@@ -233,7 +234,11 @@ object Main {
 
           val mergedPatterns = LSHClustering.mergePatternsByLabel(spark, clusteredNodes)
           val mergedEdges = LSHClustering.mergeEdgePatternsByLabel(spark, clusteredEdges)
-
+          val endClusteringTimeInc = System.currentTimeMillis()
+          val elapsedClusteringTimeInc = endClusteringTimeInc - startClusteringTimeInc
+          val elapsedClusteringTimeInSecondsInc = elapsedClusteringTimeInc / 1000
+          println(s"Elapsed time for clustering batch $batchIndex: $elapsedClusteringTimeInSecondsInc seconds")
+  
 
 
           if(mergedPatterns.isEmpty || batchIndex == 0) {
