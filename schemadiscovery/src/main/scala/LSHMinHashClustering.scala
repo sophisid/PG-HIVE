@@ -13,12 +13,12 @@ object LSHMinHashClustering {
     sampleSize: Int = 10000, 
     uniqueLabelCount: Option[Long] = None 
   ): Int = {
-    val count = df.count()
+    // val count = df.count()
 
     val numHashTables = if (isEdge) {
-      math.min(20, math.max(3, (count / 2000).toInt))
+      math.min(20, math.max(3, math.log10(df.count().toDouble).toInt))
     } else {
-      val baseNodeNumHashTables = math.min(25, math.max(5, (count / 3000).toInt))
+      val baseNodeNumHashTables = math.min(25, math.max(5, math.log10(df.count().toDouble).toInt))
 
       uniqueLabelCount match {
         case Some(labelCount) =>

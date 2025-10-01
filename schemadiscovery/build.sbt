@@ -37,8 +37,8 @@ lazy val root = (project in file("."))
         "-Dspark.executor.cores=8",
         "-Dspark.driver.cores=3",
         "-Dspark.executor.instances=10",
-        "-Dspark.yarn.executor.memoryOverhead=8G",
-        "-Dspark.driver.maxResultSize=16G"
+        "-Dspark.yarn.executor.memoryOverhead=32G",
+        "-Dspark.driver.maxResultSize=32G"
     ) 
 
   )

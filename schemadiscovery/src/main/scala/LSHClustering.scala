@@ -49,11 +49,11 @@ object LSHClustering {
 
     val (bucketLength, numHashTables) = if (isEdge) {
       val edgeBucketLength = avgDistance * 1.2
-      val edgeNumHashTables = math.min(20, math.max(3, (df.count() / 20000).toInt))
+      val edgeNumHashTables = math.min(20, math.max(3, math.log10(df.count().toDouble).toInt))
       (edgeBucketLength, edgeNumHashTables)
     } else {
       val baseNodeBucketLength = avgDistance * 1.2
-      val baseNodeNumHashTables = math.min(25, math.max(5, (df.count() / 30000).toInt))
+      val baseNodeNumHashTables = math.min(25, math.max(5,math.log10(df.count().toDouble).toInt))
 
       uniqueLabelCount match {
         case Some(labelCount) =>
