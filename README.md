@@ -1,5 +1,13 @@
-# PG-HIVE: Hybrid Incremental Schema DiscoVEry for Property Graphs
+# PG-HIVE: Hybrid Incremental Schema Discovery for Property Graphs
+This repository contains the implementation accompanying research paper:
 
+**Sofia Sideri, Georgia Troullinou, Elisjana Ymeralli, Vasilis Efthymiou, Dimitris Plexousakis, and Haridimos Kondylakis.**
+**“PG-HIVE: Hybrid Incremental Schema Discovery for Property Graphs”**, arXiv preprint, 2025.
+Preprint: [https://arxiv.org/abs/2512.01092](https://arxiv.org/abs/2512.01092)
+
+If you use **PG-HIVE** in your research, please consider citing the paper (BibTeX below).
+
+---
 ## Overview
 
 **PG-HIVE** is a tool designed to discover schemas within **Property Graph Databases**. It supports incremental schema discovery and helps identify the structure, patterns, and relationships in graph data, even in the absence of type labels, facilitating the understanding and exploration of datasets.
@@ -306,8 +314,27 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 
 ---
 
+
 ## Contributions
 
 Contributions to **PG-HIVE** are welcome! If you find bugs, have suggestions, or want to contribute features, feel free to open an issue or submit a pull request.
 
 For questions, feedback, or support, please contact the repository maintainer.
+
+---
+
+## Citation
+
+If you use this code or build upon **PG-HIVE**, please cite:
+
+```bibtex
+@misc{sideri2025pghivehybridincrementalschema,
+      title={PG-HIVE: Hybrid Incremental Schema Discovery for Property Graphs}, 
+      author={Sofia Sideri and Georgia Troullinou and Elisjana Ymeralli and Vasilis Efthymiou and Dimitris Plexousakis and Haridimos Kondylakis},
+      year={2025},
+      eprint={2512.01092},
+      archivePrefix={arXiv},
+      primaryClass={cs.DB},
+      url={https://arxiv.org/abs/2512.01092}, 
+}
+```
