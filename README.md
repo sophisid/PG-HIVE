@@ -37,7 +37,7 @@ The project supports schema discovery on popular datasets like **LDBC**, **FIB25
 
 To install and set up **PG-HIVE**, follow these steps:
 
-### 1. Clone the Repository from here https://anonymous.4open.science/r/HybridIncrementalLSHSchemaDiscovery-79B3/
+### 1. Clone the Repository.
 
 ### 2. Build the Project
 
