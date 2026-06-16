@@ -45,7 +45,7 @@ If you use **PG-HIVE**, please cite:
 ```bibtex
 @inproceedings{sideri2026pghive,
   title={PG-HIVE: Hybrid Incremental Schema Discovery for Property Graphs},
-  author={Sideri, Sofia and Troullinou, Georgia and Ymeralli, Elisjana and Efthymiou, Vasilis and Plexousakis, Dimitris and Kondylakis, Haridimos},
+  author={Sideri, Sophia and Troullinou, Georgia and Ymeralli, Elisjana and Efthymiou, Vasilis and Plexousakis, Dimitris and Kondylakis, Haridimos},
   booktitle={Proceedings of the EDBT 2026 Conference},
   year={2026},
   url={https://openproceedings.org/2026/conf/edbt/paper-201.pdf}
