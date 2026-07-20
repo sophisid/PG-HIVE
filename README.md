@@ -2,9 +2,6 @@
 
 To test **PG-HIVE**, you do not need to manually prepare datasets or experiments.
 
-All required **datasets**, along with detailed **instructions for reproducing the experiments**, are available here:  
-https://zenodo.org/records/17801336  
-
 The full paper is available here:  
 https://openproceedings.org/2026/conf/edbt/paper-201.pdf  
 
