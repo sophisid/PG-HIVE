@@ -1,7 +1,5 @@
 ## PG-HIVE: Hybrid Incremental Schema Discovery for Property Graphs
 
-To test **PG-HIVE**, you do not need to manually prepare datasets or experiments.
-
 The full paper is available here:  
 https://openproceedings.org/2026/conf/edbt/paper-201.pdf  
 
