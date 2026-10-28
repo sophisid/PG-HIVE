@@ -1,3 +1,4 @@
+import org.apache.spark.storage.StorageLevel
 import org.apache.spark.ml.clustering.KMeans
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.functions._
@@ -78,7 +79,7 @@ object KMeansClustering {
   def mergePatternsByKMeansLabel(spark: SparkSession, clusteredNodes: DataFrame): DataFrame = {
   import spark.implicits._
 
-  clusteredNodes.cache()
+  clusteredNodes.persist(StorageLevel.DISK_ONLY)
 
   val withLabelsDF = clusteredNodes.filter(size($"labelsInCluster") > 0)
   val noLabelsDF = clusteredNodes.filter(size($"labelsInCluster") === 0)
@@ -135,7 +136,7 @@ object KMeansClustering {
  def mergeEdgePatternsByKMeansLabel(spark: SparkSession, clusteredEdges: DataFrame): DataFrame = {
   import spark.implicits._
 
-  clusteredEdges.cache()
+  clusteredEdges.persist(StorageLevel.DISK_ONLY)
 
   val withLabelsDF = clusteredEdges.filter(
     (size($"relsInCluster") > 0) &&

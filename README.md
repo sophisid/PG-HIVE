@@ -33,6 +33,22 @@ https://openproceedings.org/2026/conf/edbt/paper-201.pdf
 
 ---
 
+### Memory usage
+
+Full-graph loading streams Neo4j records to temporary files and reads them through
+Spark, instead of collecting the graph on the driver. Large cluster caches use
+disk storage; merged results are checkpointed before their parent cache is
+released. Temporary files are removed when the application exits.
+
+Set `PG_HIVE_TEMP_DIR` to a directory with enough free disk space (the default is
+the JVM temporary directory). Neo4j connection settings can be supplied through
+`NEO4J_URI`, `NEO4J_USER`, and `NEO4J_PASSWORD`; existing defaults still apply.
+The queries and inference parameters are unchanged. Neo4j's random-order queries
+still require server-side memory independently of Spark's reduced driver usage.
+
+Run the loader and LSH/MinHash equivalence tests from `schemadiscovery` with
+`sbt test` (JDK 11).
+
 ## Citation
 
 If you use **PG-HIVE**, please cite:

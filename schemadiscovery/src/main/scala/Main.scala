@@ -184,6 +184,7 @@ object Main {
       .config("spark.sql.adaptive.coalescePartitions.enabled", "true")
       .getOrCreate()
 
+    try {
     import spark.implicits._
     val startTime = System.currentTimeMillis() 
     spark.sparkContext.setLogLevel("ERROR")
@@ -336,7 +337,7 @@ object Main {
         // clusteredNodes.select("labelsInCluster", "propertiesInCluster").show(500, truncate = false)
         // clusteredEdges.show()
         //calculate time for clustering
-        val mergedPatterns = LSHClustering.mergePatternsByLabel(spark, clusteredNodes)
+        val mergedPatterns = MemoryStages.snapshot(LSHClustering.mergePatternsByLabel(spark, clusteredNodes))
         val endClusteringTime = System.currentTimeMillis()
         val elapsedClusteringTime = endClusteringTime - startClusteringTime
         val elapsedClusteringTimeInSeconds = elapsedClusteringTime / 1000.0
@@ -346,12 +347,13 @@ object Main {
         // mergedPatterns.printSchema()
         // mergedPatterns.select("sortedLabels", "propertiesInCluster","optionalProperties","mandatoryProperties" ,"original_cluster_ids").show(500)
 
-        val mergedEdgesLabelOnly = LSHClustering.mergeEdgePatternsByEdgeLabel(spark, clusteredEdges)
+        val mergedEdgesLabelOnly = MemoryStages.snapshot(LSHClustering.mergeEdgePatternsByEdgeLabel(spark, clusteredEdges))
         // println("Merged Edges LSH by Label Only:")
         // mergedEdgesLabelOnly.printSchema()
         // mergedEdgesLabelOnly.select("relationshipTypes","srcLabels","dstLabels","propsInCluster","merged_cluster_id").show(truncate = false , numRows = 500)
 
-        val mergedEdges = LSHClustering.mergeEdgePatternsByLabel(spark, clusteredEdges)
+        val mergedEdges = MemoryStages.snapshot(LSHClustering.mergeEdgePatternsByLabel(spark, clusteredEdges))
+        clusteredEdges.unpersist(blocking = true)
         println("Merged Edges LSH by Label & SRC/DST:")
         mergedEdges.printSchema()
         mergedEdges.select("relationshipTypes","srcLabels","dstLabels","propsInCluster","merged_cluster_id").show(truncate = false , numRows = 500)
@@ -454,6 +456,9 @@ object Main {
     val elapsedTimeInSeconds = elapsedTime / 1000.0
     println(s"Elapsed time for proccesing : $elapsedTimeInSeconds seconds")
     println(s"Elapsed time for proccesing: $elapsedTime milliseconds")
-    spark.stop()
+    } finally {
+      try spark.stop()
+      finally MemoryStages.cleanup()
+    }
   }
 }

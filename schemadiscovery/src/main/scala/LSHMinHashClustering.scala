@@ -1,3 +1,4 @@
+import org.apache.spark.storage.StorageLevel
 import org.apache.spark.ml.feature.MinHashLSH
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.functions._
@@ -308,7 +309,7 @@ object LSHMinHashClustering {
   def mergeEdgePatternsByLabel(spark: SparkSession, clusteredEdges: DataFrame): DataFrame = {
     import spark.implicits._
 
-    clusteredEdges.cache()
+    clusteredEdges.persist(StorageLevel.DISK_ONLY)
 
     val withLabelsDF = clusteredEdges.filter(
       (size($"relsInCluster") > 0) &&
@@ -385,7 +386,7 @@ object LSHMinHashClustering {
   def mergeEdgePatternsByEdgeLabel(spark: SparkSession, clusteredEdges: DataFrame): DataFrame = {
     import spark.implicits._
 
-    clusteredEdges.cache()
+    clusteredEdges.persist(StorageLevel.DISK_ONLY)
 
     val withLabelsDF = clusteredEdges.filter(
       (size($"relsInCluster") > 0) &&

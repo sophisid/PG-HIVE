@@ -45,7 +45,11 @@ lazy val root = (project in file("."))
 
 import sbtassembly.AssemblyPlugin.autoImport._
 
-assemblyMergeStrategy in assembly := {
+assembly / assemblyMergeStrategy := {
   case PathList("META-INF", xs @ _*) => MergeStrategy.discard
   case x => MergeStrategy.first
 }
+
+Test / fork := true
+Test / parallelExecution := false
+Test / javaOptions ++= Seq("-Xmx4G", "-Dspark.ui.enabled=false", "-Dspark.driver.host=127.0.0.1")
